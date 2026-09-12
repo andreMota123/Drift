@@ -3649,6 +3649,8 @@ QHash<QString, QString> defaultShortcuts()
         {QStringLiteral("unlink"), QStringLiteral("Ctrl+Shift+U")},
         {QStringLiteral("link"), QStringLiteral("Ctrl+Shift+L")},
         {QStringLiteral("combine"), QStringLiteral("Ctrl+Shift+J")},
+        {QStringLiteral("compound"), QStringLiteral("Alt+G")},
+        {QStringLiteral("dissolveCompound"), QStringLiteral("Ctrl+Shift+G")},
         {QStringLiteral("separateAudio"), QStringLiteral("Ctrl+Shift+S")},
         {QStringLiteral("copy"), QStringLiteral("Ctrl+C")},
         {QStringLiteral("cut"), QStringLiteral("Ctrl+X")},
@@ -3789,6 +3791,7 @@ QVariantMap AppController::clipToMap(const drift::Clip &clip, const drift::Clip 
         {QStringLiteral("assetId"), clip.assetId},
         {QStringLiteral("assetIndex"), assetIndexForClip(clip)},
         {QStringLiteral("linked"), !clip.linkId.isEmpty()},
+        {QStringLiteral("compound"), !clip.compoundId.isEmpty()},
         {QStringLiteral("audioStreamIndex"), clip.audioStreamIndex},
         {QStringLiteral("pan"), clip.pan},
         {QStringLiteral("volume"), clip.volume.isEmpty() ? 1.0 : clip.volume.evaluateAt(0)},
@@ -4763,6 +4766,8 @@ QVariantList AppController::actions() const
         action(QStringLiteral("unlink"), tr("Unlink audio")),
         action(QStringLiteral("link"), tr("Link clips")),
         action(QStringLiteral("combine"), tr("Combine into one clip")),
+        action(QStringLiteral("compound"), tr("Create compound clip")),
+        action(QStringLiteral("dissolveCompound"), tr("Dissolve compound clip")),
         action(QStringLiteral("clearSelection"), tr("Clear selection")),
         action(QStringLiteral("selectAll"), tr("Select all clips")),
         action(QStringLiteral("nudgeLeft"), tr("Move selection left a little")),
@@ -13440,6 +13445,16 @@ bool AppController::canCombineSelection() const
 
 void AppController::combineSelectionToClip()
 {
+    renderSelectionToClip(/*asCompound=*/false);
+}
+
+void AppController::createCompoundFromSelection()
+{
+    renderSelectionToClip(/*asCompound=*/true);
+}
+
+void AppController::renderSelectionToClip(bool asCompound)
+{
     if (!m_assetLibrary || !canCombineSelection())
         return;
 
@@ -13461,9 +13476,91 @@ void AppController::combineSelectionToClip()
     if (!drift::restrictProjectToClips(m_project, clipIds, slice, &startUs, &endUs) || endUs <= startUs)
         return;
 
+    // A compound keeps the selection as a nested timeline, rebased to start at 0, and names
+    // itself after the number of compounds the project already has.
+    QJsonObject compoundContent;
+    QString compoundName;
+    if (asCompound) {
+        QList<drift::Track> inner = slice.tracks();
+        drift::shiftTracks(inner, -startUs);
+        compoundContent = drift::compoundTracksToJson(m_project, inner);
+        compoundName = tr("Compound clip %1").arg(m_project.compounds().size() + 1);
+    }
+
+    renderProjectRangeToFile(
+        slice, startUs, endUs, asCompound ? tr("Rendering compound clip…") : tr("Combining clips…"),
+        [this, clipIds, startUs, endUs, asCompound, compoundContent, compoundName](
+            bool ok, const QString &error, const QString &outPath, const drift::MediaAsset &asset) {
+                if (!ok) {
+                    setLastMessage(error.isEmpty() ? tr("Couldn’t combine the clips") : error,
+                                   QStringLiteral("error"));
+                    return;
+                }
+
+                const drift::Project before = m_project;
+
+                // Find the clips again by id: the timeline may have changed while rendering. The
+                // combined clip lands on the front-most video track a source clip came from, so it
+                // stacks where the selection did.
+                int targetTrack = -1;
+                for (int t = 0; t < m_project.tracks().size(); ++t) {
+                    drift::Track &track = m_project.tracks()[t];
+                    for (int i = track.clips.size() - 1; i >= 0; --i) {
+                        if (!clipIds.contains(track.clips.at(i).id))
+                            continue;
+                        if (targetTrack < 0 && track.allowsClipType(drift::ClipType::Video))
+                            targetTrack = t;
+                        track.clips.removeAt(i);
+                    }
+                    track.transitions.removeIf([&clipIds](const drift::Transition &transition) {
+                        return clipIds.contains(transition.fromClipId)
+                               || clipIds.contains(transition.toClipId);
+                    });
+                }
+                if (targetTrack < 0)
+                    targetTrack = drift::ensureTrackForClipType(m_project, drift::ClipType::Video, true);
+
+                drift::MediaAsset named = asset;
+                named.name = asCompound ? compoundName : tr("Combined clip");
+                const QString assetId = m_assetLibrary->addGeneratedAsset(named);
+
+                drift::Clip clip;
+                clip.id = newClipId();
+                clip.assetId = assetId;
+                clip.type = drift::ClipType::Video;
+                clip.name = named.name;
+                if (asCompound) {
+                    clip.compoundId = newClipId();
+                    m_project.compounds().insert(clip.compoundId, compoundContent);
+                }
+                clip.path = outPath;
+                clip.thumbnailPath = named.thumbnailPath;
+                clip.filmstripPath = named.filmstripPath;
+                clip.timelineStart = startUs;
+                clip.timelineDuration = endUs - startUs;
+                clip.srcIn = 0;
+                clip.srcOut = clip.timelineDuration;
+                if (named.durationUs > 0 && named.durationUs < clip.srcOut)
+                    clip.srcOut = named.durationUs;
+                fitClipLayoutToCanvas(clip, named.width, named.height, m_project.width(), m_project.height());
+
+                drift::Track &track = m_project.tracks()[targetTrack];
+                track.clips.append(clip);
+                const int newClipIndex = track.clips.size() - 1;
+                const QString text = asCompound ? tr("Compound clip created") : tr("Clips combined");
+                pushProjectEdit(before, text);
+                finishEdit(text);
+                selectClip(targetTrack, newClipIndex);
+        });
+}
+
+void AppController::renderProjectRangeToFile(
+    const drift::Project &snapshotProject, drift::TimeUs startUs, drift::TimeUs endUs, const QString &busyText,
+    std::function<void(bool, const QString &, const QString &, const drift::MediaAsset &)> onDone)
+{
     const QString outPath = newCombinedClipPath(m_project.id());
     if (outPath.isEmpty()) {
-        setLastMessage(tr("Couldn’t create a file for the combined clip"), QStringLiteral("error"));
+        onDone(false, tr("Couldn’t create a file for the combined clip"), QString(), {});
         return;
     }
 
@@ -13479,13 +13576,13 @@ void AppController::combineSelectionToClip()
     m_combineInProgress = true;
     emit combineInProgressChanged();
     emit editCapabilitiesChanged();
-    setLastMessage(tr("Combining clips…"));
+    setLastMessage(busyText);
 
     // The worker encodes off the GUI thread while editing continues, so it gets a detached copy
     // rather than a pointer into the live project.
-    const auto snapshot = std::make_shared<const drift::Project>(slice.detachedCopy());
-    (void)QtConcurrent::run([this, snapshot, settings, outPath, clipIds, startUs, endUs]() {
-        Exporter::BackgroundHold hold(QStringLiteral("Combining clips"), /*cancellable=*/true);
+    const auto snapshot = std::make_shared<const drift::Project>(snapshotProject.detachedCopy());
+    (void)QtConcurrent::run([this, snapshot, settings, outPath, onDone]() {
+        Exporter::BackgroundHold hold(QStringLiteral("Rendering clip"), /*cancellable=*/true);
         const auto report = [this](double fraction) -> bool {
             QMetaObject::invokeMethod(
                 this,
@@ -13528,68 +13625,15 @@ void AppController::combineSelectionToClip()
 
         QMetaObject::invokeMethod(
             this,
-            [this, ok, error, outPath, asset, clipIds, startUs, endUs]() {
+            [this, ok, error, outPath, asset, onDone]() {
                 m_combineInProgress = false;
                 emit combineInProgressChanged();
                 m_combineProgress = ok ? 1.0 : 0.0;
                 emit combineProgressChanged();
                 emit editCapabilitiesChanged();
-                if (!ok) {
+                if (!ok)
                     QFile::remove(outPath);
-                    setLastMessage(error.isEmpty() ? tr("Couldn’t combine the clips") : error,
-                                   QStringLiteral("error"));
-                    return;
-                }
-
-                const drift::Project before = m_project;
-
-                // Find the clips again by id: the timeline may have changed while rendering. The
-                // combined clip lands on the front-most video track a source clip came from, so it
-                // stacks where the selection did.
-                int targetTrack = -1;
-                for (int t = 0; t < m_project.tracks().size(); ++t) {
-                    drift::Track &track = m_project.tracks()[t];
-                    for (int i = track.clips.size() - 1; i >= 0; --i) {
-                        if (!clipIds.contains(track.clips.at(i).id))
-                            continue;
-                        if (targetTrack < 0 && track.allowsClipType(drift::ClipType::Video))
-                            targetTrack = t;
-                        track.clips.removeAt(i);
-                    }
-                    track.transitions.removeIf([&clipIds](const drift::Transition &transition) {
-                        return clipIds.contains(transition.fromClipId)
-                               || clipIds.contains(transition.toClipId);
-                    });
-                }
-                if (targetTrack < 0)
-                    targetTrack = drift::ensureTrackForClipType(m_project, drift::ClipType::Video, true);
-
-                drift::MediaAsset named = asset;
-                named.name = tr("Combined clip");
-                const QString assetId = m_assetLibrary->addGeneratedAsset(named);
-
-                drift::Clip clip;
-                clip.id = newClipId();
-                clip.assetId = assetId;
-                clip.type = drift::ClipType::Video;
-                clip.name = named.name;
-                clip.path = outPath;
-                clip.thumbnailPath = named.thumbnailPath;
-                clip.filmstripPath = named.filmstripPath;
-                clip.timelineStart = startUs;
-                clip.timelineDuration = endUs - startUs;
-                clip.srcIn = 0;
-                clip.srcOut = clip.timelineDuration;
-                if (named.durationUs > 0 && named.durationUs < clip.srcOut)
-                    clip.srcOut = named.durationUs;
-                fitClipLayoutToCanvas(clip, named.width, named.height, m_project.width(), m_project.height());
-
-                drift::Track &track = m_project.tracks()[targetTrack];
-                track.clips.append(clip);
-                const int newClipIndex = track.clips.size() - 1;
-                pushProjectEdit(before, tr("Clips combined"));
-                finishEdit(tr("Clips combined"));
-                selectClip(targetTrack, newClipIndex);
+                onDone(ok, error, outPath, asset);
             },
             Qt::QueuedConnection);
     });
@@ -13599,6 +13643,226 @@ void AppController::cancelCombine()
 {
     if (m_combineInProgress)
         m_combineCancel.storeRelaxed(1);
+}
+
+void AppController::enterCompound(int trackIndex, int clipIndex)
+{
+    if (!isValidClipIndex(trackIndex, clipIndex))
+        return;
+    const drift::Clip &clip = m_project.tracks().at(trackIndex).clips.at(clipIndex);
+    if (clip.compoundId.isEmpty() || !m_project.compounds().contains(clip.compoundId)) {
+        setLastMessage(tr("Couldn’t open the compound clip"), QStringLiteral("error"));
+        return;
+    }
+    if (m_combineInProgress) {
+        setLastMessage(tr("Finish the current render before opening a compound clip"), QStringLiteral("warning"));
+        return;
+    }
+    setPlaying(false);
+
+    const QJsonObject content = m_project.compounds().value(clip.compoundId);
+    CompoundFrame frame;
+    frame.tracks = m_project.tracks();
+    frame.bookmarks = m_project.bookmarks();
+    frame.workAreaInUs = m_project.workAreaInUs();
+    frame.workAreaOutUs = m_project.workAreaOutUs();
+    frame.playheadUs = m_playheadUs;
+    frame.compoundId = clip.compoundId;
+    frame.clipId = clip.id;
+    frame.name = clip.name;
+    m_compoundStack.append(frame);
+
+    // Only the timeline changes level: assets, folders and the compound table stay shared.
+    m_project.tracks() = drift::compoundTracksFromJson(content);
+    // The change detector on exit compares against the content as this level re-serializes
+    // it, not the stored bytes: the JSON round trip fills defaults that the original lacked.
+    m_compoundStack.last().contentAtEnter =
+        QJsonDocument(drift::compoundTracksToJson(m_project, m_project.tracks())).toJson(QJsonDocument::Compact);
+    m_project.bookmarks().clear();
+    m_project.setWorkAreaInUs(-1);
+    m_project.setWorkAreaOutUs(-1);
+    // The undo history belongs to the level it was recorded on; a snapshot from outside would
+    // put the outer timeline back while the breadcrumb still says we are inside. Clearing the
+    // stack also runs the model refresh the undo/redo path uses.
+    m_undoStack.clear();
+    clearSelection();
+    setPlayheadUs(0);
+    emit compoundStackChanged();
+    emit editCapabilitiesChanged();
+    setLastMessage(tr("Editing %1. Use Back to return to the timeline.").arg(frame.name));
+}
+
+void AppController::exitCompound()
+{
+    if (m_compoundStack.isEmpty())
+        return;
+    if (m_combineInProgress) {
+        setLastMessage(tr("Finish the current render before leaving the compound clip"), QStringLiteral("warning"));
+        return;
+    }
+    setPlaying(false);
+
+    const CompoundFrame frame = m_compoundStack.takeLast();
+    const QJsonObject content = drift::compoundTracksToJson(m_project, m_project.tracks());
+    const bool changed = QJsonDocument(content).toJson(QJsonDocument::Compact) != frame.contentAtEnter;
+
+    m_project.tracks() = frame.tracks;
+    m_project.bookmarks() = frame.bookmarks;
+    m_project.setWorkAreaInUs(frame.workAreaInUs);
+    m_project.setWorkAreaOutUs(frame.workAreaOutUs);
+    m_undoStack.clear();
+    const drift::Project before = m_project;
+    if (changed)
+        m_project.compounds().insert(frame.compoundId, content);
+
+    clearSelection();
+    setPlayheadUs(frame.playheadUs);
+    emit compoundStackChanged();
+    emit editCapabilitiesChanged();
+
+    // Land on the compound clip so the next action applies to it.
+    for (int t = 0; t < m_project.tracks().size(); ++t) {
+        const drift::Track &track = m_project.tracks().at(t);
+        for (int i = 0; i < track.clips.size(); ++i) {
+            if (track.clips.at(i).id == frame.clipId) {
+                selectClip(t, i);
+                t = m_project.tracks().size();
+                break;
+            }
+        }
+    }
+
+    if (!changed)
+        return;
+    pushProjectEdit(before, tr("Compound clip edited"));
+    finishEdit(tr("Compound clip edited"));
+    rerenderCompound(frame.clipId, frame.compoundId);
+}
+
+void AppController::rerenderCompound(const QString &clipId, const QString &compoundId)
+{
+    if (!m_assetLibrary || !m_project.compounds().contains(compoundId))
+        return;
+    // The stand-in is rendered from the nested timeline alone, on this project's canvas.
+    drift::Project nested = m_project.detachedCopy();
+    nested.tracks() = drift::compoundTracksFromJson(m_project.compounds().value(compoundId));
+    const drift::TimeUs endUs = drift::tracksEndUs(nested.tracks());
+    if (endUs <= 0)
+        return;
+
+    renderProjectRangeToFile(
+        nested, 0, endUs, tr("Rendering compound clip…"),
+        [this, clipId, endUs](bool ok, const QString &error, const QString &outPath,
+                              const drift::MediaAsset &asset) {
+            if (!ok) {
+                setLastMessage(error.isEmpty() ? tr("Couldn’t combine the clips") : error,
+                               QStringLiteral("error"));
+                return;
+            }
+            const drift::Project before = m_project;
+            for (drift::Track &track : m_project.tracks()) {
+                for (drift::Clip &clip : track.clips) {
+                    if (clip.id != clipId)
+                        continue;
+                    drift::MediaAsset named = asset;
+                    named.name = clip.name;
+                    const QString assetId = m_assetLibrary->addGeneratedAsset(named);
+                    clip.assetId = assetId;
+                    clip.path = outPath;
+                    clip.thumbnailPath = named.thumbnailPath;
+                    clip.filmstripPath = named.filmstripPath;
+                    // The nested timeline may have grown or shrunk; the clip follows it.
+                    clip.timelineDuration = endUs;
+                    clip.srcIn = 0;
+                    clip.srcOut = (named.durationUs > 0 && named.durationUs < endUs) ? named.durationUs : endUs;
+                    pushProjectEdit(before, tr("Compound clip updated"));
+                    finishEdit(tr("Compound clip updated"));
+                    return;
+                }
+            }
+        });
+}
+
+bool AppController::canDissolveSelection() const
+{
+    if (m_combineInProgress)
+        return false;
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+    if (pairs.size() != 1 || !isValidClipIndex(pairs.first().first, pairs.first().second))
+        return false;
+    const drift::Clip &clip = m_project.tracks().at(pairs.first().first).clips.at(pairs.first().second);
+    return !clip.compoundId.isEmpty() && m_project.compounds().contains(clip.compoundId);
+}
+
+void AppController::dissolveSelectedCompound()
+{
+    if (!canDissolveSelection())
+        return;
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+    const int trackIndex = pairs.first().first;
+    const int clipIndex = pairs.first().second;
+    const drift::Clip compoundClip = m_project.tracks().at(trackIndex).clips.at(clipIndex);
+
+    const drift::Project before = m_project;
+    QList<drift::Track> inner = drift::compoundTracksFromJson(m_project.compounds().value(compoundClip.compoundId));
+    drift::shiftTracks(inner, compoundClip.timelineStart);
+
+    m_project.tracks()[trackIndex].clips.removeAt(clipIndex);
+    m_project.tracks()[trackIndex].transitions.removeIf([&compoundClip](const drift::Transition &transition) {
+        return transition.fromClipId == compoundClip.id || transition.toClipId == compoundClip.id;
+    });
+    m_project.compounds().remove(compoundClip.compoundId);
+
+    // The nested tracks mirror the outer ones at creation time, so put each one back on the
+    // outer track with the same index when it still takes those clips; otherwise find a lane.
+    for (int i = 0; i < inner.size(); ++i) {
+        const drift::Track &source = inner.at(i);
+        if (source.clips.isEmpty())
+            continue;
+        bool sameLane = i < m_project.tracks().size();
+        for (const drift::Clip &clip : source.clips) {
+            if (sameLane && !m_project.tracks().at(i).allowsClipType(clip.type))
+                sameLane = false;
+        }
+        if (sameLane) {
+            drift::Track &target = m_project.tracks()[i];
+            target.clips.append(source.clips);
+            target.transitions.append(source.transitions);
+            continue;
+        }
+        for (const drift::Clip &clip : source.clips) {
+            const int lane = drift::ensureTrackForClipType(m_project, clip.type, false);
+            m_project.tracks()[lane].clips.append(clip);
+        }
+    }
+
+    clearSelection();
+    pushProjectEdit(before, tr("Compound clip dissolved"));
+    finishEdit(tr("Compound clip dissolved"));
+}
+
+drift::Project AppController::projectForPersistence() const
+{
+    if (m_compoundStack.isEmpty())
+        return m_project;
+    // Fold each open level back into the one outside it, innermost first.
+    QJsonObject content = drift::compoundTracksToJson(m_project, m_project.tracks());
+    drift::Project project = m_project;
+    for (int i = m_compoundStack.size() - 1; i >= 0; --i) {
+        const CompoundFrame &frame = m_compoundStack.at(i);
+        project.tracks() = frame.tracks;
+        project.bookmarks() = frame.bookmarks;
+        project.setWorkAreaInUs(frame.workAreaInUs);
+        project.setWorkAreaOutUs(frame.workAreaOutUs);
+        project.compounds().insert(frame.compoundId, content);
+        if (i > 0)
+            content = drift::compoundTracksToJson(project, project.tracks());
+    }
+    return project;
 }
 
 void AppController::setClipFade(int trackIndex, int clipIndex, double fadeInSeconds, double fadeOutSeconds)
@@ -18120,6 +18384,10 @@ void AppController::triggerAction(const QString &actionId)
         linkSelectedClips();
     else if (actionId == QStringLiteral("combine"))
         combineSelectionToClip();
+    else if (actionId == QStringLiteral("compound"))
+        createCompoundFromSelection();
+    else if (actionId == QStringLiteral("dissolveCompound"))
+        dissolveSelectedCompound();
     else if (actionId == QStringLiteral("copy"))
         copySelection();
     else if (actionId == QStringLiteral("cut"))
@@ -18753,7 +19021,7 @@ void AppController::normalizeSelection()
 
 QByteArray AppController::serializeProjectJson() const
 {
-    QJsonObject root = m_project.toJson();
+    QJsonObject root = projectForPersistence().toJson();
     root.insert(QStringLiteral("playheadUs"), static_cast<double>(m_playheadUs));
     root.insert(QStringLiteral("snapEnabled"), m_snapEnabled);
     root.insert(QStringLiteral("rippleEnabled"), m_rippleEnabled);
@@ -18895,6 +19163,8 @@ bool AppController::applyProjectJson(const QByteArray &data, QString *error)
     // effect renders pass-through until each lands.
     ingestFaceSwapSourcesInProject();
     m_playback.setProject(&m_project);
+    m_compoundStack.clear();
+    emit compoundStackChanged();
     m_undoStack.clear();
     clearSelection();
     setDirty(false);
@@ -19809,6 +20079,8 @@ void AppController::newProject()
     m_binFolderModel.setProject(&m_project);
     setCurrentBinFolderId(QString());
     m_playback.setProject(&m_project);
+    m_compoundStack.clear();
+    emit compoundStackChanged();
     m_undoStack.clear();
     clearSelection();
     setPlayheadUs(0);

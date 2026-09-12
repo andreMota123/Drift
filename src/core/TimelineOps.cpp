@@ -1101,4 +1101,45 @@ bool restrictProjectToClips(const Project &project, const QSet<QString> &clipIds
     return true;
 }
 
+QJsonObject compoundTracksToJson(const Project &project, const QList<Track> &tracks)
+{
+    Project nested;
+    nested.setResolution(project.width(), project.height());
+    nested.setFps(project.fps());
+    nested.tracks() = tracks;
+    QJsonObject object = nested.toJson();
+    // Nothing but the timeline is meaningful here; the rest would only drift from the project.
+    for (const char *key : {"assets", "binFolders", "bookmarks", "background", "id", "author",
+                            "description", "createdAt", "modifiedAt", "projectName"})
+        object.remove(QLatin1String(key));
+    return object;
+}
+
+QList<Track> compoundTracksFromJson(const QJsonObject &object)
+{
+    QString error;
+    const Project nested = Project::fromJson(object, &error);
+    if (!error.isEmpty())
+        return {};
+    return nested.tracks();
+}
+
+void shiftTracks(QList<Track> &tracks, TimeUs deltaUs)
+{
+    for (Track &track : tracks) {
+        for (Clip &clip : track.clips)
+            clip.timelineStart = qMax<TimeUs>(0, clip.timelineStart + deltaUs);
+    }
+}
+
+TimeUs tracksEndUs(const QList<Track> &tracks)
+{
+    TimeUs end = 0;
+    for (const Track &track : tracks) {
+        for (const Clip &clip : track.clips)
+            end = qMax(end, clip.timelineEnd());
+    }
+    return end;
+}
+
 } // namespace drift

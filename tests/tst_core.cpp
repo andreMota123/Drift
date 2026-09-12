@@ -148,6 +148,7 @@ private slots:
     void applyMulticamSwitchRejectsEdges();
     void sliceClipToTimelineRangeKeepsSourceInSync();
     void restrictProjectToClipsKeepsOnlySelection();
+    void compoundTracksRoundTripAndShift();
 };
 
 void CoreTest::timeConversion()
@@ -3619,6 +3620,65 @@ void CoreTest::restrictProjectToClipsKeepsOnlySelection()
     // The source project is untouched.
     QCOMPARE(project.tracks().at(0).clips.size(), 2);
     QCOMPARE(project.tracks().at(0).transitions.size(), 1);
+}
+
+// Compound contents are stored as a nested timeline; they must survive the JSON round trip and
+// rebase cleanly to 0 and back.
+void CoreTest::compoundTracksRoundTripAndShift()
+{
+    drift::Project project;
+    project.setResolution(320, 180);
+    project.setFps(30);
+    QList<drift::Track> tracks;
+    tracks.append(drift::Track{.type = drift::TrackType::Video});
+    tracks.append(drift::Track{.type = drift::TrackType::Audio});
+    drift::Clip a;
+    a.id = QStringLiteral("a");
+    a.type = drift::ClipType::Shape;
+    a.timelineStart = drift::secondsToUs(2.0);
+    a.timelineDuration = drift::secondsToUs(1.0);
+    drift::Clip c;
+    c.id = QStringLiteral("c");
+    c.type = drift::ClipType::Audio;
+    c.timelineStart = drift::secondsToUs(2.5);
+    c.timelineDuration = drift::secondsToUs(3.0);
+    tracks[0].clips.append(a);
+    tracks[1].clips.append(c);
+    drift::Transition t;
+    t.id = QStringLiteral("t");
+    t.fromClipId = a.id;
+    t.toClipId = c.id;
+    tracks[0].transitions.append(t);
+
+    drift::shiftTracks(tracks, -drift::secondsToUs(2.0));
+    QCOMPARE(tracks.at(0).clips.at(0).timelineStart, drift::TimeUs(0));
+    QCOMPARE(tracks.at(1).clips.at(0).timelineStart, drift::secondsToUs(0.5));
+    QCOMPARE(drift::tracksEndUs(tracks), drift::secondsToUs(3.5));
+
+    const QJsonObject json = drift::compoundTracksToJson(project, tracks);
+    QVERIFY(!json.contains(QStringLiteral("assets")));
+    const QList<drift::Track> back = drift::compoundTracksFromJson(json);
+    QCOMPARE(back.size(), 2);
+    QCOMPARE(back.at(0).type, drift::TrackType::Video);
+    QCOMPARE(back.at(0).clips.size(), 1);
+    QCOMPARE(back.at(0).clips.at(0).id, a.id);
+    QCOMPARE(back.at(0).clips.at(0).timelineDuration, drift::secondsToUs(1.0));
+    QCOMPARE(back.at(0).transitions.size(), 1);
+    QCOMPARE(back.at(1).clips.at(0).timelineStart, drift::secondsToUs(0.5));
+
+    // Clamped at 0 when shifting left past the start.
+    QList<drift::Track> shifted = back;
+    drift::shiftTracks(shifted, -drift::secondsToUs(1.0));
+    QCOMPARE(shifted.at(0).clips.at(0).timelineStart, drift::TimeUs(0));
+    QCOMPARE(shifted.at(1).clips.at(0).timelineStart, drift::TimeUs(0));
+
+    // Compounds survive a project save/load.
+    project.compounds().insert(QStringLiteral("cmp"), json);
+    QString error;
+    const drift::Project loaded = drift::Project::fromJson(project.toJson(), &error);
+    QVERIFY2(error.isEmpty(), qPrintable(error));
+    QVERIFY(loaded.compounds().contains(QStringLiteral("cmp")));
+    QCOMPARE(drift::compoundTracksFromJson(loaded.compounds().value(QStringLiteral("cmp"))).size(), 2);
 }
 
 void CoreTest::sliceClipToTimelineRangeKeepsSourceInSync()

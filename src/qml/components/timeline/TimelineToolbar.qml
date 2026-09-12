@@ -316,6 +316,18 @@ Item {
                 onTriggered: EditorState.combineSelectionToClip()
             }
             ThemedMenuItem {
+                text: qsTr("Create compound clip")
+                icon.name: Theme.icons.package
+                enabled: EditorState.combineAvailable
+                onTriggered: EditorState.createCompoundFromSelection()
+            }
+            ThemedMenuItem {
+                text: qsTr("Dissolve compound clip")
+                icon.name: Theme.icons.package
+                enabled: EditorState.dissolveAvailable
+                onTriggered: EditorState.dissolveSelectedCompound()
+            }
+            ThemedMenuItem {
                 text: qsTr("Freeze frame at current time")
                 icon.name: Theme.icons.snowflake
                 onTriggered: EditorState.freezeFrameAtPlayhead()

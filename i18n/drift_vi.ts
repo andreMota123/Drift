@@ -1625,6 +1625,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Create compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation>Xóa lựa chọn</translation>
     </message>
@@ -2765,7 +2773,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Couldn’t create a file for the combined clip</source>
+        <source>Compound clip %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rendering compound clip…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2781,7 +2793,43 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Compound clip created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clips combined</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t open the compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Finish the current render before opening a compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Editing %1. Use Back to return to the timeline.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Finish the current render before leaving the compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Compound clip edited</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Compound clip updated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Compound clip dissolved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -10513,6 +10561,18 @@ If playback stutters, try another.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Create compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10586,6 +10646,10 @@ If playback stutters, try another.</source>
     <message>
         <source>Save effect preset</source>
         <translation type="unfinished">Lưu cài đặt trước hiệu ứng</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Add new track</source>
@@ -10748,6 +10812,14 @@ If playback stutters, try another.</source>
     </message>
     <message>
         <source>Combine selection into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create compound clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

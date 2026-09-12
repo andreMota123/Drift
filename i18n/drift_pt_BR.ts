@@ -1627,6 +1627,14 @@
         <translation>Juntar em um só vídeo</translation>
     </message>
     <message>
+        <source>Create compound clip</source>
+        <translation>Criar clipe composto</translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
+        <translation>Dissolver clipe composto</translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation>Limpar seleção</translation>
     </message>
@@ -2763,8 +2771,12 @@
         <translation>Clipes vinculados</translation>
     </message>
     <message>
-        <source>Couldn’t create a file for the combined clip</source>
-        <translation>Não foi possível criar o arquivo do vídeo combinado</translation>
+        <source>Compound clip %1</source>
+        <translation>Clipe composto %1</translation>
+    </message>
+    <message>
+        <source>Rendering compound clip…</source>
+        <translation>Renderizando o clipe composto…</translation>
     </message>
     <message>
         <source>Combining clips…</source>
@@ -2779,8 +2791,44 @@
         <translation>Vídeo combinado</translation>
     </message>
     <message>
+        <source>Compound clip created</source>
+        <translation>Clipe composto criado</translation>
+    </message>
+    <message>
         <source>Clips combined</source>
         <translation>Clipes juntados</translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation>Não foi possível criar o arquivo do vídeo combinado</translation>
+    </message>
+    <message>
+        <source>Couldn’t open the compound clip</source>
+        <translation>Não foi possível abrir o clipe composto</translation>
+    </message>
+    <message>
+        <source>Finish the current render before opening a compound clip</source>
+        <translation>Termine a renderização atual antes de abrir um clipe composto</translation>
+    </message>
+    <message>
+        <source>Editing %1. Use Back to return to the timeline.</source>
+        <translation>Editando %1. Use Voltar para retornar à timeline.</translation>
+    </message>
+    <message>
+        <source>Finish the current render before leaving the compound clip</source>
+        <translation>Termine a renderização atual antes de sair do clipe composto</translation>
+    </message>
+    <message>
+        <source>Compound clip edited</source>
+        <translation>Clipe composto editado</translation>
+    </message>
+    <message>
+        <source>Compound clip updated</source>
+        <translation>Clipe composto atualizado</translation>
+    </message>
+    <message>
+        <source>Compound clip dissolved</source>
+        <translation>Clipe composto dissolvido</translation>
     </message>
     <message>
         <source>Fade updated</source>
@@ -10555,6 +10603,18 @@ Se a reprodução travar, experimente outro.</translation>
         <translation>Juntar em um só vídeo</translation>
     </message>
     <message>
+        <source>Create compound clip</source>
+        <translation>Criar clipe composto</translation>
+    </message>
+    <message>
+        <source>Open compound clip</source>
+        <translation>Abrir clipe composto</translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
+        <translation>Dissolver clipe composto</translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation>Cortar</translation>
     </message>
@@ -10628,6 +10688,10 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Save effect preset</source>
         <translation>Salvar predefinição de efeitos</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Voltar</translation>
     </message>
     <message>
         <source>Add new track</source>
@@ -10791,6 +10855,14 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Combine selection into one clip</source>
         <translation>Juntar seleção em um só vídeo</translation>
+    </message>
+    <message>
+        <source>Create compound clip</source>
+        <translation>Criar clipe composto</translation>
+    </message>
+    <message>
+        <source>Dissolve compound clip</source>
+        <translation>Dissolver clipe composto</translation>
     </message>
     <message>
         <source>Merge adjacent clips</source>

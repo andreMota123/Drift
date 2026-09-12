@@ -1039,7 +1039,7 @@ QStringList selectionBasedOps()
 {
     static const QStringList k = {
         QStringLiteral("separate_audio"), QStringLiteral("unlink_audio"), QStringLiteral("link_clips"),
-        QStringLiteral("combine_clips"),
+        QStringLiteral("combine_clips"), QStringLiteral("create_compound"), QStringLiteral("dissolve_compound"),
         QStringLiteral("merge_clips"),    QStringLiteral("align_clip_left"),
         QStringLiteral("align_clip_right"), QStringLiteral("copy_selection"),
         QStringLiteral("cut_selection"),

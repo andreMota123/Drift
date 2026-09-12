@@ -781,6 +781,25 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({{QStringLiteral("started"), true}});
     }
 
+    if (tool == QLatin1String("create_compound")) {
+        if (!m_controller->canCombineSelection())
+            return err("bad_args", QStringLiteral("Select two or more clips first (no render may be running)"));
+        m_controller->createCompoundFromSelection();
+        return ok({{QStringLiteral("started"), true}});
+    }
+
+    if (tool == QLatin1String("dissolve_compound")) {
+        if (!m_controller->canDissolveSelection())
+            return err("bad_args", QStringLiteral("Select exactly one compound clip first"));
+        m_controller->dissolveSelectedCompound();
+        return ok({});
+    }
+
+    if (tool == QLatin1String("exit_compound")) {
+        m_controller->exitCompound();
+        return ok({{QStringLiteral("depth"), m_controller->compoundDepth()}});
+    }
+
     if (tool == QLatin1String("merge_clips")) {
         if (!m_controller->canMergeSelection())
             return err("bad_args", QStringLiteral("Cannot merge selection"));

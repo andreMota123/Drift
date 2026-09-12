@@ -900,6 +900,12 @@ Item {
         property real grabX: 0
         property real grabY: 0
 
+        // CapCut: double-clicking a compound clip steps into its timeline.
+        onDoubleClicked: (mouse) => {
+            if (clipItem.clipData.compound)
+                EditorState.enterCompound(clipItem.trackIndex, clipItem.clipIndex)
+        }
+
         onPressed: (mouse) => {
             Qt.callLater(function() { clipItem.forceActiveFocus() })
             // Read before anything selects: `selected` comes back through the model, so testing it
@@ -1050,6 +1056,24 @@ Item {
                 icon.name: Theme.icons.layers
                 visible: EditorState.combineAvailable
                 onTriggered: EditorState.combineSelectionToClip()
+            }
+            ThemedMenuItem {
+                text: qsTr("Create compound clip")
+                icon.name: Theme.icons.package
+                visible: EditorState.combineAvailable
+                onTriggered: EditorState.createCompoundFromSelection()
+            }
+            ThemedMenuItem {
+                text: qsTr("Open compound clip")
+                icon.name: Theme.icons.package
+                visible: !!clipItem.clipData.compound
+                onTriggered: EditorState.enterCompound(clipItem.trackIndex, clipItem.clipIndex)
+            }
+            ThemedMenuItem {
+                text: qsTr("Dissolve compound clip")
+                icon.name: Theme.icons.package
+                visible: !!clipItem.clipData.compound && EditorState.dissolveAvailable
+                onTriggered: EditorState.dissolveSelectedCompound()
             }
             ThemedMenuSeparator { }
             ThemedMenuItem {

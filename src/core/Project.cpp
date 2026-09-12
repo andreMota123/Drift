@@ -238,6 +238,7 @@ QJsonObject clipToJson(const Clip &clip)
         {QStringLiteral("assetId"), clip.assetId},
         {QStringLiteral("linkId"), clip.linkId},
         {QStringLiteral("linkLoose"), clip.linkLoose},
+        {QStringLiteral("compoundId"), clip.compoundId},
         {QStringLiteral("suppressEmbeddedAudio"), clip.suppressEmbeddedAudio},
         {QStringLiteral("audioStreamIndex"), clip.audioStreamIndex},
         {QStringLiteral("type"), clipTypeToString(clip.type)},
@@ -343,6 +344,7 @@ Clip clipFromJsonV2(const QJsonObject &object, int canvasW = 1920, int canvasH =
     clip.assetId = object.value(QStringLiteral("assetId")).toString();
     clip.linkId = object.value(QStringLiteral("linkId")).toString();
     clip.linkLoose = object.value(QStringLiteral("linkLoose")).toBool(false);
+    clip.compoundId = object.value(QStringLiteral("compoundId")).toString();
     clip.suppressEmbeddedAudio = object.value(QStringLiteral("suppressEmbeddedAudio")).toBool(false);
     clip.audioStreamIndex = object.value(QStringLiteral("audioStreamIndex")).toInt(0);
     clip.type = clipTypeFromString(object.value(QStringLiteral("type")).toString());
@@ -664,6 +666,7 @@ Project Project::detachedCopy() const
     out.m_assetsById.detach();
     out.m_binFolderOrder.detach();
     out.m_binFoldersById.detach();
+    out.m_compoundsById.detach();
     return out;
 }
 
@@ -893,6 +896,10 @@ Project Project::fromJson(const QJsonObject &object, QString *errorOut)
     if (!savedId.isEmpty())
         project.m_id = savedId;
     project.m_author = object.value(QStringLiteral("author")).toString();
+    project.m_compoundsById.clear();
+    const QJsonObject compoundsObject = object.value(QStringLiteral("compounds")).toObject();
+    for (auto it = compoundsObject.constBegin(); it != compoundsObject.constEnd(); ++it)
+        project.m_compoundsById.insert(it.key(), it.value().toObject());
     project.m_description = object.value(QStringLiteral("description")).toString();
     const QDateTime created =
         QDateTime::fromString(object.value(QStringLiteral("createdAt")).toString(), Qt::ISODate);
@@ -984,6 +991,12 @@ QJsonObject Project::toJson() const
     if (hasWorkArea()) {
         root.insert(QStringLiteral("workAreaInUs"), static_cast<double>(m_workAreaInUs));
         root.insert(QStringLiteral("workAreaOutUs"), static_cast<double>(m_workAreaOutUs));
+    }
+    if (!m_compoundsById.isEmpty()) {
+        QJsonObject compoundsObject;
+        for (auto it = m_compoundsById.constBegin(); it != m_compoundsById.constEnd(); ++it)
+            compoundsObject.insert(it.key(), it.value());
+        root.insert(QStringLiteral("compounds"), compoundsObject);
     }
     return root;
 }

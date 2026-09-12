@@ -816,6 +816,29 @@ PanelFrame {
     Column {
         anchors.fill: parent
 
+        // === compound clip breadcrumb =====================================================
+        // Shown while editing inside a compound clip: the way back out, and whose contents
+        // the timeline below is showing (CapCut's "< Compound clip 1").
+        Row {
+            id: compoundBar
+            width: parent.width
+            height: visible ? Theme.androidMinTouchTarget : 0
+            visible: EditorState.compoundDepth > 0
+            spacing: Theme.spacingSm
+            ThemedButton {
+                height: parent.height
+                variant: "ghost"
+                glyph: Theme.icons.chevronLeft
+                text: qsTr("Back")
+                onClicked: EditorState.exitCompound()
+            }
+            ThemedLabel {
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                text: EditorState.compoundName
+            }
+        }
+
         // === toolbar =================================================================
         TimelineToolbar {
             id: toolbar
@@ -826,7 +849,7 @@ PanelFrame {
         // === ruler + track labels + tracks ================================================
         Column {
             width: parent.width
-            height: parent.height - toolbar.height
+            height: parent.height - toolbar.height - compoundBar.height
 
             KeyframeGraph {
                 id: keyframesBar

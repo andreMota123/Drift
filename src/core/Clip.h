@@ -48,6 +48,9 @@ struct Clip
     // A loose link (created by Link on unrelated clips) moves, splits, selects and deletes
     // together with its partners but keeps its own duration, trim, speed and fades.
     bool linkLoose = false;
+    // Set on the video clip that stands in for a compound clip: its media is the rendered
+    // stand-in, and Project::compounds() holds the nested timeline it was rendered from.
+    QString compoundId;
     ClipType type = ClipType::Video;
 
     // Adjustment clips only.

@@ -138,6 +138,7 @@ private slots:
     void linkedAudioUnlinkAndMove();
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void combineSelectionRendersOneClip();
+    void compoundClipEnterEditExitAndDissolve();
     void deleteLinkedPairTogetherAndUnlinkedClipAlone();
     void linkedFadeCurveSyncsPartner();
     void customFadeCurveSessionApplyAndCancel();
@@ -3276,6 +3277,105 @@ void EditorStateTest::combineSelectionRendersOneClip()
     QVERIFY(QFileInfo::exists(combined.path));
     QVERIFY(!combined.assetId.isEmpty());
     QFile::remove(combined.path);
+}
+
+// A compound clip opens into its nested timeline, folds edits back on exit, and dissolves
+// into its clips at the compound's position. Rendering the stand-in is exercised by
+// combineSelectionRendersOneClip; here the clip is hand-made so no encoder is needed.
+void EditorStateTest::compoundClipEnterEditExitAndDissolve()
+{
+    QStandardPaths::setTestModeEnabled(true);
+    const auto restore = qScopeGuard([] { QStandardPaths::setTestModeEnabled(false); });
+
+    AssetLibrary library;
+    AppController state(&library);
+    drift::Project &project = *state.project();
+    project.setResolution(160, 90);
+    project.setFps(25);
+    project.tracks().clear();
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+
+    // Nested timeline: two shapes, 0-2 s and 1-3 s, on two tracks.
+    QList<drift::Track> inner;
+    inner.append(drift::Track{.type = drift::TrackType::Video});
+    inner.append(drift::Track{.type = drift::TrackType::Video});
+    drift::Clip a;
+    a.id = QStringLiteral("shape-a");
+    a.type = drift::ClipType::Shape;
+    a.timelineStart = 0;
+    a.timelineDuration = drift::secondsToUs(2.0);
+    drift::Clip b = a;
+    b.id = QStringLiteral("shape-b");
+    b.timelineStart = drift::secondsToUs(1.0);
+    inner[0].clips.append(a);
+    inner[1].clips.append(b);
+    project.compounds().insert(QStringLiteral("cmp"), drift::compoundTracksToJson(project, inner));
+
+    // The stand-in clip sits at 5 s on the outer timeline, with a neighbour so the track is real.
+    drift::Clip stand;
+    stand.id = QStringLiteral("compound-clip");
+    stand.type = drift::ClipType::Shape; // no media needed for this test
+    stand.name = QStringLiteral("Compound clip 1");
+    stand.compoundId = QStringLiteral("cmp");
+    stand.timelineStart = drift::secondsToUs(5.0);
+    stand.timelineDuration = drift::secondsToUs(3.0);
+    drift::Clip neighbour = a;
+    neighbour.id = QStringLiteral("outer-neighbour");
+    neighbour.timelineStart = 0;
+    project.tracks()[0].clips.append(neighbour);
+    project.tracks()[0].clips.append(stand);
+
+    QCOMPARE(state.compoundDepth(), 0);
+    state.enterCompound(0, 1);
+    QCOMPARE(state.compoundDepth(), 1);
+    QCOMPARE(state.compoundName(), QStringLiteral("Compound clip 1"));
+    QCOMPARE(project.tracks().size(), 2);
+    QCOMPARE(project.tracks().at(0).clips.size(), 1);
+    QCOMPARE(project.tracks().at(0).clips.at(0).id, a.id);
+    QCOMPARE(project.tracks().at(1).clips.at(0).id, b.id);
+
+    // Saving from inside writes the outer project, with the nested timeline folded back in.
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString savedPath = dir.filePath(QStringLiteral("inside.json"));
+    state.saveProjectJson(QUrl::fromLocalFile(savedPath));
+    QFile savedFile(savedPath);
+    QVERIFY(savedFile.open(QIODevice::ReadOnly));
+    const QJsonObject saved = QJsonDocument::fromJson(savedFile.readAll()).object();
+    QCOMPARE(saved.value(QStringLiteral("tracks")).toArray().at(0).toObject()
+                 .value(QStringLiteral("clips")).toArray().size(), 2);
+    QVERIFY(saved.value(QStringLiteral("compounds")).toObject().contains(QStringLiteral("cmp")));
+
+    // Leaving without touching anything restores the outer timeline untouched.
+    state.exitCompound();
+    QCOMPARE(state.compoundDepth(), 0);
+    QCOMPARE(project.tracks().at(0).clips.size(), 2);
+    QCOMPARE(project.tracks().at(0).clips.at(1).id, stand.id);
+    QCOMPARE(project.tracks().at(0).clips.at(1).timelineStart, drift::secondsToUs(5.0));
+    QVERIFY(!state.combineInProgress());
+
+    // Dissolving puts the nested clips back at the compound's position and drops it.
+    state.selectClip(0, 1);
+    QVERIFY(state.canDissolveSelection());
+    state.dissolveSelectedCompound();
+    QVERIFY(!project.compounds().contains(QStringLiteral("cmp")));
+    int shapes = 0;
+    bool foundA = false;
+    for (const drift::Track &track : project.tracks()) {
+        for (const drift::Clip &clip : track.clips) {
+            QVERIFY(clip.compoundId.isEmpty());
+            ++shapes;
+            if (clip.id == a.id) {
+                foundA = true;
+                QCOMPARE(clip.timelineStart, drift::secondsToUs(5.0));
+            }
+            if (clip.id == b.id)
+                QCOMPARE(clip.timelineStart, drift::secondsToUs(6.0));
+        }
+    }
+    QCOMPARE(shapes, 3);
+    QVERIFY(foundA);
 }
 
 void EditorStateTest::addTransitionBetweenAdjacentClips()

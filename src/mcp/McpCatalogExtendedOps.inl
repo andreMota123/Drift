@@ -129,6 +129,19 @@
           "current selection — call select_clips first; fails bad_args when fewer than two clips are "
           "selected or a render is already running.",
           objectSchema({}) },
+        { "create_compound", "timeline", "Nest selection into a compound clip",
+          "Like combine_clips, but the selected clips are kept as a nested timeline behind the new "
+          "clip, which can be opened (double-click in the UI) and edited; the rendered stand-in is "
+          "refreshed on leaving. Acts on the current selection — call select_clips first.",
+          objectSchema({}) },
+        { "dissolve_compound", "timeline", "Dissolve a compound clip",
+          "Put the clips nested in the selected compound clip back on the timeline at its position "
+          "and drop the compound. Acts on the current selection — select exactly one compound clip.",
+          objectSchema({}) },
+        { "exit_compound", "timeline", "Leave the open compound clip",
+          "Return from editing inside a compound clip to the timeline that contains it, "
+          "re-rendering the stand-in when its contents changed. No-op when none is open.",
+          objectSchema({}) },
         { "merge_clips", "timeline", "Join adjacent clips",
           "Merge the selected adjacent clips on one track back into a single clip. Acts on the current "
           "selection — select the clips first; fails bad_args when the selection cannot be merged.",

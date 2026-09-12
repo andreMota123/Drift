@@ -18,6 +18,7 @@
 #include "models/AssetLibrary.h"
 #include "models/BinFolderListModel.h"
 
+#include <functional>
 #include <QAtomicInt>
 #include <QFuture>
 #include <QHash>
@@ -333,6 +334,9 @@ class AppController : public QObject
     Q_PROPERTY(bool combineAvailable READ canCombineSelection NOTIFY editCapabilitiesChanged)
     Q_PROPERTY(bool combineInProgress READ combineInProgress NOTIFY combineInProgressChanged)
     Q_PROPERTY(double combineProgress READ combineProgress NOTIFY combineProgressChanged)
+    Q_PROPERTY(bool dissolveAvailable READ canDissolveSelection NOTIFY editCapabilitiesChanged)
+    Q_PROPERTY(int compoundDepth READ compoundDepth NOTIFY compoundStackChanged)
+    Q_PROPERTY(QString compoundName READ compoundName NOTIFY compoundStackChanged)
     // False until the user picks a launch layout (or decides later via first-clip setup / load).
     Q_PROPERTY(bool projectLayoutChosen READ projectLayoutChosen NOTIFY projectLayoutChosenChanged)
 
@@ -400,6 +404,8 @@ public:
     bool exportInProgress() const { return m_exportInProgress; }
     bool combineInProgress() const { return m_combineInProgress; }
     double combineProgress() const { return m_combineProgress; }
+    int compoundDepth() const { return m_compoundStack.size(); }
+    QString compoundName() const { return m_compoundStack.isEmpty() ? QString() : m_compoundStack.last().name; }
     double exportProgress() const;
     bool canShareExport() const;
     bool subtitleGenerating() const { return m_subtitleGenerating; }
@@ -1106,6 +1112,14 @@ public:
     Q_INVOKABLE bool canCombineSelection() const;
     Q_INVOKABLE void combineSelectionToClip();
     Q_INVOKABLE void cancelCombine();
+    // Compound clips: the selection becomes one clip backed by a rendered stand-in, with the
+    // original clips kept as a nested timeline. enterCompound swaps that timeline in for editing;
+    // exitCompound swaps the outer one back and re-renders the stand-in when something changed.
+    Q_INVOKABLE void createCompoundFromSelection();
+    Q_INVOKABLE void enterCompound(int trackIndex, int clipIndex);
+    Q_INVOKABLE void exitCompound();
+    Q_INVOKABLE bool canDissolveSelection() const;
+    Q_INVOKABLE void dissolveSelectedCompound();
     Q_INVOKABLE bool canSeparateAudioSelection() const;
     Q_INVOKABLE void separateAudioFromSelection();
     Q_INVOKABLE void separateAllAudioTracks(int trackIndex, int clipIndex);
@@ -1574,6 +1588,7 @@ signals:
     void exportProgressChanged();
     void combineInProgressChanged();
     void combineProgressChanged();
+    void compoundStackChanged();
     void canShareExportChanged();
     // `location` is a human-readable folder ("Movies/Drift"), empty when ok is false.
     void savedToGallery(const QString &displayName, bool ok, const QString &location,
@@ -1995,6 +2010,29 @@ protected:
     bool m_combineInProgress = false;
     double m_combineProgress = 0.0;
     QAtomicInt m_combineCancel = 0;
+    // One level of compound editing: what the outer timeline looked like when we went in.
+    // Assets, bin folders and the compound table are not saved here — they live on m_project
+    // at every depth and simply carry over.
+    struct CompoundFrame {
+        QList<drift::Track> tracks;
+        QList<drift::Bookmark> bookmarks;
+        drift::TimeUs workAreaInUs = -1;
+        drift::TimeUs workAreaOutUs = -1;
+        drift::TimeUs playheadUs = 0;
+        QString compoundId;
+        QString clipId;
+        QString name;
+        QByteArray contentAtEnter;
+    };
+    QList<CompoundFrame> m_compoundStack;
+    void renderSelectionToClip(bool asCompound);
+    void renderProjectRangeToFile(const drift::Project &snapshot, drift::TimeUs startUs, drift::TimeUs endUs,
+                                  const QString &busyText,
+                                  std::function<void(bool ok, const QString &error, const QString &outPath,
+                                                     const drift::MediaAsset &asset)> onDone);
+    void rerenderCompound(const QString &clipId, const QString &compoundId);
+    // The outermost project with every open compound level folded back in — what save writes.
+    drift::Project projectForPersistence() const;
     QUrl m_lastExportUrl;
     QString m_lastExportName;
     // Android: the publish-to-gallery copy behind Share is on a worker, so canShareExport reports

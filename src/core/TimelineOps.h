@@ -228,4 +228,17 @@ bool sliceClipToTimelineRange(const Clip &src, TimeUs start, TimeUs end, Clip &o
 bool restrictProjectToClips(const Project &project, const QSet<QString> &clipIds, Project &out,
                             TimeUs *startUs = nullptr, TimeUs *endUs = nullptr);
 
+// Compound clip contents travel inside the project file as a nested timeline: the tracks alone,
+// serialized through Project so the clip and transition formats stay in one place. The canvas
+// and fps come from `project`, which is what the nested timeline renders against.
+QJsonObject compoundTracksToJson(const Project &project, const QList<Track> &tracks);
+QList<Track> compoundTracksFromJson(const QJsonObject &object);
+
+// Moves every clip on every track by `deltaUs`, clamping at 0. Compound contents are stored
+// starting at 0 and shifted back to the compound clip's position when dissolved.
+void shiftTracks(QList<Track> &tracks, TimeUs deltaUs);
+
+// End of the last clip across `tracks`; 0 when they are empty.
+TimeUs tracksEndUs(const QList<Track> &tracks);
+
 } // namespace drift

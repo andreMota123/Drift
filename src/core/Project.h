@@ -136,6 +136,12 @@ public:
     const QHash<QString, BinFolder> &binFolders() const { return m_binFoldersById; }
     QHash<QString, BinFolder> &binFolders() { return m_binFoldersById; }
 
+    // Nested timelines behind compound clips, keyed by Clip::compoundId. Each value is the
+    // tracks-only JSON produced by drift::compoundTracksToJson, kept opaque here so the clip
+    // and transition formats have exactly one writer and one reader.
+    const QHash<QString, QJsonObject> &compounds() const { return m_compoundsById; }
+    QHash<QString, QJsonObject> &compounds() { return m_compoundsById; }
+
     const QList<Bookmark> &bookmarks() const { return m_bookmarks; }
     QList<Bookmark> &bookmarks() { return m_bookmarks; }
 
@@ -210,6 +216,7 @@ private:
     QHash<QString, MediaAsset> m_assetsById;
     QList<QString> m_binFolderOrder;
     QHash<QString, BinFolder> m_binFoldersById;
+    QHash<QString, QJsonObject> m_compoundsById;
 };
 
 } // namespace drift
