@@ -147,6 +147,7 @@ private slots:
     void applyMulticamSwitchMergesAdjacentSameCamera();
     void applyMulticamSwitchRejectsEdges();
     void sliceClipToTimelineRangeKeepsSourceInSync();
+    void restrictProjectToClipsKeepsOnlySelection();
 };
 
 void CoreTest::timeConversion()
@@ -3557,6 +3558,67 @@ void CoreTest::applyMulticamSwitchRejectsEdges()
              drift::MulticamSwitchResult::Applied);
     QCOMPARE(drift::applyMulticamSwitch(cuts, start, end, 1, drift::secondsToUs(5.0), 0),
              drift::MulticamSwitchResult::NoOp);
+}
+
+// The combine-to-clip render works on a copy of the project holding only the selection. Clips
+// outside it go, transitions survive only with both ends kept, and the span covers the kept clips.
+void CoreTest::restrictProjectToClipsKeepsOnlySelection()
+{
+    drift::Project project;
+    project.tracks().clear();
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+    project.tracks().append(drift::Track{.type = drift::TrackType::Audio});
+
+    drift::Clip a;
+    a.id = QStringLiteral("a");
+    a.type = drift::ClipType::Shape;
+    a.timelineStart = drift::secondsToUs(1.0);
+    a.timelineDuration = drift::secondsToUs(2.0);
+    drift::Clip b = a;
+    b.id = QStringLiteral("b");
+    b.timelineStart = drift::secondsToUs(3.0);
+    drift::Clip c;
+    c.id = QStringLiteral("c");
+    c.type = drift::ClipType::Audio;
+    c.timelineStart = 0;
+    c.timelineDuration = drift::secondsToUs(1.5);
+    drift::Clip d = c;
+    d.id = QStringLiteral("d");
+    d.timelineStart = drift::secondsToUs(6.0);
+    project.tracks()[0].clips = {a, b};
+    project.tracks()[1].clips = {c, d};
+    drift::Transition ab;
+    ab.id = QStringLiteral("ab");
+    ab.fromClipId = a.id;
+    ab.toClipId = b.id;
+    project.tracks()[0].transitions.append(ab);
+
+    drift::Project out;
+    drift::TimeUs start = -1;
+    drift::TimeUs end = -1;
+    QVERIFY(drift::restrictProjectToClips(project, {a.id, c.id}, out, &start, &end));
+    QCOMPARE(out.tracks().size(), 2);
+    QCOMPARE(out.tracks().at(0).clips.size(), 1);
+    QCOMPARE(out.tracks().at(0).clips.at(0).id, a.id);
+    // b went, so the a->b transition has no incoming end and goes with it.
+    QCOMPARE(out.tracks().at(0).transitions.size(), 0);
+    QCOMPARE(out.tracks().at(1).clips.size(), 1);
+    QCOMPARE(out.tracks().at(1).clips.at(0).id, c.id);
+    QCOMPARE(start, drift::TimeUs(0));
+    QCOMPARE(end, drift::secondsToUs(3.0));
+
+    // Both ends kept: the transition survives, and the span is theirs alone.
+    QVERIFY(drift::restrictProjectToClips(project, {a.id, b.id}, out, &start, &end));
+    QCOMPARE(out.tracks().at(0).transitions.size(), 1);
+    QCOMPARE(out.tracks().at(1).clips.size(), 0);
+    QCOMPARE(start, drift::secondsToUs(1.0));
+    QCOMPARE(end, drift::secondsToUs(5.0));
+
+    QVERIFY(!drift::restrictProjectToClips(project, {}, out, &start, &end));
+
+    // The source project is untouched.
+    QCOMPARE(project.tracks().at(0).clips.size(), 2);
+    QCOMPARE(project.tracks().at(0).transitions.size(), 1);
 }
 
 void CoreTest::sliceClipToTimelineRangeKeepsSourceInSync()

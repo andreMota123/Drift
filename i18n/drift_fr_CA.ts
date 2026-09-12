@@ -1621,6 +1621,14 @@
         <translation>Dissocier l&apos;audio</translation>
     </message>
     <message>
+        <source>Link clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation>Effacer la sélection</translation>
     </message>
@@ -2755,6 +2763,30 @@
     <message>
         <source>Audio unlinked</source>
         <translation>Audio détaché</translation>
+    </message>
+    <message>
+        <source>Clips linked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combining clips…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t combine the clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clips combined</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fade updated</source>
@@ -10524,6 +10556,14 @@ En cas de saccades à la lecture, essayez un autre mode.</translation>
         <translation>Dissocier</translation>
     </message>
     <message>
+        <source>Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation>Couper</translation>
     </message>
@@ -10748,6 +10788,14 @@ En cas de saccades à la lecture, essayez un autre mode.</translation>
     <message>
         <source>Unlink video and audio</source>
         <translation>Dissocier vidéo et audio</translation>
+    </message>
+    <message>
+        <source>Link selected clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine selection into one clip</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Merge adjacent clips</source>

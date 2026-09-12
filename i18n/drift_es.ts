@@ -1619,6 +1619,14 @@
         <translation>Desvincular audio</translation>
     </message>
     <message>
+        <source>Link clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation>Deseleccionar</translation>
     </message>
@@ -2749,6 +2757,30 @@
     <message>
         <source>Audio unlinked</source>
         <translation>Audio desvinculado</translation>
+    </message>
+    <message>
+        <source>Clips linked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combining clips…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t combine the clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clips combined</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fade updated</source>
@@ -10515,6 +10547,14 @@ Si la reproducción se corta, prueba con otra opción.</translation>
         <translation>Desvincular</translation>
     </message>
     <message>
+        <source>Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation>Cortar</translation>
     </message>
@@ -10743,6 +10783,14 @@ Si la reproducción se corta, prueba con otra opción.</translation>
     <message>
         <source>Unlink video and audio</source>
         <translation>Desvincular vídeo y audio</translation>
+    </message>
+    <message>
+        <source>Link selected clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine selection into one clip</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Merge adjacent clips</source>

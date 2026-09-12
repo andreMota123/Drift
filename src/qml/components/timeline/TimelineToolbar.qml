@@ -103,6 +103,25 @@ Item {
             enabled: EditorState.unlinkAvailable
             onClicked: EditorState.unlinkSelectedClips()
         }
+        // Two or more unlinked clips selected -> Link, the counterpart of Unlink for clips that
+        // did not come from the same media (a video and a separately recorded audio).
+        IconButton {
+            glyph: Theme.icons.link
+            variant: "text"
+            tooltip: toolbar.withShortcut(qsTr("Link selected clips"), "link")
+            visible: EditorState.linkAvailable
+            enabled: EditorState.linkAvailable
+            onClicked: EditorState.linkSelectedClips()
+        }
+        // Two or more clips selected -> bake them into one video clip.
+        IconButton {
+            glyph: Theme.icons.layers
+            variant: "text"
+            tooltip: toolbar.withShortcut(qsTr("Combine selection into one clip"), "combine")
+            visible: EditorState.combineAvailable || EditorState.combineInProgress
+            enabled: EditorState.combineAvailable
+            onClicked: EditorState.combineSelectionToClip()
+        }
 
         IconButton {
             glyph: Theme.icons.trimStart
@@ -279,10 +298,22 @@ Item {
                 onTriggered: EditorState.unlinkSelectedClips()
             }
             ThemedMenuItem {
+                text: qsTr("Link selected clips")
+                icon.name: Theme.icons.link
+                enabled: EditorState.linkAvailable
+                onTriggered: EditorState.linkSelectedClips()
+            }
+            ThemedMenuItem {
                 text: qsTr("Merge adjacent clips")
                 icon.name: Theme.icons.linkTwo
                 enabled: EditorState.mergeAvailable
                 onTriggered: EditorState.mergeSelectedClips()
+            }
+            ThemedMenuItem {
+                text: qsTr("Combine selection into one clip")
+                icon.name: Theme.icons.layers
+                enabled: EditorState.combineAvailable
+                onTriggered: EditorState.combineSelectionToClip()
             }
             ThemedMenuItem {
                 text: qsTr("Freeze frame at current time")

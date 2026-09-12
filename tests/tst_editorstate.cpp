@@ -37,6 +37,8 @@
 #include "core/OtioReader.h"
 #include "core/Project.h"
 #include "core/TimelineOps.h"
+#include "engine/Exporter.h"
+#include "engine/GpuCompositor.h"
 #include "core/Track.h"
 
 namespace {
@@ -134,6 +136,8 @@ private slots:
     void separateAudioFromCombinedClip();
     void separatedAudioTracksMirrorVideoHierarchy();
     void linkedAudioUnlinkAndMove();
+    void linkUnrelatedClipsMoveTogetherKeepTiming();
+    void combineSelectionRendersOneClip();
     void deleteLinkedPairTogetherAndUnlinkedClipAlone();
     void linkedFadeCurveSyncsPartner();
     void customFadeCurveSessionApplyAndCancel();
@@ -3160,6 +3164,118 @@ void EditorStateTest::transitionCurveSessionApplyAndCancel()
     state.setTransitionEasing(0, id, QStringLiteral("smooth"));
     QCOMPARE(state.project()->tracks().at(0).transitions.at(0).easingCurve,
              drift::FadeCurve::Smooth);
+}
+
+// Link joins clips that did not come from the same media. They move and split together, but the
+// audio keeps its own duration and trim instead of being overwritten by the video's.
+void EditorStateTest::linkUnrelatedClipsMoveTogetherKeepTiming()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+
+    // Start from two unlinked clips of different lengths.
+    drift::Clip &video = state.project()->tracks()[0].clips[0];
+    drift::Clip &audio = state.project()->tracks()[1].clips[0];
+    video.linkId.clear();
+    audio.linkId.clear();
+    audio.timelineStart = drift::secondsToUs(1.0);
+    audio.timelineDuration = drift::secondsToUs(2.0);
+    audio.srcIn = drift::secondsToUs(0.5);
+    audio.srcOut = drift::secondsToUs(2.5);
+
+    state.selectClip(0, 0);
+    QVERIFY(!state.canLinkSelection());
+    state.addToSelection(1, 0);
+    QVERIFY(state.canLinkSelection());
+
+    state.linkSelectedClips();
+    QVERIFY(state.canUnlinkSelection());
+    QVERIFY(!state.canLinkSelection());
+    const QString linkId = state.project()->tracks().at(0).clips.at(0).linkId;
+    QVERIFY(!linkId.isEmpty());
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).linkId, linkId);
+
+    // Moving the video carries the audio by the same delta, offset preserved.
+    state.selectClip(0, 0);
+    state.moveClip(0, 0, 3.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, drift::secondsToUs(3.0));
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, drift::secondsToUs(4.0));
+
+    // Trimming the video does not rewrite the audio's duration or trim (a strict link would).
+    state.trimClipRight(0, 0, 5.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineDuration, drift::secondsToUs(2.0));
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, drift::secondsToUs(4.0));
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineDuration, drift::secondsToUs(2.0));
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).srcIn, drift::secondsToUs(0.5));
+
+    state.unlinkSelectedClips();
+    QVERIFY(!state.canUnlinkSelection());
+    // Both sides lose the id, not just the clip the sweep started from.
+    QVERIFY(state.project()->tracks().at(0).clips.at(0).linkId.isEmpty());
+    QVERIFY(state.project()->tracks().at(1).clips.at(0).linkId.isEmpty());
+    state.moveClip(0, 0, 0.0);
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, drift::secondsToUs(4.0));
+}
+
+// Combine renders the selection to a file and swaps the clips for one video clip spanning them.
+void EditorStateTest::combineSelectionRendersOneClip()
+{
+    if (!GpuCompositor::isAvailable())
+        QSKIP("No GPU compositor available");
+    if (!Exporter::videoCodecById(QStringLiteral("h264")).value(QStringLiteral("available")).toBool()
+        || !Exporter::audioCodecById(QStringLiteral("aac")).value(QStringLiteral("available")).toBool())
+        QSKIP("h264/aac encoders unavailable in this FFmpeg build");
+
+    // The rendered file lands in AppDataLocation, so keep it out of the real profile.
+    QStandardPaths::setTestModeEnabled(true);
+    const auto restore = qScopeGuard([] { QStandardPaths::setTestModeEnabled(false); });
+
+    AssetLibrary library;
+    AppController state(&library);
+    drift::Project &project = *state.project();
+    project.setResolution(160, 90);
+    project.setFps(25);
+    project.tracks().clear();
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+
+    // Two overlapping shapes on two tracks: 0-2 s and 1-3 s.
+    drift::Clip a;
+    a.id = QStringLiteral("shape-a");
+    a.type = drift::ClipType::Shape;
+    a.timelineStart = 0;
+    a.timelineDuration = drift::secondsToUs(2.0);
+    a.shapeStyle.kind = drift::ShapeKind::Rectangle;
+    a.shapeStyle.setSolidFill(Qt::red);
+    drift::Clip b = a;
+    b.id = QStringLiteral("shape-b");
+    b.timelineStart = drift::secondsToUs(1.0);
+    b.shapeStyle.setSolidFill(Qt::green);
+    project.tracks()[0].clips.append(a);
+    project.tracks()[1].clips.append(b);
+
+    state.selectClip(0, 0);
+    QVERIFY(!state.canCombineSelection());
+    state.addToSelection(1, 0);
+    QVERIFY(state.canCombineSelection());
+
+    state.combineSelectionToClip();
+    QVERIFY(state.combineInProgress());
+    QVERIFY(!state.canCombineSelection());
+    QTRY_VERIFY_WITH_TIMEOUT(!state.combineInProgress(), 120000);
+
+    int clips = 0;
+    for (const drift::Track &track : project.tracks())
+        clips += track.clips.size();
+    QCOMPARE(clips, 1);
+    const drift::Clip &combined = project.tracks().at(0).clips.at(0);
+    QCOMPARE(combined.type, drift::ClipType::Video);
+    QCOMPARE(combined.timelineStart, drift::TimeUs(0));
+    QCOMPARE(combined.timelineDuration, drift::secondsToUs(3.0));
+    QVERIFY(QFileInfo::exists(combined.path));
+    QVERIFY(!combined.assetId.isEmpty());
+    QFile::remove(combined.path);
 }
 
 void EditorStateTest::addTransitionBetweenAdjacentClips()

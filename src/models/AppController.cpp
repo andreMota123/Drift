@@ -3565,9 +3565,12 @@ QList<QPair<int, int>> selectionWithLinkedPartners(const drift::Project &project
 void syncLinkedPartnersFrom(drift::Project &project, const drift::Clip &source,
                             const QSet<QString> &skipClipIds = {})
 {
+    // Loose links only travel together; their timing stays independent.
+    if (source.linkLoose)
+        return;
     for (const drift::ClipRef &ref : drift::linkedPartners(project, source)) {
         const drift::Clip &partner = project.tracks().at(ref.trackIndex).clips.at(ref.clipIndex);
-        if (skipClipIds.contains(partner.id))
+        if (skipClipIds.contains(partner.id) || partner.linkLoose)
             continue;
         drift::syncLinkedTiming(project.tracks()[ref.trackIndex].clips[ref.clipIndex], source);
     }
@@ -3644,6 +3647,8 @@ QHash<QString, QString> defaultShortcuts()
         {QStringLiteral("split"), QStringLiteral("S")},
         {QStringLiteral("merge"), QStringLiteral("Ctrl+M")},
         {QStringLiteral("unlink"), QStringLiteral("Ctrl+Shift+U")},
+        {QStringLiteral("link"), QStringLiteral("Ctrl+Shift+L")},
+        {QStringLiteral("combine"), QStringLiteral("Ctrl+Shift+J")},
         {QStringLiteral("separateAudio"), QStringLiteral("Ctrl+Shift+S")},
         {QStringLiteral("copy"), QStringLiteral("Ctrl+C")},
         {QStringLiteral("cut"), QStringLiteral("Ctrl+X")},
@@ -4756,6 +4761,8 @@ QVariantList AppController::actions() const
         action(QStringLiteral("merge"), tr("Merge adjacent clips")),
         action(QStringLiteral("separateAudio"), tr("Separate audio")),
         action(QStringLiteral("unlink"), tr("Unlink audio")),
+        action(QStringLiteral("link"), tr("Link clips")),
+        action(QStringLiteral("combine"), tr("Combine into one clip")),
         action(QStringLiteral("clearSelection"), tr("Clear selection")),
         action(QStringLiteral("selectAll"), tr("Select all clips")),
         action(QStringLiteral("nudgeLeft"), tr("Move selection left a little")),
@@ -5953,6 +5960,8 @@ void AppController::moveClip(int trackIndex, int clipIndex, double newStart)
     const QPair<int, int> requested(trackIndex, clipIndex);
     QList<QPair<int, int>> targets = m_selection.contains(requested) ? m_selection
                                                                       : QList<QPair<int, int>>{requested};
+    // Linked partners ride along by the same delta whether or not they are selected.
+    expandSelectionWithLinkedPartners(m_project, targets);
     const drift::Project before = m_project;
     const drift::TimeUs desiredUs = drift::secondsToUs(newStart);
     const drift::TimeUs baseUs = m_project.tracks().at(trackIndex).clips.at(clipIndex).timelineStart;
@@ -13337,11 +13346,17 @@ void AppController::unlinkSelectedClips()
         if (clip.linkId.isEmpty() || clearedLinkIds.contains(clip.linkId))
             continue;
 
-        clearedLinkIds.insert(clip.linkId);
+        // Copy the id before the sweep: `clip` lives in m_project, so once the sweep clears it
+        // (it is its own candidate), comparing against clip.linkId would match the empty
+        // string and leave every partner behind with a dangling link.
+        const QString linkId = clip.linkId;
+        clearedLinkIds.insert(linkId);
         for (drift::Track &track : m_project.tracks()) {
             for (drift::Clip &candidate : track.clips) {
-                if (candidate.linkId == clip.linkId)
+                if (candidate.linkId == linkId) {
                     candidate.linkId.clear();
+                    candidate.linkLoose = false;
+                }
             }
         }
         changed = true;
@@ -13355,6 +13370,235 @@ void AppController::unlinkSelectedClips()
 
     pushProjectEdit(before, tr("Clips unlinked"));
     finishEdit(tr("Audio unlinked"));
+}
+
+bool AppController::canLinkSelection() const
+{
+    // Two or more selected clips, none of them already part of a link.
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+
+    int valid = 0;
+    for (const QPair<int, int> &pair : pairs) {
+        if (!isValidClipIndex(pair.first, pair.second))
+            continue;
+        if (!m_project.tracks().at(pair.first).clips.at(pair.second).linkId.isEmpty())
+            return false;
+        ++valid;
+    }
+    return valid >= 2;
+}
+
+void AppController::linkSelectedClips()
+{
+    if (!canLinkSelection())
+        return;
+
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+
+    const drift::Project before = m_project;
+    const QString linkId = newClipId();
+    for (const QPair<int, int> &pair : pairs) {
+        if (!isValidClipIndex(pair.first, pair.second))
+            continue;
+        drift::Clip &clip = m_project.tracks()[pair.first].clips[pair.second];
+        clip.linkId = linkId;
+        // Manually linked clips usually come from different media, so the link is loose: it
+        // never copies one clip's duration, trim or speed onto the other.
+        clip.linkLoose = true;
+    }
+
+    pushProjectEdit(before, tr("Clips linked"));
+    finishEdit(tr("Clips linked"));
+}
+
+namespace {
+// Defined next to newFreezeFramePath further down; both live in this file's unnamed namespace.
+QString newCombinedClipPath(const QString &projectId);
+} // namespace
+
+bool AppController::canCombineSelection() const
+{
+    // One render at a time: the encoder pool is shared with export.
+    if (m_combineInProgress || m_exportInProgress)
+        return false;
+
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+
+    int valid = 0;
+    for (const QPair<int, int> &pair : pairs) {
+        if (isValidClipIndex(pair.first, pair.second))
+            ++valid;
+    }
+    return valid >= 2;
+}
+
+void AppController::combineSelectionToClip()
+{
+    if (!m_assetLibrary || !canCombineSelection())
+        return;
+
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+
+    QSet<QString> clipIds;
+    for (const QPair<int, int> &pair : pairs) {
+        if (isValidClipIndex(pair.first, pair.second))
+            clipIds.insert(m_project.tracks().at(pair.first).clips.at(pair.second).id);
+    }
+
+    // The selection alone, on its own tracks, so the render is what those clips contribute to the
+    // preview: their effects, transitions between them and their stacking order, nothing else.
+    drift::Project slice;
+    drift::TimeUs startUs = 0;
+    drift::TimeUs endUs = 0;
+    if (!drift::restrictProjectToClips(m_project, clipIds, slice, &startUs, &endUs) || endUs <= startUs)
+        return;
+
+    const QString outPath = newCombinedClipPath(m_project.id());
+    if (outPath.isEmpty()) {
+        setLastMessage(tr("Couldn’t create a file for the combined clip"), QStringLiteral("error"));
+        return;
+    }
+
+    ExportSettings settings = Exporter::defaultSettings();
+    settings.startUs = startUs;
+    settings.endUs = endUs;
+
+    // Stop playback so the decode pool isn't driven from two threads at once.
+    setPlaying(false);
+    m_combineCancel.storeRelaxed(0);
+    m_combineProgress = 0.0;
+    emit combineProgressChanged();
+    m_combineInProgress = true;
+    emit combineInProgressChanged();
+    emit editCapabilitiesChanged();
+    setLastMessage(tr("Combining clips…"));
+
+    // The worker encodes off the GUI thread while editing continues, so it gets a detached copy
+    // rather than a pointer into the live project.
+    const auto snapshot = std::make_shared<const drift::Project>(slice.detachedCopy());
+    (void)QtConcurrent::run([this, snapshot, settings, outPath, clipIds, startUs, endUs]() {
+        Exporter::BackgroundHold hold(QStringLiteral("Combining clips"), /*cancellable=*/true);
+        const auto report = [this](double fraction) -> bool {
+            QMetaObject::invokeMethod(
+                this,
+                [this, fraction]() {
+                    m_combineProgress = fraction;
+                    emit combineProgressChanged();
+                },
+                Qt::QueuedConnection);
+            return m_combineCancel.loadRelaxed() == 0 && !Exporter::BackgroundHold::cancelRequested();
+        };
+
+        QString error;
+        const bool ok = Exporter::run(*snapshot, settings, outPath, &error, report);
+
+        // Probe and thumbnail here, still off the GUI thread; the import path does the same work
+        // asynchronously, but addGeneratedAsset expects a complete asset.
+        drift::MediaAsset asset;
+        if (ok) {
+            const MediaInfo info = MediaProbe::probe(outPath);
+            asset.path = outPath;
+            asset.kind = drift::MediaKind::Video;
+            asset.durationUs = info.durationUs;
+            for (const StreamInfo &stream : info.streams) {
+                if (stream.type == StreamInfo::Type::Video && !stream.attachedPicture) {
+                    asset.width = stream.width;
+                    asset.height = stream.height;
+                    asset.fps = stream.fps;
+                    asset.codecName = stream.codecName;
+                } else if (stream.type == StreamInfo::Type::Audio && !asset.hasAudio) {
+                    asset.hasAudio = true;
+                    asset.sampleRate = stream.sampleRate;
+                    asset.channels = stream.channels;
+                }
+            }
+            asset.hasAudioKnown = true;
+            const QString kind = drift::mediaKindToString(drift::MediaKind::Video);
+            asset.thumbnailPath = MediaThumbnail::generate(outPath, kind);
+            asset.filmstripPath = MediaThumbnail::generateFilmstrip(outPath, kind);
+        }
+
+        QMetaObject::invokeMethod(
+            this,
+            [this, ok, error, outPath, asset, clipIds, startUs, endUs]() {
+                m_combineInProgress = false;
+                emit combineInProgressChanged();
+                m_combineProgress = ok ? 1.0 : 0.0;
+                emit combineProgressChanged();
+                emit editCapabilitiesChanged();
+                if (!ok) {
+                    QFile::remove(outPath);
+                    setLastMessage(error.isEmpty() ? tr("Couldn’t combine the clips") : error,
+                                   QStringLiteral("error"));
+                    return;
+                }
+
+                const drift::Project before = m_project;
+
+                // Find the clips again by id: the timeline may have changed while rendering. The
+                // combined clip lands on the front-most video track a source clip came from, so it
+                // stacks where the selection did.
+                int targetTrack = -1;
+                for (int t = 0; t < m_project.tracks().size(); ++t) {
+                    drift::Track &track = m_project.tracks()[t];
+                    for (int i = track.clips.size() - 1; i >= 0; --i) {
+                        if (!clipIds.contains(track.clips.at(i).id))
+                            continue;
+                        if (targetTrack < 0 && track.allowsClipType(drift::ClipType::Video))
+                            targetTrack = t;
+                        track.clips.removeAt(i);
+                    }
+                    track.transitions.removeIf([&clipIds](const drift::Transition &transition) {
+                        return clipIds.contains(transition.fromClipId)
+                               || clipIds.contains(transition.toClipId);
+                    });
+                }
+                if (targetTrack < 0)
+                    targetTrack = drift::ensureTrackForClipType(m_project, drift::ClipType::Video, true);
+
+                drift::MediaAsset named = asset;
+                named.name = tr("Combined clip");
+                const QString assetId = m_assetLibrary->addGeneratedAsset(named);
+
+                drift::Clip clip;
+                clip.id = newClipId();
+                clip.assetId = assetId;
+                clip.type = drift::ClipType::Video;
+                clip.name = named.name;
+                clip.path = outPath;
+                clip.thumbnailPath = named.thumbnailPath;
+                clip.filmstripPath = named.filmstripPath;
+                clip.timelineStart = startUs;
+                clip.timelineDuration = endUs - startUs;
+                clip.srcIn = 0;
+                clip.srcOut = clip.timelineDuration;
+                if (named.durationUs > 0 && named.durationUs < clip.srcOut)
+                    clip.srcOut = named.durationUs;
+                fitClipLayoutToCanvas(clip, named.width, named.height, m_project.width(), m_project.height());
+
+                drift::Track &track = m_project.tracks()[targetTrack];
+                track.clips.append(clip);
+                const int newClipIndex = track.clips.size() - 1;
+                pushProjectEdit(before, tr("Clips combined"));
+                finishEdit(tr("Clips combined"));
+                selectClip(targetTrack, newClipIndex);
+            },
+            Qt::QueuedConnection);
+    });
+}
+
+void AppController::cancelCombine()
+{
+    if (m_combineInProgress)
+        m_combineCancel.storeRelaxed(1);
 }
 
 void AppController::setClipFade(int trackIndex, int clipIndex, double fadeInSeconds, double fadeOutSeconds)
@@ -17457,6 +17701,22 @@ QString newFreezeFramePath(const QString &projectId)
                                   .arg(QUuid::createUuid().toString(QUuid::WithoutBraces)));
 }
 
+// Same project media folder as freeze frames: the file belongs to this project and travels with
+// its bundle.
+QString newCombinedClipPath(const QString &projectId)
+{
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (base.isEmpty())
+        return {};
+
+    const QString dir = QDir(base).filePath(QStringLiteral("projects/%1/media").arg(projectId));
+    if (!QDir().mkpath(dir))
+        return {};
+
+    return QDir(dir).filePath(QStringLiteral("combined-%1.mp4")
+                                  .arg(QUuid::createUuid().toString(QUuid::WithoutBraces)));
+}
+
 } // namespace
 
 void AppController::freezeFrameAtPlayhead()
@@ -17856,6 +18116,10 @@ void AppController::triggerAction(const QString &actionId)
         separateAudioFromSelection();
     else if (actionId == QStringLiteral("unlink"))
         unlinkSelectedClips();
+    else if (actionId == QStringLiteral("link"))
+        linkSelectedClips();
+    else if (actionId == QStringLiteral("combine"))
+        combineSelectionToClip();
     else if (actionId == QStringLiteral("copy"))
         copySelection();
     else if (actionId == QStringLiteral("cut"))

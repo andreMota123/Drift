@@ -219,4 +219,13 @@ QList<MulticamInterval> multicamIntervals(const QList<MulticamCut> &cuts, TimeUs
 // kMinClipDurationUs. `out` keeps `src`'s id; the caller mints a new one if it needs one.
 bool sliceClipToTimelineRange(const Clip &src, TimeUs start, TimeUs end, Clip &out);
 
+// Copy of `project` that keeps only the clips whose ids are in `clipIds`. Every other clip, and
+// any transition that lost one of its ends, is dropped from every track; track order, mute/hide
+// state and the canvas stay as they are. Rendering the copy over [*startUs, *endUs) — the span the
+// kept clips cover — therefore produces exactly what those clips contribute to the preview, which
+// is what "combine the selection into one clip" bakes into a file. Returns false when nothing was
+// kept.
+bool restrictProjectToClips(const Project &project, const QSet<QString> &clipIds, Project &out,
+                            TimeUs *startUs = nullptr, TimeUs *endUs = nullptr);
+
 } // namespace drift

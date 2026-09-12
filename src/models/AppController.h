@@ -328,7 +328,11 @@ class AppController : public QObject
     Q_PROPERTY(QVariantList recentProjects READ recentProjects NOTIFY recentProjectsChanged)
     Q_PROPERTY(bool separateAudioAvailable READ canSeparateAudioSelection NOTIFY editCapabilitiesChanged)
     Q_PROPERTY(bool unlinkAvailable READ canUnlinkSelection NOTIFY editCapabilitiesChanged)
+    Q_PROPERTY(bool linkAvailable READ canLinkSelection NOTIFY editCapabilitiesChanged)
     Q_PROPERTY(bool mergeAvailable READ canMergeSelection NOTIFY editCapabilitiesChanged)
+    Q_PROPERTY(bool combineAvailable READ canCombineSelection NOTIFY editCapabilitiesChanged)
+    Q_PROPERTY(bool combineInProgress READ combineInProgress NOTIFY combineInProgressChanged)
+    Q_PROPERTY(double combineProgress READ combineProgress NOTIFY combineProgressChanged)
     // False until the user picks a launch layout (or decides later via first-clip setup / load).
     Q_PROPERTY(bool projectLayoutChosen READ projectLayoutChosen NOTIFY projectLayoutChosenChanged)
 
@@ -394,6 +398,8 @@ public:
     bool undoAvailable() const { return m_undoStack.canUndo(); }
     bool redoAvailable() const { return m_undoStack.canRedo(); }
     bool exportInProgress() const { return m_exportInProgress; }
+    bool combineInProgress() const { return m_combineInProgress; }
+    double combineProgress() const { return m_combineProgress; }
     double exportProgress() const;
     bool canShareExport() const;
     bool subtitleGenerating() const { return m_subtitleGenerating; }
@@ -1095,6 +1101,11 @@ public:
     Q_INVOKABLE void setClipOrientation(int trackIndex, int clipIndex, int degrees);
     Q_INVOKABLE bool canMergeSelection() const;
     Q_INVOKABLE void mergeSelectedClips();
+    // Renders the selected clips (any tracks) to one video file and replaces them with a single
+    // clip of that file. Asynchronous: combineInProgress/combineProgress track the render.
+    Q_INVOKABLE bool canCombineSelection() const;
+    Q_INVOKABLE void combineSelectionToClip();
+    Q_INVOKABLE void cancelCombine();
     Q_INVOKABLE bool canSeparateAudioSelection() const;
     Q_INVOKABLE void separateAudioFromSelection();
     Q_INVOKABLE void separateAllAudioTracks(int trackIndex, int clipIndex);
@@ -1104,6 +1115,8 @@ public:
     Q_INVOKABLE void setClipAudioStreamIndex(int trackIndex, int clipIndex, int streamIndex);
     Q_INVOKABLE bool canUnlinkSelection() const;
     Q_INVOKABLE void unlinkSelectedClips();
+    Q_INVOKABLE bool canLinkSelection() const;
+    Q_INVOKABLE void linkSelectedClips();
     Q_INVOKABLE void setClipMask(int trackIndex, int clipIndex, const QVariantMap &mask);
 
     // The mask shapes the assets panel offers as cards: {id, label} per entry. A "media" mask is
@@ -1559,6 +1572,8 @@ signals:
     void undoStackChanged();
     void exportInProgressChanged();
     void exportProgressChanged();
+    void combineInProgressChanged();
+    void combineProgressChanged();
     void canShareExportChanged();
     // `location` is a human-readable folder ("Movies/Drift"), empty when ok is false.
     void savedToGallery(const QString &displayName, bool ok, const QString &location,
@@ -1977,6 +1992,9 @@ protected:
     bool m_exportInProgress = false;
     double m_exportProgress = 0.0;
     QAtomicInt m_exportCancel = 0;
+    bool m_combineInProgress = false;
+    double m_combineProgress = 0.0;
+    QAtomicInt m_combineCancel = 0;
     QUrl m_lastExportUrl;
     QString m_lastExportName;
     // Android: the publish-to-gallery copy behind Share is on a worker, so canShareExport reports

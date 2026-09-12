@@ -1038,6 +1038,19 @@ Item {
                 visible: !!clipItem.clipData.linked && EditorState.unlinkAvailable
                 onTriggered: EditorState.unlinkSelectedClips()
             }
+            ThemedMenuItem {
+                text: qsTr("Link")
+                icon.name: Theme.icons.link
+                // Needs two or more unlinked clips selected (Shift+click to add).
+                visible: EditorState.linkAvailable
+                onTriggered: EditorState.linkSelectedClips()
+            }
+            ThemedMenuItem {
+                text: qsTr("Combine into one clip")
+                icon.name: Theme.icons.layers
+                visible: EditorState.combineAvailable
+                onTriggered: EditorState.combineSelectionToClip()
+            }
             ThemedMenuSeparator { }
             ThemedMenuItem {
                 text: qsTr("Cut")

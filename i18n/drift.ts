@@ -1619,6 +1619,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Link clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2748,6 +2756,30 @@
     </message>
     <message>
         <source>Audio unlinked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clips linked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combining clips…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn’t combine the clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combined clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clips combined</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -10508,6 +10540,14 @@ If playback stutters, try another.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Link</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10735,6 +10775,14 @@ If playback stutters, try another.</source>
     </message>
     <message>
         <source>Unlink video and audio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Link selected clips</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combine selection into one clip</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

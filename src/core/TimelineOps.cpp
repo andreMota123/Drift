@@ -1068,4 +1068,37 @@ void rebaseClipLayout(Project &project, int oldWidth, int oldHeight, double orig
     }
 }
 
+bool restrictProjectToClips(const Project &project, const QSet<QString> &clipIds, Project &out,
+                            TimeUs *startUs, TimeUs *endUs)
+{
+    out = project.detachedCopy();
+    TimeUs start = -1;
+    TimeUs end = 0;
+    for (Track &track : out.tracks()) {
+        QList<Clip> kept;
+        for (const Clip &clip : track.clips) {
+            if (!clipIds.contains(clip.id))
+                continue;
+            kept.append(clip);
+            start = start < 0 ? clip.timelineStart : qMin(start, clip.timelineStart);
+            end = qMax(end, clip.timelineEnd());
+        }
+        track.clips = kept;
+
+        QList<Transition> transitions;
+        for (const Transition &transition : track.transitions) {
+            if (clipIds.contains(transition.fromClipId) && clipIds.contains(transition.toClipId))
+                transitions.append(transition);
+        }
+        track.transitions = transitions;
+    }
+    if (start < 0)
+        return false;
+    if (startUs)
+        *startUs = start;
+    if (endUs)
+        *endUs = end;
+    return true;
+}
+
 } // namespace drift

@@ -1619,6 +1619,14 @@
         <translation>Desvincular áudio</translation>
     </message>
     <message>
+        <source>Link clips</source>
+        <translation>Vincular clipes</translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation>Juntar em um só vídeo</translation>
+    </message>
+    <message>
         <source>Clear selection</source>
         <translation>Limpar seleção</translation>
     </message>
@@ -2749,6 +2757,30 @@
     <message>
         <source>Audio unlinked</source>
         <translation>Áudio desvinculado</translation>
+    </message>
+    <message>
+        <source>Clips linked</source>
+        <translation>Clipes vinculados</translation>
+    </message>
+    <message>
+        <source>Couldn’t create a file for the combined clip</source>
+        <translation>Não foi possível criar o arquivo do vídeo combinado</translation>
+    </message>
+    <message>
+        <source>Combining clips…</source>
+        <translation>Juntando os clipes…</translation>
+    </message>
+    <message>
+        <source>Couldn’t combine the clips</source>
+        <translation>Não foi possível juntar os clipes</translation>
+    </message>
+    <message>
+        <source>Combined clip</source>
+        <translation>Vídeo combinado</translation>
+    </message>
+    <message>
+        <source>Clips combined</source>
+        <translation>Clipes juntados</translation>
     </message>
     <message>
         <source>Fade updated</source>
@@ -10515,6 +10547,14 @@ Se a reprodução travar, experimente outro.</translation>
         <translation>Desvincular</translation>
     </message>
     <message>
+        <source>Link</source>
+        <translation>Vincular</translation>
+    </message>
+    <message>
+        <source>Combine into one clip</source>
+        <translation>Juntar em um só vídeo</translation>
+    </message>
+    <message>
         <source>Cut</source>
         <translation>Cortar</translation>
     </message>
@@ -10743,6 +10783,14 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Unlink video and audio</source>
         <translation>Desvincular vídeo e áudio</translation>
+    </message>
+    <message>
+        <source>Link selected clips</source>
+        <translation>Vincular clipes selecionados</translation>
+    </message>
+    <message>
+        <source>Combine selection into one clip</source>
+        <translation>Juntar seleção em um só vídeo</translation>
     </message>
     <message>
         <source>Merge adjacent clips</source>
