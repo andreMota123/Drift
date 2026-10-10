@@ -11233,6 +11233,26 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Lock track</source>
         <translation>Travar faixa</translation>
     </message>
+    <message>
+        <source>Track height</source>
+        <translation>Altura da faixa</translation>
+    </message>
+    <message>
+        <source>Short</source>
+        <translation>Curto</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>Padrão</translation>
+    </message>
+    <message>
+        <source>Tall</source>
+        <translation>Alto</translation>
+    </message>
+    <message>
+        <source>Audio waveform size</source>
+        <translation>Tamanho da forma de onda</translation>
+    </message>
 </context>
 <context>
     <name>TransformInspector</name>

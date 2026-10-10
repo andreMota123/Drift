@@ -63,6 +63,7 @@ Item {
     opacity: trackLocked ? 0.55 : 1.0
     property bool showWaveform: panel.tracks[trackIndex].showWaveform === true
     property bool showChannelWaveforms: panel.tracks[trackIndex].showChannelWaveforms === true
+    property real waveformScale: panel.tracks[trackIndex].waveformScale || 1
     property var clipEffects: clipData.effects || []
     property var clipAudioEffects: clipData.audioEffects || []
     readonly property bool hasAnyEffects: clipEffects.length > 0 || clipAudioEffects.length > 0
@@ -798,6 +799,8 @@ Item {
                         clipItem.clipData.audioStreamIndex || 0)
                 }
 
+                readonly property real ampScale: clipItem.waveformScale
+                onAmpScaleChanged: requestPaint()
                 onPeaksChanged: requestPaint()
                 onChannelDataChanged: requestPaint()
                 onWidthChanged: requestPaint()
@@ -817,7 +820,7 @@ Item {
                     for (var c = 0; c < channels; c++) {
                         const base = c * buckets
                         const mid = c * laneH + laneH / 2
-                        const half = (laneH / 2) * 0.85
+                        const half = (laneH / 2) * 0.85 * clipItem.waveformScale
                         ctx.beginPath()
                         // Top edge left to right, then the mirrored bottom edge back, so the
                         // lane closes into one shape.
@@ -890,7 +893,7 @@ Item {
                             if (peaks[i] > peak)
                                 peak = peaks[i];
                         }
-                        var amp = peak * mid * 0.9;
+                        var amp = peak * mid * 0.9 * clipItem.waveformScale;
                         if (amp > 0.5)
                             ctx.fillRect(x, mid - amp, 1, amp * 2);
                     }

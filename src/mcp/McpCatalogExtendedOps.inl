@@ -75,10 +75,11 @@
                         {QStringLiteral("show"), boolProp(QStringLiteral("Show waveform"))}},
                        {QStringLiteral("track"), QStringLiteral("show")}) },
         { "set_track_height", "timeline", "Resize a lane",
-          "Set the track's row height multiplier, 0.6..4.0. Cosmetic — does not affect "
-          "rendering or export.",
+          "Set the track's row height multiplier, 0.6..4.0, and optionally how much of the row "
+          "the audio waveform fills. Cosmetic — does not affect rendering or export.",
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
-                        {QStringLiteral("scale"), numberProp(QStringLiteral("Height multiplier"), 0.6, 4.0)}},
+                        {QStringLiteral("scale"), numberProp(QStringLiteral("Height multiplier"), 0.6, 4.0)},
+                        {QStringLiteral("waveform"), numberProp(QStringLiteral("Waveform size, 0.1..1 (the menu offers 0.3, 0.6 and 1)"), 0.1, 1.0)}},
                        {QStringLiteral("track"), QStringLiteral("scale")}) },
         { "select_clip", "timeline", "Focus one clip",
           "Select exactly one clip, replacing any previous selection. REQUIRED before the "

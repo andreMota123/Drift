@@ -14,6 +14,9 @@ MenuItem {
     // Group label for a menu that mixes several settings (the header's Settings
     // menu). Not an entry: it never highlights and never takes a click.
     property bool sectionHeader: false
+    // Keep the icon column even with no icon, so a checked entry and its unchecked
+    // siblings line up.
+    property bool iconSlot: false
     enabled: !sectionHeader
 
     // A section header is a label, not a target: giving it the MenuItem role would have
@@ -42,12 +45,13 @@ MenuItem {
 
         IconGlyph {
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.icon.name.length > 0
-            width: visible ? implicitWidth : 0
+            visible: root.icon.name.length > 0 || root.iconSlot
+            width: visible ? Math.max(implicitWidth, Theme.iconSizeMd) : 0
             glyph: root.icon.name
             iconSize: Theme.iconSizeMd
             iconColor: root.enabled ? Theme.panelForeground : Theme.mutedForeground
-            opacity: root.enabled ? 1 : 0.5
+            // An emptied glyph keeps its last image, so hide it outright.
+            opacity: root.icon.name.length === 0 ? 0 : (root.enabled ? 1 : 0.5)
         }
 
         Text {

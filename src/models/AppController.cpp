@@ -1336,6 +1336,7 @@ QVariantList AppController::tracks() const
             {QStringLiteral("showWaveform"), track.showWaveform},
             {QStringLiteral("showChannelWaveforms"), track.showChannelWaveforms},
             {QStringLiteral("heightScale"), track.heightScale},
+            {QStringLiteral("waveformScale"), track.waveformScale},
         });
     }
 
@@ -17757,6 +17758,20 @@ void AppController::setTrackHeightScale(int trackIndex, double scale)
 
     // View-only preference, like showWaveform: no undo entry.
     m_project.tracks()[trackIndex].heightScale = clamped;
+    emit tracksChanged();
+}
+
+void AppController::setTrackWaveformScale(int trackIndex, double scale)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return;
+
+    const qreal clamped = qBound(0.1, scale, 1.0);
+    if (qFuzzyCompare(m_project.tracks()[trackIndex].waveformScale, clamped))
+        return;
+
+    // View-only preference, like heightScale: no undo entry.
+    m_project.tracks()[trackIndex].waveformScale = clamped;
     emit tracksChanged();
 }
 

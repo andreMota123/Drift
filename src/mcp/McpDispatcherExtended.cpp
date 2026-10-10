@@ -716,6 +716,8 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
             return err("bad_args", QStringLiteral("scale required"));
         const double scale = jsonNumber(args.value(QStringLiteral("scale")), 1.0);
         m_controller->setTrackHeightScale(track, scale);
+        if (args.contains(QStringLiteral("waveform")))
+            m_controller->setTrackWaveformScale(track, jsonNumber(args.value(QStringLiteral("waveform")), 1.0));
         return ok({{QStringLiteral("track"), track}, {QStringLiteral("scale"), m_controller->trackHeightScale(track)}});
     }
 

@@ -1322,6 +1322,7 @@ public:
     // trackHeightScaleMin()..trackHeightScaleMax().
     Q_INVOKABLE void setTrackHeightScale(int trackIndex, double scale);
     Q_INVOKABLE double trackHeightScale(int trackIndex) const;
+    Q_INVOKABLE void setTrackWaveformScale(int trackIndex, double scale);
     Q_INVOKABLE void nudgeTrackHeightScale(int trackIndex, int steps);
     // The touch timeline has no per-lane resize handle and no room in the tool strip for a control
     // per lane, so its buttons move the whole stack. One tracksChanged for the sweep rather than

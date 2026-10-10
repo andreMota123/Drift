@@ -5092,6 +5092,7 @@ void EditorStateTest::panAndChannelWaveformsPersistAndUndo()
     QVERIFY(!state.trackShowChannelWaveforms(0));
     state.setTrackShowChannelWaveforms(0, true);
     QVERIFY(state.trackShowChannelWaveforms(0));
+    state.setTrackWaveformScale(0, 0.3);
 
     QString error;
     const drift::Project loaded =
@@ -5099,6 +5100,7 @@ void EditorStateTest::panAndChannelWaveformsPersistAndUndo()
     QVERIFY2(error.isEmpty(), qPrintable(error));
     QCOMPARE(loaded.tracks().size(), 1);
     QVERIFY(loaded.tracks().at(0).showChannelWaveforms);
+    QCOMPARE(loaded.tracks().at(0).waveformScale, 0.3);
     QCOMPARE(loaded.tracks().at(0).clips.at(0).pan, -0.6);
 }
 

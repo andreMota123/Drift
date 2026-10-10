@@ -244,6 +244,9 @@ Item {
             readonly property bool trackHidden: root.tracks[index].hidden === true
             readonly property bool trackLocked: root.tracks[index].locked === true
             readonly property bool trackWaveform: root.tracks[index].showWaveform === true
+            readonly property bool showsWaveform: root.tracks[index].type === "audio"
+                                                  || (root.tracks[index].type === "video"
+                                                      && trackWaveform)
             // Falls back to the type+position label until a custom name is set.
             readonly property string trackDisplayName:
                 root.tracks[index].name && root.tracks[index].name.length > 0
@@ -755,6 +758,45 @@ Item {
                     }
                     ThemedMenuSeparator {}
                     ThemedMenuItem {
+                        sectionHeader: true
+                        text: qsTr("Track height")
+                    }
+                    Repeater {
+                        model: [
+                            { label: qsTr("Short"), scale: 0.6 },
+                            { label: qsTr("Standard"), scale: 1.0 },
+                            { label: qsTr("Tall"), scale: 1.6 }
+                        ]
+                        ThemedMenuItem {
+                            required property var modelData
+                            iconSlot: true
+                            text: modelData.label
+                            icon.name: Math.abs((root.tracks[index].heightScale || 1)
+                                                - modelData.scale) < 0.01
+                                       ? Theme.icons.check : ""
+                            onTriggered: EditorState.setTrackHeightScale(index, modelData.scale)
+                        }
+                    }
+                    ThemedMenuItem {
+                        sectionHeader: true
+                        visible: trackLabelRow.showsWaveform
+                        text: qsTr("Audio waveform size")
+                    }
+                    Repeater {
+                        model: [0.3, 0.6, 1.0]
+                        ThemedMenuItem {
+                            required property real modelData
+                            visible: trackLabelRow.showsWaveform
+                            iconSlot: true
+                            text: Math.round(modelData * 100) + "%"
+                            icon.name: Math.abs((root.tracks[index].waveformScale || 1)
+                                                - modelData) < 0.01
+                                       ? Theme.icons.check : ""
+                            onTriggered: EditorState.setTrackWaveformScale(index, modelData)
+                        }
+                    }
+                    ThemedMenuSeparator {}
+                    ThemedMenuItem {
                         text: qsTr("Delete track")
                         icon.name: Theme.icons.trash
                         onTriggered: {
@@ -785,6 +827,35 @@ Item {
                         return
                     EditorState.nudgeTrackHeightScale(index, dy > 0 ? 1 : -1)
                 }
+            }
+
+            // Drag the bottom edge to set this row's height (CapCut 9.5): 4 px either side
+            // of the border.
+            MouseArea {
+                id: rowResizeArea
+                anchors.left: parent.left
+                anchors.right: parent.right
+                y: root.trackHeight(index) - 4
+                height: 8
+                z: 41
+                visible: !root.touchMode
+                cursorShape: Qt.SizeVerCursor
+                preventStealing: true
+                property real pressY: 0
+                property real pressHeight: 0
+                property real baseHeight: 1
+                onPressed: (mouse) => {
+                    pressY = mapToItem(root, mouse.x, mouse.y).y
+                    pressHeight = root.trackHeight(index)
+                    baseHeight = pressHeight / (root.tracks[index].heightScale || 1)
+                }
+                onPositionChanged: (mouse) => {
+                    if (!pressed)
+                        return
+                    const dy = mapToItem(root, mouse.x, mouse.y).y - pressY
+                    EditorState.setTrackHeightScale(index, (pressHeight + dy) / baseHeight)
+                }
+                onDoubleClicked: EditorState.setTrackHeightScale(index, 1)
             }
         }
     }
