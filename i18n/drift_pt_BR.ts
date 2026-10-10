@@ -3749,6 +3749,14 @@
         <source>Some clips could not be exported</source>
         <translation>Alguns clipes não puderam ser exportados</translation>
     </message>
+    <message>
+        <source>Volume normalised</source>
+        <translation>Volume normalizado</translation>
+    </message>
+    <message>
+        <source>Pauses removed</source>
+        <translation>Pausas removidas</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -5036,6 +5044,10 @@
     <message>
         <source>Agent access…</source>
         <translation>Acesso de agente…</translation>
+    </message>
+    <message>
+        <source>Smart suggestions…</source>
+        <translation>Sugestões inteligentes…</translation>
     </message>
 </context>
 <context>
@@ -12373,6 +12385,93 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
         <translation>
             <numerusform>%n pausa encontrada</numerusform>
             <numerusform>%n pausas encontradas</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Nothing was removed: most of this clip reads as silence.</source>
+        <translation>Nada foi removido: quase todo o clipe é lido como silêncio.</translation>
+    </message>
+    <message>
+        <source>Most of this clip reads as silence, so it is probably just quiet. Raise or normalise its volume first; removing now would delete almost all of it.</source>
+        <translation>Quase todo o clipe é lido como silêncio, então provavelmente ele só está baixo. Aumente ou normalize o volume antes; remover agora apagaria quase tudo.</translation>
+    </message>
+</context>
+<context>
+    <name>SuggestionsDialog</name>
+    <message>
+        <source>Smart suggestions</source>
+        <translation>Sugestões inteligentes</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>…and %1 more</source>
+        <translation>…e mais %1</translation>
+    </message>
+    <message>
+        <source>Your project is analysed on this computer; nothing is uploaded. Each fix applies to every clip listed and is undone with a single Ctrl+Z.</source>
+        <translation>O projeto é analisado neste computador; nada é enviado. Cada correção vale para todos os clipes listados e é desfeita com um único Ctrl+Z.</translation>
+    </message>
+    <message>
+        <source>Analyse again</source>
+        <translation>Analisar de novo</translation>
+    </message>
+    <message>
+        <source>Analyse project</source>
+        <translation>Analisar projeto</translation>
+    </message>
+    <message>
+        <source>Analysing clip %1 of %2…</source>
+        <translation>Analisando o clipe %1 de %2…</translation>
+    </message>
+    <message>
+        <source>There are no clips with sound to analyse.</source>
+        <translation>Não há clipes com som para analisar.</translation>
+    </message>
+    <message>
+        <source>Nothing to improve was found.</source>
+        <translation>Nada a melhorar foi encontrado.</translation>
+    </message>
+    <message>
+        <source>Even out the volume</source>
+        <translation>Uniformizar o volume</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>Aplicar</translation>
+    </message>
+    <message>
+        <source>Remove the pauses</source>
+        <translation>Remover as pausas</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n clip(s) are louder or quieter than the rest. Bring them all to %1 LUFS.</source>
+        <translation>
+            <numerusform>%n clipe está mais alto ou mais baixo que os demais. Leve-o a %1 LUFS.</numerusform>
+            <numerusform>%n clipes estão mais altos ou mais baixos que os demais. Leve todos a %1 LUFS.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Volume adjusted on %n clip(s).</source>
+        <translation>
+            <numerusform>Volume ajustado em %n clipe.</numerusform>
+            <numerusform>Volume ajustado em %n clipes.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n pause(s) of %1 s or more, %2 s in all.</source>
+        <translation>
+            <numerusform>%n pausa de %1 s ou mais, %2 s no total.</numerusform>
+            <numerusform>%n pausas de %1 s ou mais, %2 s no total.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n pause(s) removed.</source>
+        <translation>
+            <numerusform>%n pausa removida.</numerusform>
+            <numerusform>%n pausas removidas.</numerusform>
         </translation>
     </message>
 </context>

@@ -1580,6 +1580,16 @@ public:
     Q_INVOKABLE int exportableSelectionCount() const;
     Q_INVOKABLE void requestBatchExport() { emit batchExportRequested(); }
     Q_INVOKABLE void requestRemovePauses() { emit removePausesRequested(); }
+    // ---- Smart suggestions: measure, then fix every affected clip in one undo step ----------
+    // Clips that carry sound, on unlocked video and audio tracks:
+    // [{ id, track, clip, name, duration }].
+    Q_INVOKABLE QVariantList soundClips() const;
+    // Integrated loudness of one clip: { ok, lufs }. Blocks while the audio is read.
+    Q_INVOKABLE QVariantMap clipLoudness(int trackIndex, int clipIndex) const;
+    // Brings each listed clip (by id) to `targetLufs`. Returns how many were changed.
+    Q_INVOKABLE int normalizeClipsVolume(const QStringList &clipIds, double targetLufs);
+    // Cuts the pauses out of each listed clip (by id). Returns how many pauses went.
+    Q_INVOKABLE int removePausesFromClips(const QStringList &clipIds, double minDuration);
     // Silent stretches of a clip at least `minDuration` long: { ok, ranges: [{start, end}] } in
     // timeline seconds. Blocks while the audio is read.
     Q_INVOKABLE QVariantMap findPauses(int trackIndex, int clipIndex, double minDuration) const;

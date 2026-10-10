@@ -10,6 +10,10 @@ ThemedDialog {
     property int trackIndex: -1
     property int clipIndex: -1
     property string clipName: ""
+    property double clipDuration: 0
+    // Most of the clip reading as silence means it is just quiet, not that it is all pauses.
+    readonly property bool mostlySilent: ranges !== null && clipDuration > 0
+                                         && totalSeconds >= clipDuration * 0.6
     // [{ start, end }] in timeline seconds, from the last search; null before the first one.
     property var ranges: null
     property double minPause: 0.5
@@ -34,6 +38,7 @@ ThemedDialog {
         trackIndex = EditorState.selectedTrack
         clipIndex = EditorState.selectedClip
         clipName = clip.name || ""
+        clipDuration = clip.duration || 0
         ranges = null
         open()
     }
@@ -57,6 +62,10 @@ ThemedDialog {
     onAccepted: {
         if (!ranges || ranges.length === 0)
             return
+        if (mostlySilent) {
+            Toasts.warning(qsTr("Nothing was removed: most of this clip reads as silence."))
+            return
+        }
         const result = EditorState.removePauses(trackIndex, clipIndex, minPause)
         if (result.ok)
             Toasts.success(qsTr("%n pause(s) removed.", "", (result.removed || []).length))
@@ -125,6 +134,15 @@ ThemedDialog {
                   ? qsTr("%n pause(s) found", "", root.ranges.length) + " · "
                     + qsTr("%1 s will be cut").arg(root.totalSeconds.toFixed(1))
                   : qsTr("No pauses this long were found.")
+        }
+
+        ThemedLabel {
+            width: parent.width
+            visible: root.mostlySilent
+            wrapMode: Text.WordWrap
+            color: Theme.warning
+            text: qsTr("Most of this clip reads as silence, so it is probably just quiet. Raise or "
+                       + "normalise its volume first; removing now would delete almost all of it.")
         }
 
         Rectangle {

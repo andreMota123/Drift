@@ -235,6 +235,10 @@ Rectangle {
         id: removePausesDialog
     }
 
+    SuggestionsDialog {
+        id: suggestionsDialog
+    }
+
     ExportProgressDialog {
         id: exportProgressDialog
         onClosed: if (EditorState.exportInProgress) root.exportProgressDismissed = true
@@ -485,6 +489,12 @@ Rectangle {
                         text: qsTr("Project properties…")
                         icon.name: Theme.icons.info
                         onTriggered: projectPropertiesDialog.openDialog()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Smart suggestions…")
+                        icon.name: Theme.icons.sparkles
+                        onTriggered: suggestionsDialog.openDialog()
                     }
 
                     ThemedMenuItem {

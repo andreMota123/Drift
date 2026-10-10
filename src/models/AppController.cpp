@@ -13835,6 +13835,76 @@ QVariantMap AppController::removePauses(int trackIndex, int clipIndex, double mi
                             kPausePadding).toVariantMap();
 }
 
+QVariantList AppController::soundClips() const
+{
+    QVariantList out;
+    for (int t = 0; t < m_project.tracks().size(); ++t) {
+        const drift::Track &track = m_project.tracks().at(t);
+        if (track.locked || (track.type != drift::TrackType::Video && track.type != drift::TrackType::Audio))
+            continue;
+        for (int i = 0; i < track.clips.size(); ++i) {
+            const drift::Clip &clip = track.clips.at(i);
+            if (clip.path.isEmpty() || drift::isImageSuffix(clip.path))
+                continue;
+            out.append(QVariantMap{
+                {QStringLiteral("id"), clip.id},
+                {QStringLiteral("track"), t},
+                {QStringLiteral("clip"), i},
+                {QStringLiteral("name"), clip.name.isEmpty() ? QFileInfo(clip.path).fileName() : clip.name},
+                {QStringLiteral("duration"), drift::usToSeconds(clip.timelineDuration)},
+            });
+        }
+    }
+    return out;
+}
+
+QVariantMap AppController::clipLoudness(int trackIndex, int clipIndex) const
+{
+    return mcpAnalyzeLoudness(trackIndex, clipIndex, 0.0, 0.0).toVariantMap();
+}
+
+int AppController::normalizeClipsVolume(const QStringList &clipIds, double targetLufs)
+{
+    int changed = 0;
+    mcpBeginBatch();
+    // Volume edits neither add nor remove clips, so the indices found here stay good.
+    for (int t = 0; t < m_project.tracks().size(); ++t) {
+        for (int i = 0; i < m_project.tracks().at(t).clips.size(); ++i) {
+            if (!clipIds.contains(m_project.tracks().at(t).clips.at(i).id))
+                continue;
+            if (mcpNormalizeVolume(t, i, targetLufs).value(QStringLiteral("ok")).toBool())
+                ++changed;
+        }
+    }
+    mcpEndBatch(tr("Volume normalised"), changed > 0);
+    return changed;
+}
+
+int AppController::removePausesFromClips(const QStringList &clipIds, double minDuration)
+{
+    int removed = 0;
+    mcpBeginBatch();
+    // Cutting a clip splits it, which renumbers everything after it on the track: look each
+    // one up again by id rather than trusting an index taken before the previous cut.
+    for (const QString &id : clipIds) {
+        bool done = false;
+        for (int t = 0; t < m_project.tracks().size() && !done; ++t) {
+            for (int i = 0; i < m_project.tracks().at(t).clips.size(); ++i) {
+                if (m_project.tracks().at(t).clips.at(i).id != id)
+                    continue;
+                const QJsonObject result = mcpRemoveSilence(t, i, kPauseThreshold,
+                                                            qBound(0.1, minDuration, 100.0), kPausePadding);
+                if (result.value(QStringLiteral("ok")).toBool())
+                    removed += result.value(QStringLiteral("removed")).toArray().size();
+                done = true;
+                break;
+            }
+        }
+    }
+    mcpEndBatch(tr("Pauses removed"), removed > 0);
+    return removed;
+}
+
 QList<QSet<QString>> AppController::selectionExportUnits() const
 {
     QList<QPair<int, int>> pairs = m_selection;
