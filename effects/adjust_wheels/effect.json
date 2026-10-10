@@ -1,0 +1,163 @@
+{
+  "id": "adjust.wheels",
+  "displayName": "Color Wheels",
+  "category": "color",
+  "order": 14,
+  "description": "Lift, gamma, gain and offset, each with a red/green/blue balance and a level: grade shadows, midtones and highlights separately.",
+  "parameters": [
+    {
+      "identifier": "liftR",
+      "displayName": "Lift (shadows) red",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "liftG",
+      "displayName": "Lift (shadows) green",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "liftB",
+      "displayName": "Lift (shadows) blue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "liftY",
+      "displayName": "Lift (shadows) level",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gammaR",
+      "displayName": "Gamma (midtones) red",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gammaG",
+      "displayName": "Gamma (midtones) green",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gammaB",
+      "displayName": "Gamma (midtones) blue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gammaY",
+      "displayName": "Gamma (midtones) level",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gainR",
+      "displayName": "Gain (highlights) red",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gainG",
+      "displayName": "Gain (highlights) green",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gainB",
+      "displayName": "Gain (highlights) blue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "gainY",
+      "displayName": "Gain (highlights) level",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "offsetR",
+      "displayName": "Offset red",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "offsetG",
+      "displayName": "Offset green",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "offsetB",
+      "displayName": "Offset blue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "offsetY",
+      "displayName": "Offset level",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "saturation",
+      "displayName": "Saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    }
+  ],
+  "backend": "gpu",
+  "pipeline": {
+    "intermediateBuffers": [],
+    "passes": [
+      {
+        "passIndex": 0,
+        "fragmentShader": "main.frag",
+        "inputs": [
+          {
+            "type": "source_texture"
+          }
+        ],
+        "output": {
+          "type": "canvas"
+        }
+      }
+    ]
+  }
+}

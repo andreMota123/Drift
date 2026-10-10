@@ -1011,6 +1011,10 @@ public:
     Q_INVOKABLE void splitClipRightAt(int trackIndex, int clipIndex, double seconds);
     Q_INVOKABLE void trimClipLeft(int trackIndex, int clipIndex, double newStart);
     Q_INVOKABLE void trimClipRight(int trackIndex, int clipIndex, double newEnd);
+    // Roll trim: moves the cut between this clip and the one butted against the dragged edge, so
+    // one grows by exactly what the other loses and nothing downstream shifts. Falls back to a
+    // plain trim when there is no neighbour touching that edge. Live-drag path, like the trims.
+    Q_INVOKABLE void rollTrim(int trackIndex, int clipIndex, bool rightEdge, double newCut);
     Q_INVOKABLE void setClipTrim(int trackIndex, int clipIndex, double inPoint, double outPoint);
     Q_INVOKABLE void setClipStart(int trackIndex, int clipIndex, double start);
     Q_INVOKABLE void setClipDuration(int trackIndex, int clipIndex, double duration);

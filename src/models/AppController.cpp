@@ -6442,6 +6442,71 @@ void AppController::trimClipRight(int trackIndex, int clipIndex, double newEnd)
     emit tracksChanged();
 }
 
+void AppController::rollTrim(int trackIndex, int clipIndex, bool rightEdge, double newCut)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return;
+    const drift::Track &track = m_project.tracks().at(trackIndex);
+    if (clipIndex < 0 || clipIndex >= track.clips.size())
+        return;
+
+    // The neighbour is whichever clip on this track starts (or ends) where this one ends (or
+    // starts), to within a frame — clips that merely sit nearby are not part of the cut.
+    const drift::Clip &clip = track.clips.at(clipIndex);
+    const drift::TimeUs edge = rightEdge ? clip.timelineEnd() : clip.timelineStart;
+    const drift::TimeUs tolerance = drift::secondsToUs(1.0 / qMax(1, projectFps()));
+    int neighbour = -1;
+    for (int i = 0; i < track.clips.size(); ++i) {
+        if (i == clipIndex)
+            continue;
+        const drift::Clip &other = track.clips.at(i);
+        const drift::TimeUs otherEdge = rightEdge ? other.timelineStart : other.timelineEnd();
+        if (qAbs(otherEdge - edge) <= tolerance) {
+            neighbour = i;
+            break;
+        }
+    }
+    if (neighbour < 0) {
+        if (rightEdge)
+            trimClipRight(trackIndex, clipIndex, newCut);
+        else
+            trimClipLeft(trackIndex, clipIndex, newCut);
+        return;
+    }
+
+    // Whichever clip is giving ground moves first, so the one taking it has room to grow into;
+    // the taker is then set to wherever the giver actually stopped, which also covers the giver
+    // hitting its minimum length or the taker running out of source.
+    const auto startOf = [this, trackIndex](int index) {
+        return drift::usToSeconds(m_project.tracks().at(trackIndex).clips.at(index).timelineStart);
+    };
+    const auto endOf = [this, trackIndex](int index) {
+        return drift::usToSeconds(m_project.tracks().at(trackIndex).clips.at(index).timelineEnd());
+    };
+    const double oldCut = drift::usToSeconds(edge);
+    if (rightEdge) {
+        if (newCut > oldCut) {
+            trimClipLeft(trackIndex, neighbour, newCut);
+            trimClipRight(trackIndex, clipIndex, startOf(neighbour));
+            trimClipLeft(trackIndex, neighbour, endOf(clipIndex));
+        } else {
+            trimClipRight(trackIndex, clipIndex, newCut);
+            trimClipLeft(trackIndex, neighbour, endOf(clipIndex));
+            trimClipRight(trackIndex, clipIndex, startOf(neighbour));
+        }
+    } else {
+        if (newCut < oldCut) {
+            trimClipRight(trackIndex, neighbour, newCut);
+            trimClipLeft(trackIndex, clipIndex, endOf(neighbour));
+            trimClipRight(trackIndex, neighbour, startOf(clipIndex));
+        } else {
+            trimClipLeft(trackIndex, clipIndex, newCut);
+            trimClipRight(trackIndex, neighbour, startOf(clipIndex));
+            trimClipLeft(trackIndex, clipIndex, endOf(neighbour));
+        }
+    }
+}
+
 void AppController::setClipTrim(int trackIndex, int clipIndex, double inPoint, double outPoint)
 {
     if (trackIndex < 0 || trackIndex >= m_project.tracks().size())

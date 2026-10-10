@@ -139,6 +139,7 @@ private slots:
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
     void lockedTrackKeepsItsClips();
+    void rollTrimMovesTheSharedCut();
     void combineSelectionRendersOneClip();
     void compoundClipEnterEditExitAndDissolve();
     void deleteLinkedPairTogetherAndUnlinkedClipAlone();
@@ -3233,6 +3234,43 @@ void EditorStateTest::lockedTrackKeepsItsClips()
     state.setTrackLocked(0, false);
     state.moveClip(0, 0, 7.0);
     QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, drift::secondsToUs(7.0));
+}
+
+void EditorStateTest::rollTrimMovesTheSharedCut()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+
+    // Two clips butted together, each trimmed in so both have source to give and take.
+    drift::Clip &first = state.project()->tracks()[0].clips[0];
+    const drift::TimeUs full = first.timelineDuration;
+    QVERIFY(full >= drift::secondsToUs(4.0));
+    first.linkId.clear();
+    first.timelineStart = 0;
+    first.srcIn = drift::secondsToUs(1.0);
+    first.srcOut = drift::secondsToUs(2.0);
+    first.timelineDuration = drift::secondsToUs(1.0);
+    drift::Clip second = first;
+    second.id = QStringLiteral("roll-second");
+    second.timelineStart = drift::secondsToUs(1.0);
+    state.project()->tracks()[0].clips.append(second);
+
+    // Rolling the cut right by half a second lengthens the first and shortens the second.
+    state.rollTrim(0, 0, true, 1.5);
+    const drift::Clip &a = state.project()->tracks().at(0).clips.at(0);
+    const drift::Clip &b = state.project()->tracks().at(0).clips.at(1);
+    QCOMPARE(a.timelineEnd(), drift::secondsToUs(1.5));
+    QCOMPARE(b.timelineStart, drift::secondsToUs(1.5));
+    // The far ends did not move.
+    QCOMPARE(a.timelineStart, drift::TimeUs{0});
+    QCOMPARE(b.timelineEnd(), drift::secondsToUs(2.0));
+
+    // And back the other way, from the second clip's left edge.
+    state.rollTrim(0, 1, false, 0.75);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineEnd(), drift::secondsToUs(0.75));
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, drift::secondsToUs(0.75));
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineEnd(), drift::secondsToUs(2.0));
 }
 
 void EditorStateTest::linkUnrelatedClipsMoveTogetherKeepTiming()

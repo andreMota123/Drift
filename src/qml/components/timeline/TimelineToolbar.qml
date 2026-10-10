@@ -74,6 +74,22 @@ Item {
             active: toolbar.panel.timelineTool === ""
             onClicked: toolbar.panel.timelineTool = ""
         }
+
+        // Undo and redo sit right after the tool, before the edit actions (CapCut order).
+        IconButton {
+            glyph: Theme.icons.undo
+            variant: "text"
+            tooltip: toolbar.withShortcut(qsTr("Undo"), "undo")
+            onClicked: EditorState.undo()
+            enabled: EditorState.undoAvailable
+        }
+        IconButton {
+            glyph: Theme.icons.redo
+            variant: "text"
+            tooltip: toolbar.withShortcut(qsTr("Redo"), "redo")
+            onClicked: EditorState.redo()
+            enabled: EditorState.redoAvailable
+        }
         IconButton {
             glyph: Theme.icons.scissors
             variant: "text"
@@ -142,20 +158,6 @@ Item {
         // for roughly the first two thirds of it — so the buttons that must never
         // vanish have to be the ones nearest the left edge. Everything past the
         // second separator is also reachable from the overflow menu.
-        IconButton {
-            glyph: Theme.icons.undo
-            variant: "text"
-            tooltip: toolbar.withShortcut(qsTr("Undo"), "undo")
-            onClicked: EditorState.undo()
-            enabled: EditorState.undoAvailable
-        }
-        IconButton {
-            glyph: Theme.icons.redo
-            variant: "text"
-            tooltip: toolbar.withShortcut(qsTr("Redo"), "redo")
-            onClicked: EditorState.redo()
-            enabled: EditorState.redoAvailable
-        }
         IconButton {
             glyph: Theme.icons.trash
             variant: "text"

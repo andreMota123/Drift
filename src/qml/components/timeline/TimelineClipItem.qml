@@ -1504,6 +1504,12 @@ Item {
                 // The trim reports what it did rather than the caller guessing from the geometry:
                 // snapping and every limit that can stop this edge live inside it, and the one the
                 // user needs told — the source running out — has no cue on screen at all.
+                // Ctrl held: roll the cut shared with the clip butted against this edge.
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    EditorState.rollTrim(clipItem.trackIndex, clipItem.clipIndex, false,
+                                         Math.max(0, newStart))
+                    return
+                }
                 Haptics.trimStep(
                     EditorState.trimClipLeft(clipItem.trackIndex, clipItem.clipIndex,
                                              Math.max(0, newStart)))
@@ -1584,6 +1590,11 @@ Item {
                 const start = clipItem.clipData.start || 0
                 const raw = mapToItem(trackRow, mouse.x, mouse.y).x / panel.pxPerSecond
                 const newEnd = Math.max(raw, start + clipItem.minDurationSeconds)
+                // Ctrl held: roll the cut shared with the clip butted against this edge.
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    EditorState.rollTrim(clipItem.trackIndex, clipItem.clipIndex, true, newEnd)
+                    return
+                }
                 Haptics.trimStep(
                     EditorState.trimClipRight(clipItem.trackIndex, clipItem.clipIndex, newEnd))
             }

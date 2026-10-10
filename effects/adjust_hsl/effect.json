@@ -1,0 +1,219 @@
+{
+  "id": "adjust.hsl",
+  "displayName": "HSL by Color",
+  "category": "color",
+  "order": 12,
+  "description": "Shift the hue, saturation and lightness of eight colour ranges independently: red, orange, yellow, green, cyan, blue, purple and magenta.",
+  "parameters": [
+    {
+      "identifier": "redHue",
+      "displayName": "Red hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redSat",
+      "displayName": "Red saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redLum",
+      "displayName": "Red lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "orangeHue",
+      "displayName": "Orange hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "orangeSat",
+      "displayName": "Orange saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "orangeLum",
+      "displayName": "Orange lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "yellowHue",
+      "displayName": "Yellow hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "yellowSat",
+      "displayName": "Yellow saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "yellowLum",
+      "displayName": "Yellow lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenHue",
+      "displayName": "Green hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenSat",
+      "displayName": "Green saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenLum",
+      "displayName": "Green lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "cyanHue",
+      "displayName": "Cyan hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "cyanSat",
+      "displayName": "Cyan saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "cyanLum",
+      "displayName": "Cyan lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueHue",
+      "displayName": "Blue hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueSat",
+      "displayName": "Blue saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueLum",
+      "displayName": "Blue lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "purpleHue",
+      "displayName": "Purple hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "purpleSat",
+      "displayName": "Purple saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "purpleLum",
+      "displayName": "Purple lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "magentaHue",
+      "displayName": "Magenta hue",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "magentaSat",
+      "displayName": "Magenta saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "magentaLum",
+      "displayName": "Magenta lightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    }
+  ],
+  "backend": "gpu",
+  "pipeline": {
+    "intermediateBuffers": [],
+    "passes": [
+      {
+        "passIndex": 0,
+        "fragmentShader": "main.frag",
+        "inputs": [
+          {
+            "type": "source_texture"
+          }
+        ],
+        "output": {
+          "type": "canvas"
+        }
+      }
+    ]
+  }
+}
