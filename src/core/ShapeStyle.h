@@ -27,6 +27,8 @@ enum class ShapeKind {
     Octagon,
     Parallelogram,
     Trapezoid,
+    // A bar across the box's middle with a choice of end on each side.
+    Line,
     // Arrows
     Arrow,
     DoubleArrow,
@@ -47,6 +49,12 @@ enum class ShapeKind {
     Burst,
     Banner,
 };
+
+// What a Line carries at one end.
+enum class LineCap { None, Arrow, Round };
+
+QString lineCapToString(LineCap cap);
+LineCap lineCapFromString(const QString &cap);
 
 QString shapeKindToString(ShapeKind kind);
 ShapeKind shapeKindFromString(const QString &kind);
@@ -73,6 +81,14 @@ struct ShapeStyle
     double thickness = 0.4;    // arrows / chevron / cross: shaft, fraction of height
     double tailX = 0.25;       // bubbles: tail anchor along the bottom edge, 0..1
     double tailSize = 0.2;     // bubbles: tail extent, fraction of height
+    LineCap startCap = LineCap::None; // line: left end
+    LineCap endCap = LineCap::None;   // line: right end
+    // Rect family: one corner's own radius in project px, or -1 to follow cornerRadius.
+    // Order: top-left, top-right, bottom-right, bottom-left.
+    double cornerRadii[4] = {-1.0, -1.0, -1.0, -1.0};
+
+    // True when a rect-family shape has at least one corner set apart from cornerRadius.
+    bool hasCornerOverrides() const;
 
     // Keyed by shapeKeyframeProperties() names ("cornerRadius", "layer.<id>.<field>", …); times
     // are relative to the clip start.

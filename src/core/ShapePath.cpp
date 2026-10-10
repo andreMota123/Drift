@@ -62,6 +62,71 @@ QPainterPath starPath(const QRectF &bounds, int points, double innerRatio, bool 
     return path;
 }
 
+// A rect whose corners each take their own radius; a corner left at -1 follows cornerRadius.
+QPainterPath perCornerRectPath(const ShapeStyle &style, const QRectF &b)
+{
+    const double limit = qMin(b.width(), b.height()) / 2.0;
+    double r[4];
+    for (int i = 0; i < 4; ++i)
+        r[i] = qBound(0.0, style.cornerRadii[i] >= 0.0 ? style.cornerRadii[i] : style.cornerRadius, limit);
+
+    QPainterPath path;
+    path.moveTo(b.left() + r[0], b.top());
+    path.lineTo(b.right() - r[1], b.top());
+    if (r[1] > 0.0)
+        path.arcTo(b.right() - 2 * r[1], b.top(), 2 * r[1], 2 * r[1], 90, -90);
+    path.lineTo(b.right(), b.bottom() - r[2]);
+    if (r[2] > 0.0)
+        path.arcTo(b.right() - 2 * r[2], b.bottom() - 2 * r[2], 2 * r[2], 2 * r[2], 0, -90);
+    path.lineTo(b.left() + r[3], b.bottom());
+    if (r[3] > 0.0)
+        path.arcTo(b.left(), b.bottom() - 2 * r[3], 2 * r[3], 2 * r[3], 270, -90);
+    path.lineTo(b.left(), b.top() + r[0]);
+    if (r[0] > 0.0)
+        path.arcTo(b.left(), b.top(), 2 * r[0], 2 * r[0], 180, -90);
+    path.closeSubpath();
+    return path;
+}
+
+// A bar across the middle of the box, `thickness` of its height, with an optional arrow head or
+// ball at each end. The ends are as tall as the box and as long as they are tall, so the line
+// keeps its look however far it is stretched.
+QPainterPath linePath(const ShapeStyle &style, const QRectF &b)
+{
+    const double shaft = b.height() * qBound(0.05, style.thickness, 1.0);
+    const double capLen = qMin(b.height(), b.width() * 0.45);
+    const double cy = b.center().y();
+
+    // Where the bar stops under each end: an arrow covers it up to the head's base, a ball up
+    // to its centre.
+    const auto inset = [capLen](LineCap cap) {
+        return cap == LineCap::Arrow ? capLen * 0.85 : (cap == LineCap::Round ? capLen / 2.0 : 0.0);
+    };
+    QPainterPath path;
+    path.addRect(QRectF(b.left() + inset(style.startCap), cy - shaft / 2.0,
+                        b.width() - inset(style.startCap) - inset(style.endCap), shaft));
+
+    const auto addCap = [&](LineCap cap, bool atEnd) {
+        if (cap == LineCap::None)
+            return;
+        QPainterPath piece;
+        const double tip = atEnd ? b.right() : b.left();
+        const double dir = atEnd ? -1.0 : 1.0;
+        if (cap == LineCap::Arrow) {
+            piece.moveTo(tip, cy);
+            piece.lineTo(tip + dir * capLen, b.top());
+            piece.lineTo(tip + dir * capLen, b.bottom());
+            piece.closeSubpath();
+        } else {
+            piece.addEllipse(QPointF(tip + dir * capLen / 2.0, cy), capLen / 2.0, capLen / 2.0);
+        }
+        path = path.united(piece);
+    };
+    addCap(style.startCap, false);
+    addCap(style.endCap, true);
+    return path.simplified();
+}
+
 // Body plus tail merged into one outline, so the stroke does not run through the join.
 QPainterPath bubblePath(const QRectF &bounds, const ShapeStyle &style, bool rounded, bool thought,
                         bool sharpTail)
@@ -187,6 +252,9 @@ QPainterPath shapePath(const ShapeStyle &style, const QRectF &bounds)
     const double shaftTop = 0.5 - shaft / 2.0;
     const double shaftBottom = 0.5 + shaft / 2.0;
 
+    if (style.hasCornerOverrides())
+        return perCornerRectPath(style, bounds);
+
     switch (style.kind) {
     case ShapeKind::Rectangle:
     case ShapeKind::Square: {
@@ -194,6 +262,8 @@ QPainterPath shapePath(const ShapeStyle &style, const QRectF &bounds)
         path.addRect(bounds);
         return path;
     }
+    case ShapeKind::Line:
+        return linePath(style, bounds);
     case ShapeKind::RoundedRectangle: {
         const double radius =
             qBound(0.0, style.cornerRadius, qMin(bounds.width(), bounds.height()) / 2.0);

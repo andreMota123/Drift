@@ -38,6 +38,7 @@ class CoreTest : public QObject
     Q_OBJECT
 
 private slots:
+    void lineShapeAndPerCornerRadius();
     void timeConversion();
     void keyframeHoldInterpolation();
     void keyframeLinearInterpolation();
@@ -4911,6 +4912,51 @@ void CoreTest::lottieTextImport()
     // Not a text document at all.
     QVERIFY(!lottie::importLottieTextPreset("{\"layers\":[]}", {}, &warnings, &error));
     QVERIFY(!error.isEmpty());
+}
+
+void CoreTest::lineShapeAndPerCornerRadius()
+{
+    const QRectF box(0, 0, 400, 40);
+    drift::ShapeStyle line;
+    line.kind = drift::ShapeKind::Line;
+    line.thickness = 0.5;
+
+    // Bare line: a bar of half the height across the whole box.
+    QPainterPath bare = drift::shapePath(line, box);
+    QCOMPARE(bare.boundingRect(), QRectF(0, 10, 400, 20));
+
+    // An arrow at the end reaches the full height there and still ends at the box edge.
+    line.endCap = drift::LineCap::Arrow;
+    const QPainterPath arrow = drift::shapePath(line, box);
+    QCOMPARE(arrow.boundingRect(), QRectF(0, 0, 400, 40));
+    QVERIFY(arrow.contains(QPointF(398, 20)));
+    QVERIFY(!arrow.contains(QPointF(398, 5)));
+    QVERIFY(!arrow.contains(QPointF(5, 2)));
+
+    line.startCap = drift::LineCap::Round;
+    QVERIFY(drift::shapePath(line, box).contains(QPointF(20, 4)));
+
+    const drift::ShapeStyle loaded = drift::shapeStyleFromJson(drift::shapeStyleToJson(line));
+    QVERIFY(loaded.kind == drift::ShapeKind::Line);
+    QVERIFY(loaded.startCap == drift::LineCap::Round);
+    QVERIFY(loaded.endCap == drift::LineCap::Arrow);
+    QVERIFY(drift::shapeStyleHash(loaded) == drift::shapeStyleHash(line));
+
+    // Per-corner radii: only the corners that were given one are cut.
+    drift::ShapeStyle rect;
+    rect.kind = drift::ShapeKind::Rectangle;
+    QVERIFY(!rect.hasCornerOverrides());
+    rect.cornerRadii[0] = 30.0;
+    rect.cornerRadii[2] = 0.0;
+    QVERIFY(rect.hasCornerOverrides());
+    const QPainterPath cut = drift::shapePath(rect, QRectF(0, 0, 200, 100));
+    QVERIFY(!cut.contains(QPointF(3, 3)));
+    QVERIFY(cut.contains(QPointF(197, 3)));
+    QVERIFY(cut.contains(QPointF(197, 97)));
+    const drift::ShapeStyle rectLoaded = drift::shapeStyleFromJson(drift::shapeStyleToJson(rect));
+    QCOMPARE(rectLoaded.cornerRadii[0], 30.0);
+    QCOMPARE(rectLoaded.cornerRadii[1], -1.0);
+    QVERIFY(drift::shapeStyleHash(rectLoaded) == drift::shapeStyleHash(rect));
 }
 
 QTEST_MAIN(CoreTest)

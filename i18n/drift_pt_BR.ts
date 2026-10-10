@@ -9125,6 +9125,46 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Tail size</source>
         <translation>Tamanho da cauda</translation>
     </message>
+    <message>
+        <source>Set each corner</source>
+        <translation>Definir cada canto</translation>
+    </message>
+    <message>
+        <source>Top left</source>
+        <translation>Superior esquerdo</translation>
+    </message>
+    <message>
+        <source>Top right</source>
+        <translation>Superior direito</translation>
+    </message>
+    <message>
+        <source>Bottom left</source>
+        <translation>Inferior esquerdo</translation>
+    </message>
+    <message>
+        <source>Bottom right</source>
+        <translation>Inferior direito</translation>
+    </message>
+    <message>
+        <source>Start</source>
+        <translation>Início</translation>
+    </message>
+    <message>
+        <source>End</source>
+        <translation>Fim</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Nenhum</translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation>Seta</translation>
+    </message>
+    <message>
+        <source>Rounded</source>
+        <translation>Arredondado</translation>
+    </message>
 </context>
 <context>
     <name>ShapeStyle</name>
@@ -9287,6 +9327,14 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Points</source>
         <translation>Pontas</translation>
+    </message>
+    <message>
+        <source>Line</source>
+        <translation>Linha</translation>
+    </message>
+    <message>
+        <source>Line arrow</source>
+        <translation>Seta em linha</translation>
     </message>
 </context>
 <context>

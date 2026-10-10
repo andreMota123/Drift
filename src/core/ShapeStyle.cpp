@@ -30,6 +30,7 @@ constexpr KindName kKindNames[] = {
     {ShapeKind::Octagon, "octagon"},
     {ShapeKind::Parallelogram, "parallelogram"},
     {ShapeKind::Trapezoid, "trapezoid"},
+    {ShapeKind::Line, "line"},
     {ShapeKind::Arrow, "arrow"},
     {ShapeKind::DoubleArrow, "double-arrow"},
     {ShapeKind::BlockArrow, "block-arrow"},
@@ -47,6 +48,43 @@ constexpr KindName kKindNames[] = {
     {ShapeKind::Burst, "burst"},
     {ShapeKind::Banner, "banner"},
 };
+
+} // namespace
+
+QString lineCapToString(LineCap cap)
+{
+    switch (cap) {
+    case LineCap::Arrow:
+        return QStringLiteral("arrow");
+    case LineCap::Round:
+        return QStringLiteral("round");
+    case LineCap::None:
+        break;
+    }
+    return QStringLiteral("none");
+}
+
+LineCap lineCapFromString(const QString &cap)
+{
+    if (cap == QLatin1String("arrow"))
+        return LineCap::Arrow;
+    if (cap == QLatin1String("round"))
+        return LineCap::Round;
+    return LineCap::None;
+}
+
+bool ShapeStyle::hasCornerOverrides() const
+{
+    if (kind != ShapeKind::Rectangle && kind != ShapeKind::Square && kind != ShapeKind::RoundedRectangle)
+        return false;
+    for (double radius : cornerRadii) {
+        if (radius >= 0.0)
+            return true;
+    }
+    return false;
+}
+
+namespace {
 
 ShapeStyle makeStyle(ShapeKind kind, const QColor &fill, const QColor &fillSecondary)
 {
@@ -101,6 +139,11 @@ QList<ShapeCatalogEntry> buildCatalog()
         {QStringLiteral("trapezoid"), QCoreApplication::translate("ShapeStyle", "Trapezoid"), QStringLiteral("basic"), 1.6,
          makeStyle(ShapeKind::Trapezoid, blue, blueDeep)},
 
+        {QStringLiteral("line"), QCoreApplication::translate("ShapeStyle", "Line"), QStringLiteral("basic"), 12.0,
+         makeStyle(ShapeKind::Line, blue, blueDeep)},
+
+        {QStringLiteral("line-arrow"), QCoreApplication::translate("ShapeStyle", "Line arrow"), QStringLiteral("arrows"),
+         12.0, makeStyle(ShapeKind::Line, orange, orangeDeep)},
         {QStringLiteral("arrow"), QCoreApplication::translate("ShapeStyle", "Arrow"), QStringLiteral("arrows"), 2.0,
          makeStyle(ShapeKind::Arrow, orange, orangeDeep)},
         {QStringLiteral("double-arrow"), QCoreApplication::translate("ShapeStyle", "Double arrow"), QStringLiteral("arrows"),
@@ -154,6 +197,13 @@ QList<ShapeCatalogEntry> buildCatalog()
             break;
         case ShapeKind::Chevron:
             entry.style.headSize = 0.3;
+            break;
+        case ShapeKind::Line:
+            entry.style.thickness = 0.35;
+            // A line reads as a line, not as an outlined bar.
+            entry.style.setStroke(0.0);
+            if (entry.id == QLatin1String("line-arrow"))
+                entry.style.endCap = LineCap::Arrow;
             break;
         case ShapeKind::CurvedArrow:
             entry.style.thickness = 0.35;
@@ -395,7 +445,9 @@ ShapeStyle ShapeStyle::resolvedAt(TimeUs clipTimeUs) const
 quint64 shapeStyleHash(const ShapeStyle &style)
 {
     return qHashMulti(0, static_cast<int>(style.kind), textLayersHash(style.layers), style.cornerRadius, style.points,
-                      style.innerRatio, style.headSize, style.thickness, style.tailX, style.tailSize);
+                      style.innerRatio, style.headSize, style.thickness, style.tailX, style.tailSize,
+                      static_cast<int>(style.startCap), static_cast<int>(style.endCap), style.cornerRadii[0],
+                      style.cornerRadii[1], style.cornerRadii[2], style.cornerRadii[3]);
 }
 
 bool shapeTimeDrivenPaint(const ShapeStyle &style)
@@ -433,6 +485,14 @@ QJsonObject shapeStyleToJson(const ShapeStyle &s)
         {QStringLiteral("tailX"), s.tailX},
         {QStringLiteral("tailSize"), s.tailSize},
     };
+    if (s.kind == ShapeKind::Line) {
+        o.insert(QStringLiteral("startCap"), lineCapToString(s.startCap));
+        o.insert(QStringLiteral("endCap"), lineCapToString(s.endCap));
+    }
+    if (s.hasCornerOverrides()) {
+        o.insert(QStringLiteral("cornerRadii"),
+                 QJsonArray{s.cornerRadii[0], s.cornerRadii[1], s.cornerRadii[2], s.cornerRadii[3]});
+    }
     QJsonObject keyframesJson;
     for (auto it = s.keyframes.constBegin(); it != s.keyframes.constEnd(); ++it) {
         if (!it->isEmpty())
@@ -506,6 +566,11 @@ ShapeStyle shapeStyleFromJson(const QJsonObject &o)
     s.thickness = o.value(QStringLiteral("thickness")).toDouble(s.thickness);
     s.tailX = o.value(QStringLiteral("tailX")).toDouble(s.tailX);
     s.tailSize = o.value(QStringLiteral("tailSize")).toDouble(s.tailSize);
+    s.startCap = lineCapFromString(o.value(QStringLiteral("startCap")).toString());
+    s.endCap = lineCapFromString(o.value(QStringLiteral("endCap")).toString());
+    const QJsonArray radii = o.value(QStringLiteral("cornerRadii")).toArray();
+    for (int i = 0; i < 4 && i < radii.size(); ++i)
+        s.cornerRadii[i] = radii.at(i).toDouble(-1.0);
     const QJsonObject keyframesJson = o.value(QStringLiteral("keyframes")).toObject();
     for (auto it = keyframesJson.constBegin(); it != keyframesJson.constEnd(); ++it) {
         const QString canonical = shapeKeyframeCanonicalKey(it.key(), s);

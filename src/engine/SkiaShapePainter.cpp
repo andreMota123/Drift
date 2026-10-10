@@ -70,8 +70,13 @@ public:
 
         ShapeStyle scaled = m_style;
         scaled.cornerRadius = m_style.cornerRadius * m_scale;
+        for (double &radius : scaled.cornerRadii) {
+            if (radius >= 0.0)
+                radius *= m_scale;
+        }
         const SkPath outline = toSkPath(shapePath(scaled, QRectF(0, 0, width, height)));
-        if (!nativeCornerKind(scaled.kind) && scaled.cornerRadius > 0.0) {
+        // Per-corner radii are already in the outline; the uniform effect would round them again.
+        if (!nativeCornerKind(scaled.kind) && !scaled.hasCornerOverrides() && scaled.cornerRadius > 0.0) {
             SkPathBuilder rounded;
             SkStrokeRec rec(SkStrokeRec::kFill_InitStyle);
             if (SkCornerPathEffect::Make(float(scaled.cornerRadius))->filterPath(&rounded, outline, &rec))

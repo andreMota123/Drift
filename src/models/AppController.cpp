@@ -2015,6 +2015,11 @@ QVariantMap shapeStyleToMap(const drift::ShapeStyle &s, drift::TimeUs timelineSt
         {QStringLiteral("thickness"), s.thickness},
         {QStringLiteral("tailX"), s.tailX},
         {QStringLiteral("tailSize"), s.tailSize},
+        {QStringLiteral("startCap"), drift::lineCapToString(s.startCap)},
+        {QStringLiteral("endCap"), drift::lineCapToString(s.endCap)},
+        {QStringLiteral("cornerRadii"),
+         QVariantList{s.cornerRadii[0], s.cornerRadii[1], s.cornerRadii[2], s.cornerRadii[3]}},
+        {QStringLiteral("perCorner"), s.hasCornerOverrides()},
     };
     QVariantMap keyframes;
     for (auto it = s.keyframes.constBegin(); it != s.keyframes.constEnd(); ++it) {
@@ -14269,6 +14274,18 @@ static void applyShapeStylePatch(drift::ShapeStyle &s, const QVariantMap &m)
         s.tailX = qBound(0.08, m.value(QStringLiteral("tailX")).toDouble(), 0.92);
     if (m.contains(QStringLiteral("tailSize")))
         s.tailSize = qBound(0.05, m.value(QStringLiteral("tailSize")).toDouble(), 0.5);
+    if (m.contains(QStringLiteral("startCap")))
+        s.startCap = drift::lineCapFromString(m.value(QStringLiteral("startCap")).toString());
+    if (m.contains(QStringLiteral("endCap")))
+        s.endCap = drift::lineCapFromString(m.value(QStringLiteral("endCap")).toString());
+    // Four values, top-left clockwise; -1 hands a corner back to cornerRadius.
+    if (m.contains(QStringLiteral("cornerRadii"))) {
+        const QVariantList radii = m.value(QStringLiteral("cornerRadii")).toList();
+        for (int i = 0; i < 4; ++i) {
+            const double value = i < radii.size() ? radii.at(i).toDouble() : -1.0;
+            s.cornerRadii[i] = value < 0.0 ? -1.0 : qMin(value, 2000.0);
+        }
+    }
 }
 
 void AppController::setShapeStyle(int trackIndex, int clipIndex, const QVariantMap &m)

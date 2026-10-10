@@ -26,7 +26,11 @@ Item {
                                                                        "headSize": 0.4,
                                                                        "thickness": 0.4,
                                                                        "tailX": 0.25,
-                                                                       "tailSize": 0.2
+                                                                       "tailSize": 0.2,
+                                                                       "startCap": "none",
+                                                                       "endCap": "none",
+                                                                       "cornerRadii": [-1, -1, -1, -1],
+                                                                       "perCorner": false
                                                                    })
     readonly property var layers: (shapeStyle && shapeStyle.layers) || []
     readonly property var shapeCatalog: EditorState.builtinShapes()
@@ -38,7 +42,8 @@ Item {
     readonly property var shapeFamilies: ({
         "star": ["star", "burst"],
         "arrow": ["arrow", "double-arrow", "block-arrow", "chevron", "banner"],
-        "shaft": ["arrow", "double-arrow", "chevron", "cross", "curved-arrow"],
+        "shaft": ["arrow", "double-arrow", "chevron", "cross", "curved-arrow", "line"],
+        "rect": ["rectangle", "square", "rounded-rectangle"],
         "bubble": ["speech-bubble", "speech-bubble-rect", "thought-bubble", "callout"]
     })
     function shapeHas(family) {
@@ -216,6 +221,96 @@ Item {
                     sliderFrom: 0
                     sliderTo: 400
                     unit: "px"
+                }
+
+                // One radius per corner (CapCut 9.5). Off, every corner follows the slider above.
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingSm
+                    visible: root.shapeHas("rect")
+
+                    ThemedCheckBox {
+                        text: qsTr("Set each corner")
+                        checked: root.shapeStyle.perCorner === true
+                        onToggled: {
+                            const r = Math.max(0, Number(root.shapeStyle.cornerRadius) || 0)
+                            root.setShapeKey("cornerRadii", checked ? [r, r, r, r] : [-1, -1, -1, -1])
+                        }
+                    }
+
+                    Grid {
+                        width: parent.width
+                        columns: 2
+                        columnSpacing: 8
+                        rowSpacing: 6
+                        visible: root.shapeStyle.perCorner === true
+
+                        Repeater {
+                            // Laid out as the corners sit; the stored order runs clockwise.
+                            model: [
+                                { slot: 0, label: qsTr("Top left") },
+                                { slot: 1, label: qsTr("Top right") },
+                                { slot: 3, label: qsTr("Bottom left") },
+                                { slot: 2, label: qsTr("Bottom right") }
+                            ]
+                            Column {
+                                required property var modelData
+                                width: (parent.width - 8) / 2
+                                spacing: 2
+
+                                ThemedLabel { text: modelData.label }
+                                ThemedTextField {
+                                    width: parent.width
+                                    height: 26
+                                    readonly property real stored: {
+                                        const list = root.shapeStyle.cornerRadii || []
+                                        const v = Number(list[modelData.slot])
+                                        return v >= 0 ? v : (Number(root.shapeStyle.cornerRadius) || 0)
+                                    }
+                                    text: Math.round(stored).toString()
+                                    validator: IntValidator { bottom: 0; top: 2000 }
+                                    onEditingFinished: {
+                                        const next = []
+                                        const list = root.shapeStyle.cornerRadii || []
+                                        for (let i = 0; i < 4; ++i) {
+                                            const v = Number(list[i])
+                                            next.push(v >= 0 ? v : (Number(root.shapeStyle.cornerRadius) || 0))
+                                        }
+                                        next[modelData.slot] = Math.max(0, parseInt(text) || 0)
+                                        root.setShapeKey("cornerRadii", next)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // What each end of a line carries.
+                Row {
+                    width: parent.width
+                    spacing: 8
+                    visible: root.shapeStyle.kind === "line"
+
+                    Repeater {
+                        model: [
+                            { key: "startCap", label: qsTr("Start") },
+                            { key: "endCap", label: qsTr("End") }
+                        ]
+                        Column {
+                            required property var modelData
+                            width: (parent.width - 8) / 2
+                            spacing: 2
+
+                            ThemedLabel { text: modelData.label }
+                            ThemedComboBox {
+                                width: parent.width
+                                readonly property var caps: ["none", "arrow", "round"]
+                                model: [qsTr("None"), qsTr("Arrow"), qsTr("Rounded")]
+                                currentIndex: Math.max(0, caps.indexOf(root.shapeStyle[modelData.key] || "none"))
+                                onActivated: root.setShapeKey(modelData.key, caps[currentIndex])
+                            }
+                        }
+                    }
                 }
 
                 Row {

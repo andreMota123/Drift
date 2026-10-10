@@ -299,9 +299,15 @@ QJsonObject shapeStyleSchema()
         {QStringLiteral("points"), integerProp(QStringLiteral("Point count: star, burst"), 3, 60)},
         {QStringLiteral("innerRatio"), numberProp(QStringLiteral("Inner radius: star, burst"), 0.05, 0.95)},
         {QStringLiteral("headSize"), numberProp(QStringLiteral("Head size: arrow, double-arrow, block-arrow, chevron; banner notch"), 0.05, 0.9)},
-        {QStringLiteral("thickness"), numberProp(QStringLiteral("Shaft thickness: arrow, double-arrow, chevron, curved-arrow, cross"), 0.05, 1)},
+        {QStringLiteral("thickness"), numberProp(QStringLiteral("Shaft thickness: arrow, double-arrow, chevron, curved-arrow, cross, line"), 0.05, 1)},
         {QStringLiteral("tailX"), numberProp(QStringLiteral("Tail x: speech-bubble, speech-bubble-rect, thought-bubble, callout"), 0.08, 0.92)},
         {QStringLiteral("tailSize"), numberProp(QStringLiteral("Tail size: the same four bubbles"), 0.05, 0.5)},
+        {QStringLiteral("startCap"), enumProp(QStringLiteral("line: what the left end carries"),
+                                             {QStringLiteral("none"), QStringLiteral("arrow"), QStringLiteral("round")})},
+        {QStringLiteral("endCap"), enumProp(QStringLiteral("line: what the right end carries"),
+                                           {QStringLiteral("none"), QStringLiteral("arrow"), QStringLiteral("round")})},
+        {QStringLiteral("cornerRadii"), arrayProp({{QStringLiteral("type"), QStringLiteral("number")}},
+                                                  QStringLiteral("rectangle, square, rounded-rectangle: four corner radii in px, top-left clockwise; -1 lets that corner follow cornerRadius. [-1,-1,-1,-1] goes back to one radius"))},
     });
     s.insert(QStringLiteral("description"),
              QStringLiteral("Partial style patch; only supplied keys change. Each geometry knob is read by a subset of shape kinds"));
