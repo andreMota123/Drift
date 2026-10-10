@@ -1036,6 +1036,19 @@
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Left edge of the hole, timeline seconds"))}},
                        {QStringLiteral("track"), QStringLiteral("at")}) },
+        { "list_missing_media", "media", "Media whose file is gone",
+          "Assets the project points at that are no longer on disk: [{id, name, path, duration, kind}]. "
+          "Fix them with relink_media.",
+          objectSchema({}), true },
+        { "relink_media", "media", "Point missing media at its new file",
+          "Repoint the asset stored at `from` (a path from list_missing_media), and every clip cut from "
+          "it, at the file `to`. Clips keep their place, trim and effects. With siblings (default true) "
+          "other missing media found beside `to` — same relative place, or same file name in that "
+          "folder — is linked in the same undo step. Returns {linked, stillMissing}.",
+          objectSchema({{QStringLiteral("from"), stringProp(QStringLiteral("The missing asset's stored path"))},
+                        {QStringLiteral("to"), stringProp(QStringLiteral("Absolute path of the file to use instead"))},
+                        {QStringLiteral("siblings"), boolProp(QStringLiteral("Also link other missing media found beside it"))}},
+                       {QStringLiteral("from"), QStringLiteral("to")}) },
         { "close_all_gaps", "timeline", "Close every hole between clips on a track",
           "Pack the clips of `track` left so each one starts where the previous one ends. The first "
           "clip keeps its start; overlaps (transitions) are left alone. Linked A/V partners follow.",

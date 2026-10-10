@@ -869,6 +869,14 @@ Item {
                         onTriggered: root.replaceRequested(assetIndex)
                     }
                     ThemedMenuItem {
+                        text: qsTr("Link missing media…")
+                        icon.name: Theme.icons.link
+                        onTriggered: {
+                            if (EditorState.reportMissingMedia() === 0)
+                                Toasts.info(qsTr("No media is missing."))
+                        }
+                    }
+                    ThemedMenuItem {
                         // "the selection" once it covers more than the clicked card — matches
                         // the count the bulk actions below will actually act on.
                         text: root.selectedAssetIds.length > 1

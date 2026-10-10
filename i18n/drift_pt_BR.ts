@@ -3737,6 +3737,10 @@
         <source>Close all gaps</source>
         <translation>Fechar todos os espaços</translation>
     </message>
+    <message>
+        <source>Media linked</source>
+        <translation>Mídia vinculada</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -6910,6 +6914,14 @@
     <message>
         <source>Added</source>
         <translation>Adicionado</translation>
+    </message>
+    <message>
+        <source>Link missing media…</source>
+        <translation>Vincular mídia perdida…</translation>
+    </message>
+    <message>
+        <source>No media is missing.</source>
+        <translation>Nenhuma mídia está faltando.</translation>
     </message>
 </context>
 <context>
@@ -12067,6 +12079,60 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Edit %1</source>
         <translation>Editar %1</translation>
+    </message>
+</context>
+<context>
+    <name>RelinkMediaDialog</name>
+    <message>
+        <source>Link media</source>
+        <translation>Vincular mídia</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>Find “%1”</source>
+        <translation>Localizar “%1”</translation>
+    </message>
+    <message>
+        <source>Could not link the selected file.</source>
+        <translation>Não foi possível vincular à mídia selecionada.</translation>
+    </message>
+    <message>
+        <source>Media linked.</source>
+        <translation>Mídia vinculada.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n media files linked.</source>
+        <translation>
+            <numerusform>%n mídia vinculada.</numerusform>
+            <numerusform>%n mídias vinculadas.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Some of this project&apos;s media files could not be found. They may have been moved, renamed or be on a drive that is not connected. Pick a file to link it again.</source>
+        <translation>Não foi possível encontrar alguns dos arquivos de mídia deste projeto. Eles podem ter sido movidos, renomeados ou estar em um disco que não está conectado. Escolha o arquivo para vinculá-lo de novo.</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Last location</source>
+        <translation>Último caminho</translation>
+    </message>
+    <message>
+        <source>Duration</source>
+        <translation>Duração</translation>
+    </message>
+    <message>
+        <source>Also link other missing media found in the same folder</source>
+        <translation>Vincular também as outras mídias perdidas da mesma pasta</translation>
+    </message>
+    <message>
+        <source>Link media…</source>
+        <translation>Vincular mídia…</translation>
     </message>
 </context>
 </TS>

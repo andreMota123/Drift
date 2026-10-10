@@ -406,6 +406,10 @@ ApplicationWindow {
         id: missingAddonsDialog
     }
 
+    RelinkMediaDialog {
+        id: relinkMediaDialog
+    }
+
     UpdateDialog {
         id: updateDialog
     }
@@ -682,6 +686,10 @@ ApplicationWindow {
 
         function onMissingAddons(addons) {
             missingAddonsDialog.openFor(addons)
+        }
+
+        function onMissingMediaFound(count) {
+            relinkMediaDialog.openForMissing()
         }
 
         function onPackageFinished(ok, message) {

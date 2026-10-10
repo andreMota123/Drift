@@ -720,6 +720,34 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
     if (m_assetLibrary) {
         connect(m_assetLibrary, &AssetLibrary::assetMetadataChanged, this,
                 &AppController::editCapabilitiesChanged);
+        // A filmstrip rendered after the clips were laid out (media linked again, a cleared
+        // thumbnail cache) lands on the bin row only. Hand it to the clips still waiting for
+        // one, or their lanes stay blank until the project is reopened.
+        connect(m_assetLibrary, &QAbstractItemModel::dataChanged, this,
+                [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QList<int> &roles) {
+                    if (!roles.isEmpty() && !roles.contains(AssetLibrary::FilmstripPathRole))
+                        return;
+                    bool changed = false;
+                    for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
+                        const QString filmstrip = m_assetLibrary->filmstripAt(row);
+                        if (filmstrip.isEmpty())
+                            continue;
+                        const QString assetId =
+                            m_assetLibrary->data(m_assetLibrary->index(row), AssetLibrary::IdRole).toString();
+                        for (drift::Track &track : m_project.tracks()) {
+                            for (drift::Clip &clip : track.clips) {
+                                if (clip.assetId != assetId || !clip.filmstripPath.isEmpty())
+                                    continue;
+                                clip.filmstripPath = filmstrip;
+                                if (clip.thumbnailPath.isEmpty())
+                                    clip.thumbnailPath = m_assetLibrary->thumbnailAt(row);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                        emit tracksChanged();
+                });
     }
 
     connect(&m_filmstripTiles, &FilmstripTileCache::tileReady, this,
@@ -19457,6 +19485,7 @@ bool AppController::applyProjectJson(const QByteArray &data, QString *error)
     setCurrentBinFolderId(QString());
 
     rehydrateMissingSources();
+    reportMissingMedia();
 
     reportMissingCatalogEntries();
 
@@ -20331,6 +20360,85 @@ void AppController::remapProjectPaths(const QHash<QString, QString> &remap)
             }
         }
     }
+}
+
+QVariantList AppController::missingMedia() const
+{
+    QVariantList out;
+    for (const drift::MediaAsset &asset : m_project.assets()) {
+        if (asset.path.isEmpty() || QFileInfo::exists(asset.path))
+            continue;
+        out.append(QVariantMap{
+            {QStringLiteral("id"), asset.id},
+            {QStringLiteral("name"), asset.name.isEmpty() ? QFileInfo(asset.path).fileName() : asset.name},
+            {QStringLiteral("path"), asset.path},
+            {QStringLiteral("duration"), drift::usToSeconds(asset.durationUs)},
+            {QStringLiteral("kind"), drift::mediaKindToString(asset.kind)},
+        });
+    }
+    // The assets live in a hash; a stable order keeps the list from reshuffling between calls.
+    std::sort(out.begin(), out.end(), [](const QVariant &a, const QVariant &b) {
+        return a.toMap().value(QStringLiteral("path")).toString() < b.toMap().value(QStringLiteral("path")).toString();
+    });
+    return out;
+}
+
+int AppController::reportMissingMedia()
+{
+#ifdef Q_OS_ANDROID
+    // Android restores from the SAF document instead; see rehydrateMissingSources.
+    return 0;
+#else
+    const int count = missingMedia().size();
+    if (count > 0)
+        emit missingMediaFound(count);
+    return count;
+#endif
+}
+
+int AppController::relinkMedia(const QString &oldPath, const QUrl &newFile, bool linkSiblings)
+{
+    const QString newPath = newFile.isLocalFile() ? newFile.toLocalFile() : newFile.toString();
+    if (oldPath.isEmpty() || newPath.isEmpty() || !QFileInfo::exists(newPath))
+        return 0;
+
+    QHash<QString, QString> remap;
+    remap.insert(oldPath, newPath);
+
+    if (linkSiblings) {
+        // The usual case is a whole folder that moved: what sat beside the old file now sits
+        // beside the new one. Try the same relative place first, then just the file name.
+        const QDir oldDir = QFileInfo(oldPath).dir();
+        const QDir newDir = QFileInfo(newPath).dir();
+        for (const drift::MediaAsset &asset : m_project.assets()) {
+            if (asset.path.isEmpty() || remap.contains(asset.path) || QFileInfo::exists(asset.path))
+                continue;
+            const QString relative = oldDir.relativeFilePath(asset.path);
+            QString candidate = QDir::cleanPath(newDir.filePath(relative));
+            if (!QFileInfo(candidate).isFile())
+                candidate = newDir.filePath(QFileInfo(asset.path).fileName());
+            if (QFileInfo(candidate).isFile())
+                remap.insert(asset.path, candidate);
+        }
+    }
+
+    int linked = 0;
+    for (const drift::MediaAsset &asset : m_project.assets()) {
+        if (remap.contains(asset.path))
+            ++linked;
+    }
+    if (linked == 0)
+        return 0;
+
+    const drift::Project before = m_project;
+    remapProjectPaths(remap);
+    if (m_assetLibrary)
+        m_assetLibrary->setProject(&m_project);
+    m_binFolderModel.setProject(&m_project);
+    restoreFilmstripsAfterLoad();
+    pushProjectEdit(before, tr("Media linked"));
+    finishEdit(tr("Media linked"));
+    return linked;
 }
 
 void AppController::rehydrateMissingSources()

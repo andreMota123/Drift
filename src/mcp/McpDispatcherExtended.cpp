@@ -2113,6 +2113,22 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({});
     }
 
+    if (tool == QLatin1String("list_missing_media"))
+        return ok({{QStringLiteral("missing"), QJsonArray::fromVariantList(m_controller->missingMedia())}});
+
+    if (tool == QLatin1String("relink_media")) {
+        const QString from = argString(args, QStringLiteral("from"));
+        const QString to = argString(args, QStringLiteral("to"));
+        if (from.isEmpty() || to.isEmpty())
+            return err("bad_args", QStringLiteral("from and to required"));
+        const bool siblings = !args.contains(QStringLiteral("siblings")) || jsonBool(args.value(QStringLiteral("siblings")));
+        const int linked = m_controller->relinkMedia(from, QUrl::fromLocalFile(to), siblings);
+        if (linked == 0)
+            return err("not_found", QStringLiteral("Nothing linked: `to` does not exist, or no media points at `from`"));
+        return ok({{QStringLiteral("linked"), linked},
+                   {QStringLiteral("stillMissing"), m_controller->missingMedia().size()}});
+    }
+
     if (tool == QLatin1String("close_all_gaps")) {
         if (!args.contains(QStringLiteral("track")))
             return err("bad_args", QStringLiteral("track required"));

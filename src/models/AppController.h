@@ -1000,6 +1000,16 @@ public:
     // Shifts every clip on `trackIndex` starting at/after `gapStartSeconds` left by the
     // width of the gap immediately following that position, closing it. Linked partner
     // clips on other tracks (e.g. a companion audio clip) follow along to stay in sync.
+    // Media whose file is gone: [{ id, name, path, duration, kind }], sorted by path.
+    Q_INVOKABLE QVariantList missingMedia() const;
+    // Points the asset at `oldPath`, and every clip cut from it, at `newFile`; clips keep their
+    // place, trim and effects. With `linkSiblings`, other missing media found beside the new
+    // file (same relative place, or same file name in that folder) is linked too. Returns how
+    // many assets were linked; 0 when the new file does not exist.
+    Q_INVOKABLE int relinkMedia(const QString &oldPath, const QUrl &newFile, bool linkSiblings);
+    // Emits missingMediaFound when any media is gone: after a load, and on request from the
+    // media panel. Returns how many are missing.
+    Q_INVOKABLE int reportMissingMedia();
     Q_INVOKABLE void closeGap(int trackIndex, double gapStartSeconds);
     Q_INVOKABLE void closeAllGaps(int trackIndex);
     Q_INVOKABLE void alignSelectedClipLeft();
@@ -1680,6 +1690,8 @@ signals:
     // Addons the freshly opened project needs but that are not installed. Each entry is
     // id / name / version / kinds, for MissingAddonsDialog.
     void missingAddons(const QVariantList &addons);
+    // A project opened with source files that are no longer where it left them.
+    void missingMediaFound(int count);
     void lastMessageChanged();
     void draggingAssetIndexChanged();
     void assetPreviewWindowOpenChanged();
@@ -1961,6 +1973,7 @@ protected:
     // the copies themselves run off-thread, so a project with gigabytes to restore still opens at
     // once and repoints its rows as they land. No-op on desktop.
     void rehydrateMissingSources();
+
     // Drops <AppData>/projects/<id> directories no project in the recents list still refers to.
     void sweepExtractionDirs();
     // Effects and transitions render as no-ops when their package is absent, which is silent and

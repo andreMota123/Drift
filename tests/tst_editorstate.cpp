@@ -139,6 +139,7 @@ private slots:
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
     void closeAllGapsPacksTrack();
+    void relinkMediaRepointsAssetsAndClips();
     void lockedTrackKeepsItsClips();
     void rollTrimMovesTheSharedCut();
     void combineSelectionRendersOneClip();
@@ -3238,6 +3239,61 @@ void EditorStateTest::closeAllGapsPacksTrack()
     state.undo();
     QCOMPARE(state.project()->tracks().at(0).clips.at(2).timelineStart,
              head + 2 * (len + drift::secondsToUs(4.0)));
+}
+
+void EditorStateTest::relinkMediaRepointsAssetsAndClips()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QVERIFY(QDir(dir.path()).mkpath(QStringLiteral("novo/sub")));
+    const auto touch = [](const QString &path) {
+        QFile file(path);
+        return file.open(QIODevice::WriteOnly) && file.write("x") == 1;
+    };
+    const QString newA = dir.filePath(QStringLiteral("novo/a.mp4"));
+    const QString newB = dir.filePath(QStringLiteral("novo/sub/b.mp4"));
+    QVERIFY(touch(newA));
+    QVERIFY(touch(newB));
+
+    AssetLibrary library;
+    AppController state(&library);
+    const QString oldA = dir.filePath(QStringLiteral("antigo/a.mp4"));
+    const QString oldB = dir.filePath(QStringLiteral("antigo/sub/b.mp4"));
+    const QString oldC = dir.filePath(QStringLiteral("antigo/c.mp4"));
+    int n = 0;
+    for (const QString &path : {oldA, oldB, oldC}) {
+        drift::MediaAsset asset;
+        asset.id = QStringLiteral("asset-%1").arg(n++);
+        asset.path = path;
+        asset.kind = drift::MediaKind::Video;
+        state.project()->assets().insert(asset.id, asset);
+    }
+    drift::Track track;
+    track.type = drift::TrackType::Video;
+    drift::Clip clip;
+    clip.id = QStringLiteral("clip-a");
+    clip.path = oldA;
+    clip.timelineStart = drift::secondsToUs(3.0);
+    clip.timelineDuration = drift::secondsToUs(2.0);
+    track.clips.append(clip);
+    state.project()->tracks().append(track);
+
+    QCOMPARE(state.missingMedia().size(), 3);
+    // A file that is not there links nothing.
+    QCOMPARE(state.relinkMedia(oldA, QUrl::fromLocalFile(dir.filePath(QStringLiteral("nada.mp4"))), true), 0);
+
+    // Pointing at a.mp4 brings b.mp4 back from the same relative place; c.mp4 has no match.
+    QCOMPARE(state.relinkMedia(oldA, QUrl::fromLocalFile(newA), true), 2);
+    QCOMPARE(state.project()->assets().value(QStringLiteral("asset-0")).path, newA);
+    QCOMPARE(state.project()->assets().value(QStringLiteral("asset-1")).path, newB);
+    QCOMPARE(state.project()->assets().value(QStringLiteral("asset-2")).path, oldC);
+    const drift::Clip &moved = state.project()->tracks().last().clips.at(0);
+    QCOMPARE(moved.path, newA);
+    QCOMPARE(moved.timelineStart, drift::secondsToUs(3.0));
+    QCOMPARE(state.missingMedia().size(), 1);
+
+    state.undo();
+    QCOMPARE(state.project()->assets().value(QStringLiteral("asset-0")).path, oldA);
 }
 
 void EditorStateTest::lockedTrackKeepsItsClips()
