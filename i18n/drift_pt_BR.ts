@@ -9748,6 +9748,22 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Add subtitle at current time</source>
         <translation>Adicionar legenda no tempo atual</translation>
     </message>
+    <message>
+        <source>Search captions</source>
+        <translation>Pesquisar nas legendas</translation>
+    </message>
+    <message>
+        <source>Previous match</source>
+        <translation>Ocorrência anterior</translation>
+    </message>
+    <message>
+        <source>Next match</source>
+        <translation>Próxima ocorrência</translation>
+    </message>
+    <message>
+        <source>Clear search</source>
+        <translation>Limpar pesquisa</translation>
+    </message>
 </context>
 <context>
     <name>SubtitleProgressDialog</name>

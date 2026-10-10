@@ -64,6 +64,106 @@ Item {
         return parseFloat(t)
     }
 
+    // ---- Search ----------------------------------------------------------------
+    property string searchText: ""
+    // Indices of the cues whose text contains the query, in list order.
+    readonly property var searchMatches: {
+        const needle = searchText.toLowerCase()
+        const out = []
+        if (needle.length === 0)
+            return out
+        for (let i = 0; i < cues.length; i++) {
+            if ((cues[i].text || "").toLowerCase().indexOf(needle) >= 0)
+                out.push(i)
+        }
+        return out
+    }
+    // Position inside searchMatches of the match being shown; -1 before the first jump.
+    property int searchPos: -1
+    onSearchMatchesChanged: {
+        if (searchPos >= searchMatches.length)
+            searchPos = searchMatches.length - 1
+    }
+
+    function stepSearch(delta) {
+        const n = searchMatches.length
+        if (n === 0)
+            return
+        searchPos = searchPos < 0 ? (delta > 0 ? 0 : n - 1) : (searchPos + delta + n) % n
+        selectCue(searchMatches[searchPos])
+        listView.positionViewAtIndex(searchMatches[searchPos], ListView.Contain)
+    }
+
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+
+    // Caption text with every occurrence of the query tinted, as StyledText.
+    function highlightedText(text) {
+        const needle = searchText.toLowerCase()
+        const lower = text.toLowerCase()
+        let out = ""
+        let from = 0
+        for (;;) {
+            const at = needle.length > 0 ? lower.indexOf(needle, from) : -1
+            if (at < 0)
+                break
+            out += escapeHtml(text.substring(from, at)) + "<font color=\"" + Theme.primary + "\"><b>"
+                   + escapeHtml(text.substring(at, at + needle.length)) + "</b></font>"
+            from = at + needle.length
+        }
+        return (out + escapeHtml(text.substring(from))).replace(/\n/g, "<br>")
+    }
+
+    // ---- Split and merge from the keyboard ------------------------------------------
+    // Enter in the text box cuts the caption at the cursor; the time is shared out by the
+    // number of characters on each side.
+    function splitCueAt(index, position, text) {
+        if (index < 0 || index >= cues.length)
+            return false
+        const left = text.substring(0, position).trim()
+        const right = text.substring(position).trim()
+        if (left.length === 0 || right.length === 0)
+            return false
+        const list = cloneCues()
+        const cur = list[index]
+        const mid = cur.start + (cur.end - cur.start) * left.length / (left.length + right.length)
+        list.splice(index + 1, 0, { start: mid, end: cur.end, text: right })
+        cur.end = mid
+        cur.text = left
+        replaceCues(list)
+        EditorState.selectedSubtitleCue = index + 1
+        Qt.callLater(function () {
+            root.loadEditor()
+            cueText.cursorPosition = 0
+        })
+        return true
+    }
+
+    // Joins `index` with the caption before it (up) or after it; the result spans both.
+    function mergeCue(index, up, text) {
+        const other = up ? index - 1 : index + 1
+        if (index < 0 || index >= cues.length || other < 0 || other >= cues.length)
+            return false
+        const list = cloneCues()
+        list[index].text = text
+        const first = list[Math.min(index, other)]
+        const second = list[Math.max(index, other)]
+        const joined = [first.text, second.text].filter(function (t) { return t && t.length })
+        const seam = joined.length > 1 ? joined[0].length : 0
+        first.text = joined.join(" ")
+        first.end = Math.max(first.end, second.end)
+        list.splice(Math.max(index, other), 1)
+        replaceCues(list)
+        EditorState.selectedSubtitleCue = Math.min(index, other)
+        // The box keeps focus, so it would otherwise go on showing the half it had.
+        Qt.callLater(function () {
+            root.loadEditor()
+            cueText.cursorPosition = seam
+        })
+        return true
+    }
+
     function replaceCues(newCues) {
         EditorState.setSubtitleCues(trackIndex, clipIndex, newCues)
     }
@@ -307,6 +407,66 @@ Item {
             opacity: 0.8
         }
 
+        // Search: field, "current/total", previous, next.
+        Row {
+            width: parent.width
+            spacing: 4
+
+            ThemedTextField {
+                id: searchField
+                width: parent.width - (searchTools.visible ? searchTools.width + parent.spacing : 0)
+                height: 26
+                maximumLength: 40
+                placeholderText: qsTr("Search captions")
+                onTextChanged: {
+                    root.searchText = text
+                    root.searchPos = -1
+                }
+                Keys.onReturnPressed: (event) => root.stepSearch(event.modifiers & Qt.ShiftModifier ? -1 : 1)
+                Keys.onEnterPressed: (event) => root.stepSearch(event.modifiers & Qt.ShiftModifier ? -1 : 1)
+                Keys.onEscapePressed: text = ""
+            }
+
+            Row {
+                id: searchTools
+                visible: root.searchText.length > 0
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    rightPadding: 4
+                    text: (root.searchPos + 1) + "/" + root.searchMatches.length
+                    color: Theme.mutedForeground
+                    font.family: Theme.monoFontFamily
+                    font.pixelSize: Theme.fontSizeXs
+                }
+                IconButton {
+                    buttonSize: 20
+                    iconSize: 12
+                    glyph: Theme.icons.chevronUp
+                    tooltip: qsTr("Previous match")
+                    enabled: root.searchMatches.length > 0
+                    onClicked: root.stepSearch(-1)
+                }
+                IconButton {
+                    buttonSize: 20
+                    iconSize: 12
+                    glyph: Theme.icons.chevronDown
+                    tooltip: qsTr("Next match")
+                    enabled: root.searchMatches.length > 0
+                    onClicked: root.stepSearch(1)
+                }
+                IconButton {
+                    buttonSize: 20
+                    iconSize: 12
+                    glyph: Theme.icons.x
+                    tooltip: qsTr("Clear search")
+                    onClicked: searchField.text = ""
+                }
+            }
+        }
+
         Row {
             width: parent.width
             spacing: 6
@@ -425,8 +585,12 @@ Item {
                     Text {
                         width: parent.width
                         wrapMode: Text.WordWrap
+                        textFormat: root.searchText.length > 0 ? Text.StyledText : Text.PlainText
                         text: (cueDelegate.modelData.text && cueDelegate.modelData.text.length)
-                              ? cueDelegate.modelData.text : qsTr("(empty)")
+                              ? (root.searchText.length > 0
+                                 ? root.highlightedText(cueDelegate.modelData.text)
+                                 : cueDelegate.modelData.text)
+                              : qsTr("(empty)")
                         font.family: Theme.fontFamily
                         font.pixelSize: cueDelegate.isActive ? Theme.fontSizeBase : Theme.fontSizeSm
                         font.weight: cueDelegate.isActive ? Font.DemiBold : Font.Normal
@@ -558,6 +722,25 @@ Item {
                             width: parent.width - applyButton.width - parent.spacing
                             height: 56
                             placeholderText: qsTr("Type subtitle…")
+                            // CapCut's keys: Enter splits at the cursor, Backspace at the very
+                            // start joins with the caption above, Delete at the very end with
+                            // the one below. Shift+Enter still breaks the line.
+                            Keys.onPressed: (event) => {
+                                const i = root.selectedCueIndex
+                                if (i < 0 || selectedText.length > 0)
+                                    return
+                                const enter = event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                if (enter && !(event.modifiers & Qt.ShiftModifier)) {
+                                    // Nothing on one side: just apply what was typed.
+                                    if (!root.splitCueAt(i, cursorPosition, text))
+                                        root.updateCue(i, { text: text })
+                                    event.accepted = true
+                                } else if (event.key === Qt.Key_Backspace && cursorPosition === 0) {
+                                    event.accepted = root.mergeCue(i, true, text)
+                                } else if (event.key === Qt.Key_Delete && cursorPosition === length) {
+                                    event.accepted = root.mergeCue(i, false, text)
+                                }
+                            }
                             onEditingFinished: {
                                 if (root.selectedCueIndex >= 0)
                                     root.updateCue(root.selectedCueIndex, { text: text })
