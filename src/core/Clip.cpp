@@ -83,6 +83,16 @@ QString blendModeToString(BlendMode mode)
         return QStringLiteral("darken");
     case BlendMode::Lighten:
         return QStringLiteral("lighten");
+    case BlendMode::HardLight:
+        return QStringLiteral("hardLight");
+    case BlendMode::SoftLight:
+        return QStringLiteral("softLight");
+    case BlendMode::LinearBurn:
+        return QStringLiteral("linearBurn");
+    case BlendMode::ColorBurn:
+        return QStringLiteral("colorBurn");
+    case BlendMode::ColorDodge:
+        return QStringLiteral("colorDodge");
     }
     return QStringLiteral("normal");
 }
@@ -101,6 +111,16 @@ BlendMode blendModeFromString(const QString &mode)
         return BlendMode::Darken;
     if (mode == QStringLiteral("lighten"))
         return BlendMode::Lighten;
+    if (mode == QStringLiteral("hardLight"))
+        return BlendMode::HardLight;
+    if (mode == QStringLiteral("softLight"))
+        return BlendMode::SoftLight;
+    if (mode == QStringLiteral("linearBurn"))
+        return BlendMode::LinearBurn;
+    if (mode == QStringLiteral("colorBurn"))
+        return BlendMode::ColorBurn;
+    if (mode == QStringLiteral("colorDodge"))
+        return BlendMode::ColorDodge;
     return BlendMode::Normal;
 }
 

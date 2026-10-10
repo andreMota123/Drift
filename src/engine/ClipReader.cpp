@@ -13,6 +13,7 @@
 #include <QTextStream>
 #include <QStandardPaths>
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstring>
@@ -745,6 +746,44 @@ constexpr double kHwAccelMinKbitPerFrame = 250.0;
 // Pixels a second above which software decode is sent to the GPU whatever the bitrate.
 // 1080p60 sits just over this; 1080p30 and 720p60 sit under it.
 constexpr double kHwAccelMinPixelsPerSecond = 1920.0 * 1080.0 * 50.0;
+// Average keyframe spacing, in seconds, above which the stream goes to the GPU whatever its
+// bitrate. Every seek decodes from the previous keyframe, so a screen or meeting recording
+// with one keyframe every 30 s makes each timeline click decode hundreds of frames — light
+// per frame, but the editor freezes on every scrub when that lands on the CPU.
+constexpr double kHwAccelMaxKeyframeGapSeconds = 5.0;
+// Index entries sampled for the keyframe spacing; enough for minutes of footage and cheap.
+constexpr int kKeyframeGapSampleEntries = 20000;
+
+namespace {
+
+// Mean seconds between keyframes from the demuxer's index (MP4/MOV stss), or 0 when the
+// container has no index up front (Matroska before its cues are read).
+double averageKeyframeGapSeconds(AVStream *stream)
+{
+    const int entries = std::min(avformat_index_get_entries_count(stream),
+                                 kKeyframeGapSampleEntries);
+    int64_t firstKey = AV_NOPTS_VALUE;
+    int64_t lastEntry = AV_NOPTS_VALUE;
+    int keyframes = 0;
+    for (int i = 0; i < entries; ++i) {
+        const AVIndexEntry *entry = avformat_index_get_entry(stream, i);
+        if (!entry)
+            continue;
+        lastEntry = entry->timestamp;
+        if (!(entry->flags & AVINDEX_KEYFRAME))
+            continue;
+        if (firstKey == AV_NOPTS_VALUE)
+            firstKey = entry->timestamp;
+        ++keyframes;
+    }
+    // Span over keyframe count rather than between the first and last keyframe, so a sample
+    // window holding a single keyframe (a very long GOP) still reports its length.
+    if (keyframes < 1 || firstKey == AV_NOPTS_VALUE || lastEntry <= firstKey)
+        return 0.0;
+    return double(lastEntry - firstKey) * av_q2d(stream->time_base) / double(keyframes);
+}
+
+} // namespace
 
 bool ClipReader::hardwareDecodeIsWorthIt() const
 {
@@ -752,6 +791,9 @@ bool ClipReader::hardwareDecodeIsWorthIt() const
     const AVCodecParameters *par = stream->codecpar;
 
     if (int64_t(par->width) * par->height >= 3840LL * 2160)
+        return true;
+
+    if (averageKeyframeGapSeconds(m_fmt->streams[m_videoStream]) >= kHwAccelMaxKeyframeGapSeconds)
         return true;
 
     // The bitrate and pixel-rate floors below were tuned against H.264, where a light stream

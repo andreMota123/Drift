@@ -109,7 +109,8 @@ PanelFrame {
         "masks": qsTr("Masks"),
         "effects": qsTr("Effects"),
         "audioEffects": qsTr("Audio FX"),
-        "transition": qsTr("Transition")
+        "transition": qsTr("Transition"),
+        "adjust": qsTr("Adjust")
     })
 
     // Rail order: clip identity → geometry/timing → compositing / FX.
@@ -118,21 +119,22 @@ PanelFrame {
     // `group` drives hairlines between the next *visible* tab of a different group.
     ListModel {
         id: tabsModel
-        ListElement { tabId: "general"; icon: 0; group: 0 }
-        ListElement { tabId: "text"; icon: 1; group: 0 }
-        ListElement { tabId: "shape"; icon: 2; group: 0 }
-        ListElement { tabId: "vector"; icon: 14; group: 0 }
-        ListElement { tabId: "subtitles"; icon: 3; group: 0 }
-        ListElement { tabId: "transform"; icon: 4; group: 1 }
-        ListElement { tabId: "stabilize"; icon: 5; group: 1 }
-        ListElement { tabId: "animation"; icon: 6; group: 1 }
-        ListElement { tabId: "audio"; icon: 7; group: 1 }
-        ListElement { tabId: "speed"; icon: 8; group: 1 }
-        ListElement { tabId: "blending"; icon: 9; group: 2 }
-        ListElement { tabId: "masks"; icon: 10; group: 2 }
-        ListElement { tabId: "effects"; icon: 11; group: 2 }
-        ListElement { tabId: "audioEffects"; icon: 12; group: 2 }
-        ListElement { tabId: "transition"; icon: 13; group: 2 }
+        ListElement { tabId: "general"; icon: 0; group: 0; section: "main" }
+        ListElement { tabId: "text"; icon: 1; group: 0; section: "main" }
+        ListElement { tabId: "shape"; icon: 2; group: 0; section: "main" }
+        ListElement { tabId: "vector"; icon: 14; group: 0; section: "main" }
+        ListElement { tabId: "subtitles"; icon: 3; group: 0; section: "main" }
+        ListElement { tabId: "transform"; icon: 4; group: 1; section: "main" }
+        ListElement { tabId: "stabilize"; icon: 5; group: 1; section: "main" }
+        ListElement { tabId: "animation"; icon: 6; group: 1; section: "animation" }
+        ListElement { tabId: "audio"; icon: 7; group: 1; section: "audio" }
+        ListElement { tabId: "speed"; icon: 8; group: 1; section: "speed" }
+        ListElement { tabId: "blending"; icon: 9; group: 2; section: "main" }
+        ListElement { tabId: "masks"; icon: 10; group: 2; section: "main" }
+        ListElement { tabId: "effects"; icon: 11; group: 2; section: "main" }
+        ListElement { tabId: "audioEffects"; icon: 12; group: 2; section: "audio" }
+        ListElement { tabId: "transition"; icon: 13; group: 2; section: "main" }
+        ListElement { tabId: "adjust"; icon: 11; group: 2; section: "adjust" }
     }
     property var tabIcons: [
         Theme.icons.info,
@@ -170,6 +172,8 @@ PanelFrame {
         }
         if (tabId === "subtitles")
             return root.clipKind === "subtitle"
+        if (tabId === "adjust")
+            return root.clipKind === "video" || root.clipKind === "image"
         if (tabId === "shape")
             return root.clipKind === "shape"
         if (tabId === "vector")
@@ -189,6 +193,57 @@ PanelFrame {
         if (tabId === "masks" || tabId === "effects" || tabId === "audioEffects")
             return false
         return true
+    }
+
+    // --- Sections: the top bar shows a handful of sections (CapCut-style) and the tabs of
+    // the current one sit under it as a segmented strip. `activeTab` stays the single source
+    // of truth; a section is just the `section` of the active tab.
+    readonly property var sectionOrder: ["main", "audio", "speed", "animation", "adjust"]
+    readonly property string currentSection: tabsModel.get(activeTab).section
+    // Bumped whenever the visible set can change, so bindings that walk the model re-run.
+    readonly property string _sectionKey: root.clipKind + "|" + root.hasTextStyle + "|"
+                                          + (root.hasSelection && root.clipData
+                                             ? (root.clipData.adjustmentKind || "") : "")
+
+    function sectionLabel(section) {
+        if (section === "audio")
+            return qsTr("Audio")
+        if (section === "speed")
+            return qsTr("Speed")
+        if (section === "animation")
+            return qsTr("Animation")
+        if (section === "adjust")
+            return qsTr("Adjust")
+        switch (root.clipKind) {
+        case "video": return qsTr("Video")
+        case "image": return qsTr("Image")
+        case "text":
+        case "subtitle": return qsTr("Text")
+        case "shape": return qsTr("Shape")
+        case "adjustment": return qsTr("Adjustment")
+        default: return qsTr("Clip")
+        }
+    }
+
+    function sectionTabs(section) {
+        const out = []
+        for (let i = 0; i < tabsModel.count; ++i) {
+            const t = tabsModel.get(i)
+            if (t.section === section && tabVisible(t.tabId))
+                out.push(i)
+        }
+        return out
+    }
+
+    property var _lastTabOfSection: ({})
+    onCurrentTabIdChanged: _lastTabOfSection[currentSection] = activeTab
+
+    function openSection(section) {
+        const tabs = sectionTabs(section)
+        if (tabs.length === 0)
+            return
+        const last = _lastTabOfSection[section]
+        root.activeTab = (last !== undefined && tabs.indexOf(last) >= 0) ? last : tabs[0]
     }
 
     // Hairline after this index when the next visible tab belongs to another group.
@@ -494,95 +549,136 @@ PanelFrame {
             }
         }
 
-        // === Desktop: vertical icon rail + tab content ================================
-        // Up/Down move between tabs once the rail has focus.
-        // Flickable so short panel heights can still reach lower icons.
+        // === Desktop: text tabs across the top (CapCut-style) =========================
+        // One row of labelled tabs replaces the old column of unlabelled icons. Left/Right
+        // move between tabs once the bar has focus; the wheel scrolls it when the tabs of
+        // a clip do not fit the panel width.
         Flickable {
             id: propertiesTabRail
             anchors.top: parent.top
-            anchors.bottom: parent.bottom
             anchors.left: parent.left
-            width: root.sheetMode ? 0 : Theme.tabRailWidth
+            anchors.right: parent.right
+            height: root.sheetMode ? 0 : Theme.panelHeaderHeight
             visible: !root.sheetMode
-            contentWidth: width
-            contentHeight: propertiesTabRailColumn.height
+            contentWidth: propertiesTabRailRow.width + Theme.spacingLg * 2
+            contentHeight: height
+            flickableDirection: Flickable.HorizontalFlick
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            interactive: contentHeight > height
-            ScrollBar.vertical: AppScrollBar {
-                policy: propertiesTabRail.contentHeight > propertiesTabRail.height
-                        ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-            }
+            interactive: contentWidth > width
 
             Accessible.role: Accessible.PageTabList
 
-            Keys.onUpPressed: function(event) {
-                let next = root.activeTab
-                for (let step = 0; step < tabsModel.count; ++step) {
-                    next = (next - 1 + tabsModel.count) % tabsModel.count
-                    if (root.tabVisible(tabsModel.get(next).tabId)) {
-                        root.activeTab = next
+            function stepTab(delta) {
+                const order = root.sectionOrder
+                let at = order.indexOf(root.currentSection)
+                for (let step = 0; step < order.length; ++step) {
+                    at = (at + delta + order.length) % order.length
+                    if (root.sectionTabs(order[at]).length > 0) {
+                        root.openSection(order[at])
                         break
                     }
                 }
-                event.accepted = true
-            }
-            Keys.onDownPressed: function(event) {
-                let next = root.activeTab
-                for (let step = 0; step < tabsModel.count; ++step) {
-                    next = (next + 1) % tabsModel.count
-                    if (root.tabVisible(tabsModel.get(next).tabId)) {
-                        root.activeTab = next
-                        break
-                    }
-                }
-                event.accepted = true
             }
 
-            Column {
-                id: propertiesTabRailColumn
-                width: parent.width
-                topPadding: Theme.spacingSm
-                spacing: Theme.spacingXs
+            function ensureTabVisible() {
+                const item = propertiesTabRepeater.itemAt(root.sectionOrder.indexOf(root.currentSection))
+                if (!item || !item.visible)
+                    return
+                const left = propertiesTabRailRow.x + item.x
+                const right = left + item.width
+                const maxX = Math.max(0, contentWidth - width)
+                if (left - Theme.spacingLg < contentX)
+                    contentX = Math.max(0, left - Theme.spacingLg)
+                else if (right + Theme.spacingLg > contentX + width)
+                    contentX = Math.min(maxX, right + Theme.spacingLg - width)
+            }
+
+            Keys.onLeftPressed: function(event) { stepTab(-1); event.accepted = true }
+            Keys.onRightPressed: function(event) { stepTab(1); event.accepted = true }
+
+            Connections {
+                target: root
+                function onActiveTabChanged() { Qt.callLater(propertiesTabRail.ensureTabVisible) }
+                function onClipKindChanged() { Qt.callLater(propertiesTabRail.ensureTabVisible) }
+            }
+
+            Rectangle {
+                // Fills the bar even when the tabs are narrower than the panel.
+                width: Math.max(propertiesTabRail.width, propertiesTabRail.contentWidth)
+                height: propertiesTabRail.height
+                color: Theme.panelAccent
+            }
+
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: function(event) {
+                    const maxX = Math.max(0, propertiesTabRail.contentWidth - propertiesTabRail.width)
+                    const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                    propertiesTabRail.contentX = Math.max(0, Math.min(maxX, propertiesTabRail.contentX - delta / 2))
+                }
+            }
+
+            Row {
+                id: propertiesTabRailRow
+                x: Theme.spacingLg
+                height: propertiesTabRail.height
+                spacing: 0
 
                 Repeater {
-                    model: tabsModel
-                    delegate: Column {
+                    id: propertiesTabRepeater
+                    model: root.sectionOrder
+                    delegate: AbstractButton {
+                        id: propertiesTab
                         required property int index
-                        required property var model
+                        required property string modelData
 
-                        width: parent.width
-                        spacing: 0
-                        // Collapse so hidden contextual tabs leave no rail gap.
-                        visible: root.tabVisible(model.tabId)
-                        height: visible ? implicitHeight : 0
-
-                        IconButton {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            glyph: root.tabIcons[model.icon]
-                            variant: "ghost"
-                            tooltip: root.tabLabels[model.tabId]
-                            active: root.activeTab === index
-                            onClicked: root.activeTab = index
-
-                            Accessible.role: Accessible.PageTab
-                            Accessible.name: root.tabLabels[model.tabId]
-                            Accessible.checked: root.activeTab === index
+                        readonly property bool current: root.currentSection === modelData
+                        readonly property bool hasTabs: {
+                            root._sectionKey
+                            return root.sectionTabs(modelData).length > 0
                         }
 
-                        Item {
-                            visible: root.showSeparatorAfter(index)
-                            width: parent.width
-                            height: visible ? Theme.spacingLg + Theme.borderWidth : 0
+                        // Collapse so sections with nothing to show leave no gap.
+                        visible: hasTabs
+                        width: visible ? propertiesTabLabel.implicitWidth + Theme.spacingXl * 2 : 0
+                        height: propertiesTabRailRow.height
+                        hoverEnabled: true
+                        focusPolicy: Qt.StrongFocus
 
+                        Accessible.role: Accessible.PageTab
+                        Accessible.name: propertiesTabLabel.text
+                        Accessible.checked: propertiesTab.current
+
+                        onClicked: root.openSection(modelData)
+
+                        background: Item {
                             Rectangle {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.iconSizeSm
-                                height: Theme.borderWidth
-                                radius: height / 2
-                                color: Theme.panelBorder
-                                opacity: 0.85
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingMd
+                                radius: Theme.radiusSm
+                                color: "transparent"
+                                border.width: Theme.borderWidthFocus
+                                border.color: Theme.focusRing
+                                visible: propertiesTab.visualFocus
+                            }
+                        }
+
+                        contentItem: Item {
+                            Text {
+                                id: propertiesTabLabel
+                                anchors.centerIn: parent
+                                text: {
+                                    root._sectionKey
+                                    return root.sectionLabel(propertiesTab.modelData)
+                                }
+                                color: propertiesTab.current
+                                       ? Theme.accentOnPanel
+                                       : (propertiesTab.hovered ? Theme.panelAccentForeground
+                                                                : Theme.panelForeground)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeBase
+                                font.weight: Font.DemiBold
                             }
                         }
                     }
@@ -592,18 +688,114 @@ PanelFrame {
 
         Rectangle {
             id: railDivider
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.left: propertiesTabRail.right
-            width: root.sheetMode ? 0 : Theme.borderWidth
+            anchors.top: propertiesTabRail.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: root.sheetMode ? 0 : Theme.borderWidth
             visible: !root.sheetMode
             color: Theme.panelBorder
         }
 
+        // Tabs of the current section, as a segmented strip that stays put while the
+        // inspector below it scrolls. Hidden when the section has a single tab.
+        Item {
+            id: subTabBar
+            anchors.top: railDivider.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            readonly property var tabs: {
+                root._sectionKey
+                return root.sectionTabs(root.currentSection)
+            }
+            visible: !root.sheetMode && tabs.length > 1
+            height: visible ? 24 + Theme.spacingLg * 2 : 0
+
+            Flickable {
+                id: subTabFlick
+                anchors.fill: parent
+                anchors.leftMargin: Theme.pagePadding
+                anchors.rightMargin: Theme.pagePadding
+                contentWidth: subTabRow.width
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: contentWidth > width
+                clip: true
+
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: function(event) {
+                        const maxX = Math.max(0, subTabFlick.contentWidth - subTabFlick.width)
+                        const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                        subTabFlick.contentX = Math.max(0, Math.min(maxX, subTabFlick.contentX - delta / 2))
+                    }
+                }
+
+                Rectangle {
+                    id: subTabRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: subTabItems.width + 4
+                    height: 24
+                    radius: Theme.radiusSm
+                    color: Theme.panelAccent
+
+                    Row {
+                        id: subTabItems
+                        x: 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 0
+
+                        Repeater {
+                            model: subTabBar.tabs
+                            delegate: AbstractButton {
+                                id: subTab
+                                required property int modelData
+
+                                readonly property bool current: root.activeTab === modelData
+                                readonly property string label: root.tabLabels[tabsModel.get(modelData).tabId]
+
+                                width: Math.max(subTabLabel.implicitWidth + Theme.spacingXl * 2,
+                                                (subTabFlick.width - 4) / Math.max(1, subTabBar.tabs.length))
+                                height: 20
+                                hoverEnabled: true
+                                focusPolicy: Qt.StrongFocus
+
+                                Accessible.role: Accessible.PageTab
+                                Accessible.name: subTab.label
+                                Accessible.checked: subTab.current
+
+                                onClicked: root.activeTab = modelData
+
+                                background: Rectangle {
+                                    radius: Theme.radiusSm - 1
+                                    color: subTab.current ? Theme.panelMuted : "transparent"
+                                    border.width: subTab.visualFocus ? Theme.borderWidthFocus : 0
+                                    border.color: Theme.focusRing
+                                }
+
+                                contentItem: Item {
+                                    Text {
+                                        id: subTabLabel
+                                        anchors.centerIn: parent
+                                        text: subTab.label
+                                        color: subTab.current || subTab.hovered
+                                               ? Theme.panelAccentForeground : Theme.mutedForeground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSizeSm
+                                        font.weight: subTab.current ? Font.DemiBold : Font.Normal
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Flickable {
             id: tabFlick
-            anchors.top: tabStripHost.bottom
-            anchors.left: railDivider.right
+            anchors.top: root.sheetMode ? tabStripHost.bottom : subTabBar.bottom
+            anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             visible: root.currentTabId !== "subtitles"
@@ -652,8 +844,8 @@ PanelFrame {
                 topPadding: root.sheetMode ? Theme.spacing2xl : Theme.pagePadding
 
                 Text {
-                    // The strip above already names the tab, in a size you can read.
-                    visible: !root.sheetMode
+                    // The tab bar above already names the tab on both shells.
+                    visible: false
                     text: root.tabLabels[tabsModel.get(root.activeTab).tabId]
                     color: Theme.mutedForeground
                     font.family: Theme.fontFamily
@@ -708,6 +900,11 @@ PanelFrame {
                     visible: root.currentTabId === "blending"
                 }
 
+                ColorAdjustInspector {
+                    width: tabColumn.width
+                    visible: root.currentTabId === "adjust"
+                }
+
                 ShapeInspector {
                     width: tabColumn.width
                     visible: root.currentTabId === "shape"
@@ -747,8 +944,8 @@ PanelFrame {
         // Full-height editor with its own internal cue list scrolling, so it
         // sits beside the tab Flickable rather than inside it.
         SubtitleEditor {
-            anchors.top: tabStripHost.bottom
-            anchors.left: railDivider.right
+            anchors.top: root.sheetMode ? tabStripHost.bottom : subTabBar.bottom
+            anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             visible: root.currentTabId === "subtitles"

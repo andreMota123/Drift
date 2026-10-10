@@ -443,6 +443,21 @@ Item {
     // true. Keeping one concrete item type, with the folder/asset visuals as sibling blocks
     // toggled by `isFolder`, keeps the exact Column/Rectangle/DragHandler nesting that already
     // works for the timeline drop.
+    // Asset ids that already have a clip on the timeline — the cards carry an "Added" tag for
+    // them (CapCut-style), so it is obvious at a glance which footage is still unused.
+    readonly property var usedAssetIds: {
+        const used = {}
+        const tracks = EditorState.tracks
+        for (let t = 0; t < tracks.length; ++t) {
+            const clips = tracks[t].clips || []
+            for (let c = 0; c < clips.length; ++c) {
+                if (clips[c].assetId)
+                    used[clips[c].assetId] = true
+            }
+        }
+        return used
+    }
+
     Component {
         id: gridDelegate
         Column {
@@ -642,6 +657,62 @@ Item {
                         color: Theme.onMedia
                         font.pixelSize: Theme.fontSizeXs
                         font.family: Theme.fontFamily
+                    }
+                }
+
+                // "Added": this media already has a clip on the timeline.
+                Rectangle {
+                    visible: !cardRoot.isFolder && root.usedAssetIds[cardRoot.assetId] === true
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingSm
+                    color: Theme.scrimStrong
+                    radius: Theme.radiusXs
+                    width: addedLabel.implicitWidth + Theme.spacingLg
+                    height: addedLabel.implicitHeight + Theme.spacingSm
+                    Text {
+                        id: addedLabel
+                        anchors.centerIn: parent
+                        text: qsTr("Added")
+                        color: Theme.onMedia
+                        font.pixelSize: Theme.fontSizeXs
+                        font.family: Theme.fontFamily
+                    }
+                }
+
+                // Quick add: a round "+" that shows on hover and drops the media at the playhead.
+                Rectangle {
+                    id: quickAdd
+                    z: 3
+                    visible: !cardRoot.isFolder && !Theme.touchUi
+                             && (cardHover.hovered || quickAddMouse.containsMouse)
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingSm
+                    width: 18
+                    height: 18
+                    radius: 9
+                    color: quickAddMouse.pressed ? Qt.darker(Theme.primary, 1.2) : Theme.primary
+
+                    IconGlyph {
+                        anchors.centerIn: parent
+                        glyph: Theme.icons.plus
+                        iconSize: Theme.iconSizeSm
+                        iconColor: Theme.primaryForeground
+                    }
+
+                    ThemedToolTip {
+                        visible: quickAddMouse.containsMouse
+                        text: qsTr("Add to timeline")
+                    }
+
+                    MouseArea {
+                        id: quickAddMouse
+                        anchors.fill: parent
+                        anchors.margins: -3
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.addToTimelineRequested([cardRoot.assetId])
                     }
                 }
 

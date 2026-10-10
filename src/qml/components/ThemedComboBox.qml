@@ -174,7 +174,12 @@ ComboBox {
     delegate: ItemDelegate {
         id: comboDelegate
         width: root.width
-        height: Theme.iconButtonSize
+        // A fixed row height with the style's own vertical padding removed: ItemDelegate pads
+        // 12px top and bottom, which left the label zero height once the row dropped to the
+        // compact desktop size — the popup opened with every row blank.
+        height: Theme.touchUi ? Theme.iconButtonSize : 28
+        topPadding: 0
+        bottomPadding: 0
         highlighted: root.highlightedIndex === index
         // ItemDelegate defaults to hoverEnabled: false in Controls.Basic, so the
         // hover fill below never rendered.

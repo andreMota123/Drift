@@ -738,6 +738,10 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
     connect(m_mcp.get(), &drift::mcp::McpServer::runningChanged, this,
             &AppController::mcpRunningChanged);
     connect(m_mcp.get(), &drift::mcp::McpServer::errorChanged, this, &AppController::mcpErrorChanged);
+    // Automation and UI test rigs: start agent access with the editor instead of through the
+    // dialog. Opt-in per launch, never persisted.
+    if (qEnvironmentVariableIntValue("DRIFT_MCP_AUTOSTART") != 0)
+        QTimer::singleShot(0, this, [this] { setMcpEnabled(true); });
     connect(&m_undoStack, &QUndoStack::indexChanged, this, &AppController::undoStackChanged);
     connect(&m_undoStack, &QUndoStack::indexChanged, this, [this] {
         m_timelineModel.refresh();
@@ -959,6 +963,7 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
     m_mediaCodecZeroCopy =
         settings.value(QStringLiteral("preview/mediaCodecZeroCopy"), false).toBool();
     m_invertTimelineScroll = settings.value(QStringLiteral("timeline/invertScroll"), false).toBool();
+    m_magneticMainTrack = settings.value(QStringLiteral("timeline/magneticMainTrack"), false).toBool();
     m_uiLanguage = storedUiLanguage();
     m_needsUiLanguagePrompt = needsFirstLaunchLanguagePrompt();
     m_uiScale = storedUiScale();
@@ -1327,6 +1332,7 @@ QVariantList AppController::tracks() const
             {QStringLiteral("transitions"), transitions},
             {QStringLiteral("muted"), track.muted},
             {QStringLiteral("hidden"), track.hidden},
+            {QStringLiteral("locked"), track.locked},
             {QStringLiteral("showWaveform"), track.showWaveform},
             {QStringLiteral("showChannelWaveforms"), track.showChannelWaveforms},
             {QStringLiteral("heightScale"), track.heightScale},
@@ -4888,6 +4894,71 @@ void AppController::setRippleEnabled(bool enabled)
     emit rippleEnabledChanged();
 }
 
+void AppController::setMagneticMainTrack(bool enabled)
+{
+    if (m_magneticMainTrack == enabled)
+        return;
+    m_magneticMainTrack = enabled;
+    QSettings settings;
+    settings.setValue(QStringLiteral("timeline/magneticMainTrack"), m_magneticMainTrack);
+    emit magneticMainTrackChanged();
+    if (!m_magneticMainTrack)
+        return;
+    // Turning it on packs what is already there, as one undoable step.
+    const drift::Project before = m_project;
+    if (!applyMainTrackMagnet())
+        return;
+    pushProjectEdit(before, tr("Close gaps on main track"));
+    finishEdit(tr("Close gaps on main track"));
+}
+
+bool AppController::applyMainTrackMagnet()
+{
+    // Track 0 is topmost, so the main track is the last video track.
+    int mainIndex = -1;
+    for (int i = m_project.tracks().size() - 1; i >= 0; --i) {
+        if (m_project.tracks().at(i).type == drift::TrackType::Video) {
+            mainIndex = i;
+            break;
+        }
+    }
+    if (mainIndex < 0)
+        return false;
+
+    QList<int> order;
+    {
+        const drift::Track &track = m_project.tracks().at(mainIndex);
+        order.reserve(track.clips.size());
+        for (int i = 0; i < track.clips.size(); ++i)
+            order.append(i);
+        std::stable_sort(order.begin(), order.end(), [&track](int a, int b) {
+            return track.clips.at(a).timelineStart < track.clips.at(b).timelineStart;
+        });
+    }
+
+    // Only gaps close. Overlaps are left alone: they are how transitions are expressed.
+    bool moved = false;
+    drift::TimeUs cursor = 0;
+    for (int clipIndex : order) {
+        const drift::Clip snapshot = m_project.tracks().at(mainIndex).clips.at(clipIndex);
+        if (snapshot.timelineStart > cursor) {
+            const drift::TimeUs delta = cursor - snapshot.timelineStart;
+            for (const drift::ClipRef &ref : drift::linkedPartners(m_project, snapshot)) {
+                if (ref.trackIndex == mainIndex)
+                    continue;
+                drift::Clip &partner = m_project.tracks()[ref.trackIndex].clips[ref.clipIndex];
+                partner.timelineStart = qMax<drift::TimeUs>(0, partner.timelineStart + delta);
+            }
+            m_project.tracks()[mainIndex].clips[clipIndex].timelineStart = cursor;
+            moved = true;
+            cursor += snapshot.timelineDuration;
+        } else {
+            cursor = qMax(cursor, snapshot.timelineEnd());
+        }
+    }
+    return moved;
+}
+
 void AppController::setAllowClipOverlap(bool enabled)
 {
     if (m_allowClipOverlap == enabled)
@@ -5514,6 +5585,9 @@ void AppController::pushProjectEdit(const drift::Project &before, const QString 
     //
     // This is also where a track created by this edit gets its id — nested lanes address their
     // parent by it, and the dozen places that append a track all leave it empty.
+    if (m_magneticMainTrack)
+        applyMainTrackMagnet();
+    restoreLockedTracks(before);
     normalizeProjectStructure();
     if (m_mcpUndoSuspended)
         return;
@@ -15529,6 +15603,78 @@ bool isFaceEffectId(const QString &catalogId)
 
 } // namespace
 
+namespace {
+const QLatin1String kColorAdjustId("adjust.basic");
+}
+
+QVariantMap AppController::clipColorAdjust(int trackIndex, int clipIndex)
+{
+    QVariantMap out{{QStringLiteral("index"), -1}};
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return out;
+    if (!redirectToEffectHost(&trackIndex, &clipIndex, drift::AdjustmentKind::VideoEffects,
+                              /*create=*/false)) {
+        return out;
+    }
+    const drift::Track &track = m_project.tracks().at(trackIndex);
+    if (clipIndex < 0 || clipIndex >= track.clips.size())
+        return out;
+    const drift::Clip &clip = track.clips.at(clipIndex);
+    for (int i = 0; i < clip.effects.size(); ++i) {
+        const drift::Effect &effect = clip.effects.at(i);
+        if (effect.catalogId != kColorAdjustId)
+            continue;
+        out.insert(QStringLiteral("index"), i);
+        out.insert(QStringLiteral("enabled"), effect.enabled);
+        for (auto it = effect.parameters.constBegin(); it != effect.parameters.constEnd(); ++it)
+            out.insert(it.key(), it.value().toDouble());
+        break;
+    }
+    return out;
+}
+
+void AppController::setClipColorAdjust(int trackIndex, int clipIndex, const QString &key, double value)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return;
+    const drift::Track &track = m_project.tracks().at(trackIndex);
+    if (clipIndex < 0 || clipIndex >= track.clips.size())
+        return;
+
+    int effectIndex = clipColorAdjust(trackIndex, clipIndex).value(QStringLiteral("index")).toInt();
+    if (effectIndex < 0) {
+        // Adding the effect can mint an adjustment lane, which shifts track indices — find the
+        // clip again by id rather than trusting the indices we were handed.
+        const QString clipId = track.clips.at(clipIndex).id;
+        m_keepSelectionOnAddEffect = true;
+        addEffect(trackIndex, clipIndex, kColorAdjustId);
+        m_keepSelectionOnAddEffect = false;
+        if (!findClipById(m_project, clipId, &trackIndex, &clipIndex))
+            return;
+        effectIndex = clipColorAdjust(trackIndex, clipIndex).value(QStringLiteral("index")).toInt();
+        if (effectIndex < 0)
+            return;
+    }
+    setEffectParam(trackIndex, clipIndex, effectIndex, key, value);
+}
+
+void AppController::previewClipColorAdjust(int trackIndex, int clipIndex, const QString &key, double value)
+{
+    const int effectIndex =
+        clipColorAdjust(trackIndex, clipIndex).value(QStringLiteral("index")).toInt();
+    // Nothing to preview until the effect exists; the commit on release creates it.
+    if (effectIndex >= 0)
+        previewSetEffectParam(trackIndex, clipIndex, effectIndex, key, value);
+}
+
+void AppController::resetClipColorAdjust(int trackIndex, int clipIndex)
+{
+    const int effectIndex =
+        clipColorAdjust(trackIndex, clipIndex).value(QStringLiteral("index")).toInt();
+    if (effectIndex >= 0)
+        removeEffect(trackIndex, clipIndex, effectIndex);
+}
+
 void AppController::addEffect(int trackIndex, int clipIndex, const QString &effectId)
 {
     if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
@@ -15541,6 +15687,8 @@ void AppController::addEffect(int trackIndex, int clipIndex, const QString &effe
     const EffectPresetEntry *def = effectDefForId(effectId);
     if (!def)
         return;
+    // Kept so the Adjust tab can add its effect without losing the clip it is editing.
+    const QString targetClipId = track.clips.at(clipIndex).id;
 
     drift::Effect effect;
     effect.name = def->filterName;
@@ -15583,9 +15731,20 @@ void AppController::addEffect(int trackIndex, int clipIndex, const QString &effe
     // inspector shows it: the Effects tab is no longer offered for the clip the effect was aimed
     // at. redirectToEffectHost already returns post-insert indices, and normalizeProjectStructure
     // carries the selection across any reorder by track id.
-    m_selectedTrack = hostTrack;
-    m_selectedClip = hostClip;
-    m_selection = {qMakePair(hostTrack, hostClip)};
+    int keepTrack = -1;
+    int keepClip = -1;
+    if (m_keepSelectionOnAddEffect
+        && findClipById(m_project, targetClipId, &keepTrack, &keepClip)) {
+        // The caller edits this effect from the clip's own inspector, so the selection stays on
+        // the clip; only its indices are refreshed, since minting a lane can shift them.
+        m_selectedTrack = keepTrack;
+        m_selectedClip = keepClip;
+        m_selection = {qMakePair(keepTrack, keepClip)};
+    } else {
+        m_selectedTrack = hostTrack;
+        m_selectedClip = hostClip;
+        m_selection = {qMakePair(hostTrack, hostClip)};
+    }
 
     pushProjectEdit(before, tr("Add effect"));
     finishEdit(tr("Effect added"));
@@ -17394,6 +17553,41 @@ void AppController::setTrackHidden(int trackIndex, bool hidden)
     finishEdit(hidden ? tr("Track hidden") : tr("Track shown"));
 }
 
+void AppController::setTrackLocked(int trackIndex, bool locked)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return;
+    if (m_project.tracks()[trackIndex].locked == locked)
+        return;
+
+    const drift::Project before = m_project;
+    m_project.tracks()[trackIndex].locked = locked;
+    pushProjectEdit(before, tr("Track lock"));
+    finishEdit(locked ? tr("Track locked") : tr("Track unlocked"));
+}
+
+void AppController::restoreLockedTracks(const drift::Project &before)
+{
+    // A locked track keeps its clips whatever the edit was. Enforced here, at the one place every
+    // edit passes through, rather than in each of the operations that can touch a track: ripple,
+    // paste, the magnet and the agent ops all reach clips by different routes. Matched by track id
+    // so a reorder in the same edit cannot restore the wrong lane, and only when the track was
+    // already locked before the edit — the edit that locks or unlocks a track must go through.
+    for (drift::Track &track : m_project.tracks()) {
+        if (!track.locked || track.id.isEmpty())
+            continue;
+        for (const drift::Track &old : before.tracks()) {
+            if (old.id != track.id)
+                continue;
+            if (old.locked) {
+                track.clips = old.clips;
+                track.transitions = old.transitions;
+            }
+            break;
+        }
+    }
+}
+
 bool AppController::renameTrack(int trackIndex, const QString &name)
 {
     if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
@@ -17516,8 +17710,21 @@ int AppController::trackRowHeight(int trackIndex, const QVariantMap &metrics) co
         // rather than a video track's.
         base = metric("adjustment", 28.0);
         break;
-    case drift::TrackType::Video:
+    case drift::TrackType::Video: {
+        // The main track — the last video track, the one the magnet packs — gets its own,
+        // taller metric when the caller supplies one, so it reads as the spine of the edit.
+        bool isMain = true;
+        for (int i = trackIndex + 1; i < m_project.tracks().size(); ++i) {
+            const drift::Track &below = m_project.tracks().at(i);
+            if (below.type == drift::TrackType::Video && !below.isAdjustmentLane()) {
+                isMain = false;
+                break;
+            }
+        }
+        if (isMain)
+            base = metric("videoMain", baseVideo);
         break;
+    }
     }
 
     const double scale = track.heightScale > 0 ? track.heightScale : 1.0;

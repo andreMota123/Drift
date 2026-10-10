@@ -1,0 +1,123 @@
+{
+  "id": "adjust.basic",
+  "displayName": "Color Adjust",
+  "category": "color",
+  "order": 10,
+  "description": "All the basic colour controls in one effect, applied in a fixed order: brightness, contrast, saturation, highlights, shadows, whites and blacks, temperature and tint, fade, exposure, vignette.",
+  "parameters": [
+    {
+      "identifier": "brightness",
+      "displayName": "Brightness",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "contrast",
+      "displayName": "Contrast",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "saturation",
+      "displayName": "Saturation",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "highlights",
+      "displayName": "Highlights",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "shadows",
+      "displayName": "Shadows",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "whites",
+      "displayName": "Whites",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blacks",
+      "displayName": "Blacks",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "temperature",
+      "displayName": "Temperature",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "tint",
+      "displayName": "Tint",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "exposure",
+      "displayName": "Exposure",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "fade",
+      "displayName": "Fade",
+      "type": "float",
+      "minValue": 0,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "vignette",
+      "displayName": "Vignette",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    }
+  ],
+  "backend": "gpu",
+  "pipeline": {
+    "intermediateBuffers": [],
+    "passes": [
+      {
+        "passIndex": 0,
+        "fragmentShader": "main.frag",
+        "inputs": [
+          {
+            "type": "source_texture"
+          }
+        ],
+        "output": {
+          "type": "canvas"
+        }
+      }
+    ]
+  }
+}

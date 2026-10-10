@@ -56,6 +56,11 @@ Item {
     property bool selected: (EditorState.selection,
                              EditorState.selectionContains(trackIndex, clipIndex))
     property string trackType: panel.tracks[trackIndex].type
+    // A locked track's clips are inert: no select, drag, trim or drop. The matching guard for
+    // edits that reach the clip some other way lives in AppController::restoreLockedTracks.
+    readonly property bool trackLocked: panel.tracks[trackIndex].locked === true
+    enabled: !trackLocked
+    opacity: trackLocked ? 0.55 : 1.0
     property bool showWaveform: panel.tracks[trackIndex].showWaveform === true
     property bool showChannelWaveforms: panel.tracks[trackIndex].showChannelWaveforms === true
     property var clipEffects: clipData.effects || []

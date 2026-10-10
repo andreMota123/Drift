@@ -86,7 +86,14 @@ uniform float u_hasMask;
 uniform float u_maskInvert;
 uniform float u_hasFgr;
 uniform float u_layerPremul;
-uniform int u_blendMode;      // 1 multiply, 2 screen, 3 overlay, 5 darken, 6 lighten
+uniform int u_blendMode;      // 1 multiply, 2 screen, 3 overlay, 5 darken, 6 lighten,
+                              // 7 hard light, 8 soft light, 9 linear burn, 10 color burn,
+                              // 11 color dodge
+
+// Soft light's helper curve (the W3C compositing definition).
+vec3 softLightD(vec3 b) {
+    return mix(((16.0 * b - 12.0) * b + 4.0) * b, sqrt(b), step(0.25, b));
+}
 
 vec3 blendRgb(vec3 base, vec3 src) {
     if (u_blendMode == 1) return base * src;
@@ -98,6 +105,27 @@ vec3 blendRgb(vec3 base, vec3 src) {
     }
     if (u_blendMode == 5) return min(base, src);
     if (u_blendMode == 6) return max(base, src);
+    if (u_blendMode == 7) {
+        // Overlay with the roles swapped: the layer decides which half applies.
+        return mix(2.0 * base * src,
+                   1.0 - 2.0 * (1.0 - base) * (1.0 - src),
+                   step(0.5, src));
+    }
+    if (u_blendMode == 8) {
+        return mix(base - (1.0 - 2.0 * src) * base * (1.0 - base),
+                   base + (2.0 * src - 1.0) * (softLightD(base) - base),
+                   step(0.5, src));
+    }
+    if (u_blendMode == 9) return max(base + src - 1.0, 0.0);
+    if (u_blendMode == 10) {
+        // 1 - (1 - base) / src, with the two limits pinned so neither divides by zero.
+        vec3 burn = 1.0 - min(vec3(1.0), (1.0 - base) / max(src, vec3(0.0001)));
+        return mix(burn, vec3(1.0), step(1.0, base));
+    }
+    if (u_blendMode == 11) {
+        vec3 dodge = min(vec3(1.0), base / max(1.0 - src, vec3(0.0001)));
+        return mix(dodge, vec3(0.0), step(base, vec3(0.0)));
+    }
     return src;
 }
 
@@ -190,6 +218,16 @@ int blendModeCode(drift::BlendMode mode)
         return 5;
     case drift::BlendMode::Lighten:
         return 6;
+    case drift::BlendMode::HardLight:
+        return 7;
+    case drift::BlendMode::SoftLight:
+        return 8;
+    case drift::BlendMode::LinearBurn:
+        return 9;
+    case drift::BlendMode::ColorBurn:
+        return 10;
+    case drift::BlendMode::ColorDodge:
+        return 11;
     case drift::BlendMode::Normal:
         break;
     }

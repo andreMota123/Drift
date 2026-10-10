@@ -266,6 +266,15 @@ Column {
                     elide: Text.ElideRight
                     width: Math.min(implicitWidth + 2, parent.width)
                 }
+
+                // Double-click the name to put the value back to its default (CapCut-style).
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleTapped: {
+                        if (Math.abs(root.currentValue - root.propDef.def) > 1e-9)
+                            root.commitValue(root.propDef.def)
+                    }
+                }
             }
 
             ThemedChip {
@@ -276,7 +285,8 @@ Column {
                 enabled: root.activeKey !== null
                 chipHeight: 18
                 horizontalPadding: Theme.spacingSm
-                width: 28
+                // Wide enough for the translated label; the fixed width clipped it.
+                width: Math.max(28, implicitWidth)
                 anchors.verticalCenter: parent.verticalCenter
                 onClicked: root.setInterpolation("linear")
             }
@@ -289,7 +299,8 @@ Column {
                 enabled: root.activeKey !== null
                 chipHeight: 18
                 horizontalPadding: Theme.spacingSm
-                width: 36
+                // Wide enough for the translated label; the fixed width clipped it.
+                width: Math.max(36, implicitWidth)
                 anchors.verticalCenter: parent.verticalCenter
                 onClicked: root.setInterpolation("ease")
             }
@@ -302,7 +313,8 @@ Column {
                 enabled: root.activeKey !== null
                 chipHeight: 18
                 horizontalPadding: Theme.spacingSm
-                width: 34
+                // Wide enough for the translated label; the fixed width clipped it.
+                width: Math.max(34, implicitWidth)
                 anchors.verticalCenter: parent.verticalCenter
                 onClicked: root.setInterpolation("hold")
             }

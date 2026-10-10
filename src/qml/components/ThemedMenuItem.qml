@@ -23,10 +23,16 @@ MenuItem {
 
     // A Menu lays entries out in a ListView, which still reserves a row for a
     // hidden item, so conditional entries left blank gaps behind.
-    implicitHeight: visible ? (sectionHeader ? Theme.controlHeightSm
-                                             : Theme.controlHeightSm + Theme.spacingSm)
+    // Explicit numbers on desktop rather than control-height tokens: those shrank with the
+    // compact density and a menu row needs room for its label whatever a button measures.
+    implicitHeight: visible ? (Theme.touchUi
+                               ? (sectionHeader ? Theme.controlHeightSm
+                                                : Theme.controlHeightSm + Theme.spacingSm)
+                               : (sectionHeader ? 24 : 28))
                             : 0
     height: implicitHeight
+    topPadding: 0
+    bottomPadding: 0
     hoverEnabled: true
 
     contentItem: Row {

@@ -92,6 +92,7 @@ class AppController : public QObject
     Q_PROPERTY(bool snapEnabled READ snapEnabled WRITE setSnapEnabled NOTIFY snapEnabledChanged)
     Q_PROPERTY(bool rippleEnabled READ rippleEnabled WRITE setRippleEnabled NOTIFY rippleEnabledChanged)
     Q_PROPERTY(bool allowClipOverlap READ allowClipOverlap WRITE setAllowClipOverlap NOTIFY allowClipOverlapChanged)
+    Q_PROPERTY(bool magneticMainTrack READ magneticMainTrack WRITE setMagneticMainTrack NOTIFY magneticMainTrackChanged)
   // Per-project UI prefs (serialized with the .drift file, not global QSettings).
     Q_PROPERTY(bool mediaGridMode READ mediaGridMode WRITE setMediaGridMode NOTIFY mediaGridModeChanged)
     // "grid" | "list" | "tree". mediaGridMode above is the older two-state view of the same
@@ -364,6 +365,7 @@ public:
     bool snapEnabled() const { return m_snapEnabled; }
     bool rippleEnabled() const { return m_rippleEnabled; }
     bool allowClipOverlap() const { return m_allowClipOverlap; }
+    bool magneticMainTrack() const { return m_magneticMainTrack; }
     bool darkModeOverridden() const { return m_darkModeOverridden; }
     bool darkModePreferred() const { return m_darkModePreferred; }
     bool projectPortrait() const { return m_project.height() > m_project.width(); }
@@ -479,6 +481,7 @@ public:
     void setPlaying(bool playing);
     void setSnapEnabled(bool enabled);
     void setRippleEnabled(bool enabled);
+    void setMagneticMainTrack(bool enabled);
     void setAllowClipOverlap(bool enabled);
     Q_INVOKABLE void setDarkModePreference(bool enabled);
     Q_INVOKABLE void clearDarkModePreference();
@@ -1240,6 +1243,13 @@ public:
     Q_INVOKABLE QVariantList effectTemplateCatalog() const;
     Q_INVOKABLE QVariantList effectTemplateCategories() const;
     Q_INVOKABLE void addEffect(int trackIndex, int clipIndex, const QString &effectId);
+    // The clip's "Color Adjust" effect (adjust.basic), for the Adjust tab of the inspector, which
+    // edits it in place rather than through the effect stack. `index` is -1 when the clip has
+    // none yet; the first value set creates it.
+    Q_INVOKABLE QVariantMap clipColorAdjust(int trackIndex, int clipIndex);
+    Q_INVOKABLE void setClipColorAdjust(int trackIndex, int clipIndex, const QString &key, double value);
+    Q_INVOKABLE void previewClipColorAdjust(int trackIndex, int clipIndex, const QString &key, double value);
+    Q_INVOKABLE void resetClipColorAdjust(int trackIndex, int clipIndex);
     Q_INVOKABLE void applyEffectTemplate(int trackIndex, int clipIndex, const QString &templateId);
     Q_INVOKABLE void removeEffect(int trackIndex, int clipIndex, int effectIndex);
     Q_INVOKABLE void setEffectEnabled(int trackIndex, int clipIndex, int effectIndex, bool enabled);
@@ -1293,6 +1303,7 @@ public:
     Q_INVOKABLE bool importUserEffectPreset(const QUrl &fileUrl);
     Q_INVOKABLE void setTrackMuted(int trackIndex, bool muted);
     Q_INVOKABLE void setTrackHidden(int trackIndex, bool hidden);
+    Q_INVOKABLE void setTrackLocked(int trackIndex, bool locked);
     // Empty name clears the custom label, falling back to the type+position display
     // ("Video 1") again.
     Q_INVOKABLE bool renameTrack(int trackIndex, const QString &name);
@@ -1564,6 +1575,7 @@ signals:
     void snapEnabledChanged();
     void rippleEnabledChanged();
     void allowClipOverlapChanged();
+    void magneticMainTrackChanged();
     void darkModePreferenceChanged();
     void workspaceLayoutPreferenceChanged();
     void mediaGridModeChanged();
@@ -1901,6 +1913,10 @@ protected:
     // (waveformReady is emitted when it lands).
     const MediaWaveform::Dense *densePeaksFor(const QString &path) const;
     void applyRippleShift(drift::Track &track, int fromClipIndex, drift::TimeUs delta);
+    // Packs the main (bottommost video) track so no clip leaves a gap before it. Linked
+    // partners ride along. Returns true when anything moved.
+    bool applyMainTrackMagnet();
+    void restoreLockedTracks(const drift::Project &before);
     void restoreFilmstripsAfterLoad();
     void normalizeSelection();
     bool isValidClipIndex(int trackIndex, int clipIndex) const;
@@ -1984,6 +2000,7 @@ protected:
     bool m_snapEnabled = true;
     bool m_rippleEnabled = false;
     bool m_allowClipOverlap = false;
+    bool m_magneticMainTrack = false;
     bool m_loopWorkAreaEnabled = false;
     bool m_darkModeOverridden = false;
     bool m_darkModePreferred = true;
@@ -2269,6 +2286,8 @@ protected:
 
     std::unique_ptr<drift::mcp::McpServer> m_mcp;
     bool m_mcpUndoSuspended = false;
+    // Set around addEffect by callers that edit the new effect from the clip's own inspector.
+    bool m_keepSelectionOnAddEffect = false;
     int m_mcpBatchDepth = 0;
     drift::Project m_mcpBatchBefore;
     int m_mcpEditRevision = 0;

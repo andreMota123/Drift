@@ -98,29 +98,48 @@ PanelFrame {
         setZoomAround(newZoom, anchorSeconds, viewportX)
     }
 
-    // Ruler tick interval (seconds): the smallest "nice" step whose labels still
-    // have room to breathe at the current zoom, so timestamps never squash.
-    readonly property real tickStepSeconds: {
-        const minLabelPx = 66
-        const needed = minLabelPx / pxPerSecond
-        const steps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30,
-                       60, 120, 300, 600, 900, 1800, 3600,
-                       7200, 10800, 14400, 21600, 43200]
-        for (var i = 0; i < steps.length; i++)
-            if (steps[i] >= needed)
-                return steps[i]
-        return steps[steps.length - 1]
+    // Ruler levels (CapCut-style): for each zoom range, how far apart the labelled ticks are and
+    // how far apart the short ticks between them are. Rows are [from px/s, label, tick]; a
+    // value written as a negative number is a frame count rather than seconds, so the finest
+    // levels land on whole frames whatever the project rate. Labels end up a few hundred pixels
+    // apart at every zoom, with ten or so short ticks between them to read position by.
+    readonly property real rulerFps: {
+        // projectFps() is a plain call with no notify of its own; reading `tracks` gives the
+        // binding something to re-evaluate on when the project changes.
+        const dep = tracks.length
+        return Math.max(1, EditorState.projectFps() || 30)
     }
+    readonly property var rulerLevels: [
+        [6000, -2, -1], [1300, -3, -1], [1000, -5, -1], [800, -10, -1], [600, -15, -3],
+        [300, 1, 0.1], [150, 2, 0.2], [100, 3, 0.3], [60, 5, 0.5], [30, 10, 1],
+        [10, 30, 3], [5, 60, 6], [2.5, 120, 12], [1.6, 180, 18], [1, 300, 30],
+        [0.5, 600, 60], [0.16, 1800, 180], [0.08, 3600, 360], [0.04, 7200, 720],
+        [0.026, 10800, 1080], [0.016, 18000, 1800], [0.008, 36000, 3600], [0, 108000, 10800]
+    ]
+    readonly property var rulerLevel: {
+        const levels = rulerLevels
+        for (var i = 0; i < levels.length; i++)
+            if (pxPerSecond >= levels[i][0])
+                return levels[i]
+        return levels[levels.length - 1]
+    }
+    function rulerSeconds(v) { return v < 0 ? -v / rulerFps : v }
+    // Distance between labelled ticks, and between the short ticks in between.
+    readonly property real tickStepSeconds: rulerSeconds(rulerLevel[1])
+    readonly property real minorTickStepSeconds: rulerSeconds(rulerLevel[2])
+    readonly property int minorTicksPerLabel: Math.max(1, Math.round(tickStepSeconds / minorTickStepSeconds))
 
-    // HH:MM:SS, plus .CC hundredths once zoomed into sub-second ticks.
+    // HH:MM:SS, plus :FF frames once zoomed into sub-second labels.
     function formatTick(seconds) {
-        const cc = Math.round(Math.max(0, seconds) * 100)
+        const frames = Math.round(Math.max(0, seconds) * rulerFps)
+        const fpsInt = Math.max(1, Math.round(rulerFps))
+        const whole = Math.floor(frames / fpsInt)
         const pad = (n) => (n < 10 ? "0" : "") + n
-        let out = pad(Math.floor(cc / 360000)) + ":"
-                + pad(Math.floor((cc % 360000) / 6000)) + ":"
-                + pad(Math.floor((cc % 6000) / 100))
+        let out = pad(Math.floor(whole / 3600)) + ":"
+                + pad(Math.floor((whole % 3600) / 60)) + ":"
+                + pad(whole % 60)
         if (tickStepSeconds < 1)
-            out += "." + pad(cc % 100)
+            out += ":" + pad(frames % fpsInt)
         return out
     }
     readonly property var tracks: EditorState.tracks
@@ -380,6 +399,7 @@ PanelFrame {
         const dep = tracks.length
         return EditorState.trackRowHeight(index, {
             "video": Theme.trackHeightVideo,
+            "videoMain": Theme.trackHeightVideoMain,
             "audio": Theme.trackHeightAudio,
             "text": Theme.trackHeightText,
             "subtitle": Theme.trackHeightSubtitle,
@@ -1085,12 +1105,26 @@ PanelFrame {
 
                                     Rectangle {
                                         x: 0
-                                        y: parent.height - 10
+                                        y: parent.height - 12
                                         width: 1
-                                        height: 8
+                                        height: 10
                                         color: Qt.rgba(Theme.mutedForeground.r,
                                                        Theme.mutedForeground.g,
-                                                       Theme.mutedForeground.b, 0.28)
+                                                       Theme.mutedForeground.b, 0.45)
+                                    }
+
+                                    // Short ticks between two labels.
+                                    Repeater {
+                                        model: Math.max(0, root.minorTicksPerLabel - 1)
+                                        delegate: Rectangle {
+                                            x: (index + 1) * root.minorTickStepSeconds * root.pxPerSecond
+                                            y: parent.height - 6
+                                            width: 1
+                                            height: 4
+                                            color: Qt.rgba(Theme.mutedForeground.r,
+                                                           Theme.mutedForeground.g,
+                                                           Theme.mutedForeground.b, 0.25)
+                                        }
                                     }
 
                                     Text {

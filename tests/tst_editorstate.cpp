@@ -137,6 +137,8 @@ private slots:
     void separatedAudioTracksMirrorVideoHierarchy();
     void linkedAudioUnlinkAndMove();
     void linkUnrelatedClipsMoveTogetherKeepTiming();
+    void mainTrackMagnetClosesGaps();
+    void lockedTrackKeepsItsClips();
     void combineSelectionRendersOneClip();
     void compoundClipEnterEditExitAndDissolve();
     void deleteLinkedPairTogetherAndUnlinkedClipAlone();
@@ -3169,6 +3171,70 @@ void EditorStateTest::transitionCurveSessionApplyAndCancel()
 
 // Link joins clips that did not come from the same media. They move and split together, but the
 // audio keeps its own duration and trim instead of being overwritten by the video's.
+void EditorStateTest::mainTrackMagnetClosesGaps()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+    // The preference is persisted; never leave it on for the tests that follow.
+    const auto restore = qScopeGuard([&state] { state.setMagneticMainTrack(false); });
+
+    const drift::TimeUs firstLen = state.project()->tracks().at(0).clips.at(0).timelineDuration;
+    drift::Clip second = state.project()->tracks().at(0).clips.at(0);
+    second.id = QStringLiteral("magnet-second");
+    second.linkId.clear();
+    second.timelineStart = firstLen + drift::secondsToUs(5.0);
+    state.project()->tracks()[0].clips.append(second);
+
+    // Turning the magnet on packs what is already there.
+    state.setMagneticMainTrack(true);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, firstLen);
+
+    // A clip dropped further right comes back flush against its neighbour.
+    state.moveClip(0, 1, drift::usToSeconds(firstLen) + 10.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, firstLen);
+
+    // The first clip pushed right leaves no gap at the head, and its linked audio follows.
+    state.project()->tracks()[0].clips[1].timelineStart = firstLen + drift::secondsToUs(20.0);
+    state.moveClip(0, 0, 3.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, drift::TimeUs{0});
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, drift::TimeUs{0});
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, firstLen);
+
+    // Off again, a gap stays where it was put.
+    state.setMagneticMainTrack(false);
+    state.moveClip(0, 1, drift::usToSeconds(firstLen) + 10.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart,
+             firstLen + drift::secondsToUs(10.0));
+}
+
+void EditorStateTest::lockedTrackKeepsItsClips()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+
+    // Track ids are minted by the first edit; the lock is matched by id.
+    state.setTrackLocked(0, true);
+    QVERIFY(state.project()->tracks().at(0).locked);
+    const drift::TimeUs start = state.project()->tracks().at(0).clips.at(0).timelineStart;
+
+    // Moving a clip on a locked track does nothing.
+    state.moveClip(0, 0, 7.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, start);
+    QCOMPARE(state.project()->tracks().at(0).clips.size(), 1);
+
+    // Deleting it does nothing either.
+    state.selectClip(0, 0);
+    state.deleteSelectedClip();
+    QCOMPARE(state.project()->tracks().at(0).clips.size(), 1);
+
+    // Unlocked, the same move goes through.
+    state.setTrackLocked(0, false);
+    state.moveClip(0, 0, 7.0);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, drift::secondsToUs(7.0));
+}
+
 void EditorStateTest::linkUnrelatedClipsMoveTogetherKeepTiming()
 {
     AssetLibrary library;

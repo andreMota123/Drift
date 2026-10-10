@@ -108,6 +108,7 @@ Item {
         const dep = tracks.length
         return EditorState.trackRowHeight(index, {
             "video": Theme.trackHeightVideo,
+            "videoMain": Theme.trackHeightVideoMain,
             "audio": Theme.trackHeightAudio,
             "text": Theme.trackHeightText,
             "subtitle": Theme.trackHeightSubtitle,
@@ -241,6 +242,7 @@ Item {
             // getters) so the toggles rebind on tracksChanged.
             readonly property bool trackMuted: root.tracks[index].muted === true
             readonly property bool trackHidden: root.tracks[index].hidden === true
+            readonly property bool trackLocked: root.tracks[index].locked === true
             readonly property bool trackWaveform: root.tracks[index].showWaveform === true
             // Falls back to the type+position label until a custom name is set.
             readonly property string trackDisplayName:
@@ -516,6 +518,37 @@ Item {
                     }
                 }
 
+                // Lock: the track's clips stop responding and no edit moves them.
+                IconGlyph {
+                    visible: !root.compact
+                    glyph: trackLabelRow.trackLocked ? Theme.icons.lock : Theme.icons.lockOpen
+                    iconSize: 16
+                    iconColor: trackLabelRow.trackLocked ? Theme.primary : Theme.mutedForeground
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Accessible.role: Accessible.CheckBox
+                    Accessible.name: trackLabelRow.trackLocked ? qsTr("Unlock track") : qsTr("Lock track")
+                    Accessible.checked: trackLabelRow.trackLocked
+                    Accessible.onToggleAction: lockMouse.clicked(null)
+
+                    ThemedToolTip {
+                        visible: lockMouse.containsMouse
+                        text: trackLabelRow.trackLocked ? qsTr("Unlock track") : qsTr("Lock track")
+                    }
+
+                    MouseArea {
+                        id: lockMouse
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            Haptics.toggle(!trackLabelRow.trackLocked)
+                            EditorState.setTrackLocked(index, !trackLabelRow.trackLocked)
+                        }
+                    }
+                }
+
                 // Toggle the whole track between filmstrip previews and audio waveforms.
                 IconGlyph {
                     visible: !root.compact && root.tracks[index].type === "video"
@@ -679,6 +712,13 @@ Item {
                         icon.name: trackLabelRow.trackHidden ? Theme.icons.eye
                                                              : Theme.icons.eyeOff
                         onTriggered: EditorState.setTrackHidden(index, !trackLabelRow.trackHidden)
+                    }
+                    ThemedMenuItem {
+                        text: trackLabelRow.trackLocked ? qsTr("Unlock track")
+                                                        : qsTr("Lock track")
+                        icon.name: trackLabelRow.trackLocked ? Theme.icons.lockOpen
+                                                             : Theme.icons.lock
+                        onTriggered: EditorState.setTrackLocked(index, !trackLabelRow.trackLocked)
                     }
                     ThemedMenuItem {
                         visible: root.tracks[index].type === "video"

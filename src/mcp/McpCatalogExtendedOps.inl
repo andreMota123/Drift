@@ -116,7 +116,7 @@
           "trimmed independently. Acts on the current selection — call select_clip first; fails "
           "bad_args when no linked clips are selected.",
           objectSchema({}) },
-        { "link_clips", "timeline", "Link clips",
+        { "link_clips", "timeline", "Link the selected clips",
           "Link two or more selected, currently unlinked clips (typically a video and an audio from "
           "different media) so they select, move, split and delete together while keeping their own "
           "duration, trim and speed. Acts on the current selection — call select_clips first; fails "
@@ -203,7 +203,9 @@
                                              {QStringLiteral("normal"), QStringLiteral("multiply"),
                                               QStringLiteral("screen"), QStringLiteral("overlay"),
                                               QStringLiteral("add"), QStringLiteral("darken"),
-                                              QStringLiteral("lighten")})}},
+                                              QStringLiteral("lighten"), QStringLiteral("hardLight"),
+                                              QStringLiteral("softLight"), QStringLiteral("linearBurn"),
+                                              QStringLiteral("colorBurn"), QStringLiteral("colorDodge")})}},
                                   clipRefProps()),
                        {QStringLiteral("mode")}) },
         { "set_mask", "canvas", "Show only part of a clip: rectangle, ellipse, freeform, matte",

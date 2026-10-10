@@ -354,6 +354,11 @@ ApplicationWindow {
     }
 
     // Settings / header: reopen platform layout picker anytime.
+    function grabPreviewFrame(callback) {
+        if (previewPanel)
+            previewPanel.grabFrame(callback)
+    }
+
     function openLayoutChooser() {
         layoutChooserDialog.openFromSettings()
     }

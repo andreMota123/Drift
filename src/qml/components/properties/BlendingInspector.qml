@@ -64,7 +64,8 @@ Item {
             id: blendModeBox
             visible: root.clipKind !== "audio"
             width: parent.width
-            model: ["normal", "multiply", "screen", "overlay", "add", "darken", "lighten"]
+            model: ["normal", "multiply", "screen", "overlay", "add", "darken", "lighten",
+                    "hardLight", "softLight", "linearBurn", "colorBurn", "colorDodge"]
             // Human labels — raw ids were shown to the user.
             property var labels: ({
                 "normal": qsTr("Normal"),
@@ -73,7 +74,12 @@ Item {
                 "overlay": qsTr("Overlay"),
                 "add": qsTr("Add"),
                 "darken": qsTr("Darken"),
-                "lighten": qsTr("Lighten")
+                "lighten": qsTr("Lighten"),
+                "hardLight": qsTr("Hard light"),
+                "softLight": qsTr("Soft light"),
+                "linearBurn": qsTr("Linear burn"),
+                "colorBurn": qsTr("Color burn"),
+                "colorDodge": qsTr("Color dodge")
             })
             displayText: labels[model[currentIndex]] || model[currentIndex]
             tooltip: qsTr("How this clip blends with the layers below")

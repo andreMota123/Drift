@@ -398,6 +398,15 @@ Item {
             onClicked: EditorState.snapEnabled = !EditorState.snapEnabled
         }
         IconButton {
+            id: mainTrackMagnetButton
+            glyph: EditorState.magneticMainTrack ? Theme.icons.mainTrackMagnet : Theme.icons.mainTrackMagnetOff
+            variant: "text"
+            tooltip: EditorState.magneticMainTrack ? qsTr("Turn off main track magnet")
+                                                   : qsTr("Turn on main track magnet")
+            active: EditorState.magneticMainTrack
+            onClicked: EditorState.magneticMainTrack = !EditorState.magneticMainTrack
+        }
+        IconButton {
             id: rippleButton
             glyph: Theme.icons.foldHorizontal
             variant: "text"

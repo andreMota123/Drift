@@ -282,6 +282,105 @@ Rectangle {
         opacity: 0.5
     }
 
+    // Project name centred in the title bar (CapCut-style): saved/unsaved dot, name, chevron.
+    Rectangle {
+        id: projectsButton
+
+        readonly property bool open: recentPopup.visible
+        readonly property bool saved: !EditorState.hasUnsavedChanges
+
+        // Cap width so a long name does not shove the right-side actions.
+        width: Math.min(projectsRow.implicitWidth + Theme.spacingXl * 2, 260)
+        height: 24
+        radius: Theme.radiusSm
+        color: projectsArea.containsMouse || open ? Theme.popoverHover : "transparent"
+        anchors.centerIn: parent
+        z: 1
+        clip: true
+
+        Behavior on color {
+            ColorAnimation { duration: Theme.durationFast; easing.type: Theme.easing }
+        }
+
+        Accessible.role: Accessible.Button
+        Accessible.name: qsTr("Projects")
+        Accessible.description: saved ? qsTr("All changes saved")
+                                      : qsTr("Unsaved changes")
+
+        Row {
+            id: projectsRow
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.spacingXl
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Theme.spacingMd
+
+            Rectangle {
+                width: 8
+                height: 8
+                radius: 4
+                color: projectsButton.saved ? Theme.constructive : Theme.destructive
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Text {
+                // Cap against the pill's max width (dot + gaps + chevron + padding).
+                readonly property real maxTextWidth: 260 - Theme.spacingXl * 2
+                                                     - 8 - Theme.iconSizeSm
+                                                     - Theme.spacingMd * 2
+                width: Math.min(implicitWidth, maxTextWidth)
+                text: root.projectName
+                color: Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeSm
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            IconGlyph {
+                glyph: Theme.icons.chevronDown
+                iconSize: Theme.iconSizeSm
+                iconColor: Theme.mutedForeground
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
+        ThemedToolTip {
+            visible: projectsArea.containsMouse && !projectsButton.open
+            text: projectsButton.saved
+                  ? qsTr("Projects — click to switch or start new")
+                  : qsTr("Unsaved changes — click to switch or start new")
+        }
+
+        MouseArea {
+            id: projectsArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: recentPopup.open()
+        }
+
+        RecentProjectsPopup {
+            id: recentPopup
+            y: parent.height + Theme.spacingMd
+            onOpenFileRequested: root.openProject()
+            onNewProjectRequested: root.requestNewProject()
+            onOpenRecentRequested: (path) => root.openRecent(path)
+            onSaveAsRequested: root.saveProjectAs()
+            onPackageRequested: root.packageProject()
+            onSaveJsonRequested: root.saveProjectJson()
+            onOpenJsonRequested: root.openProjectJson()
+            // Disabled: external project imports. Uncomment with the open*() functions above.
+            // onImportPremiereRequested: root.openPremiereProject()
+            // onImportMogrtRequested: root.openMogrt()
+            // onImportKdenliveRequested: root.openKdenliveProject()
+            // onImportResolveRequested: root.openResolveProject()
+            // onImportEdlRequested: root.openEdlTimeline()
+            // onImportOtioRequested: root.openOtioTimeline()
+            onPropertiesRequested: projectPropertiesDialog.openDialog()
+        }
+    }
+
     // The three groups used to be independently anchored, so at narrow widths
     // they overlapped instead of compressing. A RowLayout arbitrates the space.
     RowLayout {
@@ -291,232 +390,109 @@ Rectangle {
         anchors.verticalCenterOffset: 1
         spacing: Theme.spacingLg
 
-        // --- Left: project switcher + save ------------------------------------
-        Row {
-            Layout.alignment: Qt.AlignVCenter
-            spacing: Theme.spacingLg
-
-            // Gmail-style status pill: saved/unsaved dot, project name, chevron.
-            Rectangle {
-                id: projectsButton
-
-                readonly property bool open: recentPopup.visible
-                readonly property bool saved: !EditorState.hasUnsavedChanges
-
-                // Cap width so a long name does not shove the right-side actions.
-                width: Math.min(projectsRow.implicitWidth + Theme.spacingXl * 2, 260)
-                height: 32
-                radius: Theme.radiusPill
-                color: projectsArea.containsMouse || open ? Theme.popoverHover : Theme.accent
-                anchors.verticalCenter: parent.verticalCenter
-                clip: true
-
-                Behavior on color {
-                    ColorAnimation { duration: Theme.durationFast; easing.type: Theme.easing }
-                }
-
-                Accessible.role: Accessible.Button
-                Accessible.name: qsTr("Projects")
-                Accessible.description: saved ? qsTr("All changes saved")
-                                              : qsTr("Unsaved changes")
-
-                Row {
-                    id: projectsRow
-                    anchors.left: parent.left
-                    anchors.leftMargin: Theme.spacingXl
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.spacingMd
-
-                    Rectangle {
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: projectsButton.saved ? Theme.constructive : Theme.destructive
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Text {
-                        // Cap against the pill's max width (dot + gaps + chevron + padding).
-                        readonly property real maxTextWidth: 260 - Theme.spacingXl * 2
-                                                             - 8 - Theme.iconSizeSm
-                                                             - Theme.spacingMd * 2
-                        width: Math.min(implicitWidth, maxTextWidth)
-                        text: root.projectName
-                        color: Theme.foreground
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeSm
-                        font.weight: Font.Medium
-                        elide: Text.ElideRight
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    IconGlyph {
-                        glyph: Theme.icons.chevronDown
-                        iconSize: Theme.iconSizeSm
-                        iconColor: Theme.mutedForeground
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                ThemedToolTip {
-                    visible: projectsArea.containsMouse && !projectsButton.open
-                    text: projectsButton.saved
-                          ? qsTr("Projects — click to switch or start new")
-                          : qsTr("Unsaved changes — click to switch or start new")
-                }
-
-                MouseArea {
-                    id: projectsArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: recentPopup.open()
-                }
-
-                RecentProjectsPopup {
-                    id: recentPopup
-                    y: parent.height + Theme.spacingMd
-                    onOpenFileRequested: root.openProject()
-                    onNewProjectRequested: root.requestNewProject()
-                    onOpenRecentRequested: (path) => root.openRecent(path)
-                    onSaveAsRequested: root.saveProjectAs()
-                    onPackageRequested: root.packageProject()
-                    onSaveJsonRequested: root.saveProjectJson()
-                    onOpenJsonRequested: root.openProjectJson()
-                    // Disabled: external project imports. Uncomment with the open*() functions above.
-                    // onImportPremiereRequested: root.openPremiereProject()
-                    // onImportMogrtRequested: root.openMogrt()
-                    // onImportKdenliveRequested: root.openKdenliveProject()
-                    // onImportResolveRequested: root.openResolveProject()
-                    // onImportEdlRequested: root.openEdlTimeline()
-                    // onImportOtioRequested: root.openOtioTimeline()
-                    onPropertiesRequested: projectPropertiesDialog.openDialog()
-                }
-            }
-
-            IconButton {
-                glyph: Theme.icons.save
-                variant: "ghost"
-                text: qsTr("Save")
-                tooltip: {
-                    const keys = EditorState.shortcutFor("save")
-                    return keys.length > 0 ? qsTr("Save project (%1)").arg(Theme.shortcutDisplay(keys))
-                                           : qsTr("Save project")
-                }
-                anchors.verticalCenter: parent.verticalCenter
-                onClicked: root.saveProject()
-            }
-
-            IconButton {
-                glyph: Theme.icons.ratio
-                variant: "ghost"
-                text: qsTr("Video")
-                active: videoSizeDialog.visible || EditorState.canvasCropMode
-                tooltip: qsTr("Video size and layout")
-                anchors.verticalCenter: parent.verticalCenter
-                onClicked: videoSizeDialog.openDialog()
-            }
-        }
-
-        // Absorbs leftover space so the two groups stay apart but can compress.
-        Item {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-        }
-
-        // --- Right: appearance | extras | agent | infrequent | export ------
+        // --- Left: main menu + save (CapCut-style title bar) --------------------
         Row {
             Layout.alignment: Qt.AlignVCenter
             spacing: Theme.spacingSm
 
             Item {
-                id: downloadsButton
-                visible: Market.configured
-                implicitWidth: downloadsBtn.implicitWidth
-                implicitHeight: downloadsBtn.implicitHeight
-                width: visible ? implicitWidth : 0
-                height: implicitHeight
-                anchors.verticalCenter: parent.verticalCenter
-
-                IconButton {
-                    id: downloadsBtn
-                    anchors.fill: parent
-                    glyph: Theme.icons.download
-                    variant: "ghost"
-                    active: Market.activeDownloadCount > 0
-                    tooltip: Market.activeDownloadCount > 0
-                             ? qsTr("Downloads — %n running", "", Market.activeDownloadCount)
-                             : qsTr("Downloads")
-                    onClicked: root.downloadsRequested()
-                }
-
-                // Count rather than a plain dot: with a queue behind a three-at-a-time cap,
-                // how many are outstanding is the thing worth knowing at a glance.
-                Rectangle {
-                    visible: Market.activeDownloadCount > 0
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.spacingXs
-                    width: Math.max(Theme.spacingXl, downloadCount.implicitWidth + Theme.spacingSm)
-                    height: Theme.spacingXl
-                    radius: height / 2
-                    color: Theme.primary
-
-                    Text {
-                        id: downloadCount
-                        anchors.centerIn: parent
-                        text: String(Market.activeDownloadCount)
-                        color: Theme.primaryForeground
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSizeXs
-                    }
-                }
-            }
-
-            component HeaderSeparator: Item {
-                width: Theme.spacingLg + Theme.borderWidth
-                height: 32
-                anchors.verticalCenter: parent.verticalCenter
-
-                Rectangle {
-                    width: Theme.borderWidth
-                    height: 16
-                    anchors.centerIn: parent
-                    color: Theme.panelBorder
-                }
-            }
-
-            // Workspace, theme and language were three header buttons of their own.
-            // They share one menu now, with the rest of the preferences a step further
-            // in behind "More settings…".
-            //
-            // Workspace: portrait projects default to the portrait arrangement, but the
-            // choice stays the user's — a tall canvas on an ultrawide display is still
-            // comfortable in the landscape workspace, and a portrait *display* suits the
-            // portrait one whatever the canvas is. Picking either explicitly stops the
-            // canvas from driving it; "Auto" hands it back.
-            Item {
-                id: settingsButton
-                implicitWidth: settingsBtn.implicitWidth
-                implicitHeight: settingsBtn.implicitHeight
+                id: menuButton
+                implicitWidth: menuBtn.implicitWidth
+                implicitHeight: menuBtn.implicitHeight
                 width: implicitWidth
                 height: implicitHeight
                 anchors.verticalCenter: parent.verticalCenter
 
+                // Essential packs or updates waiting: the Extras entry lives in this menu now,
+                // so the dot that asks for attention sits on the menu button.
+                readonly property bool attention: {
+                    const win = root.Window.window
+                    return win && win.addonAttentionNeeded
+                }
+
                 IconButton {
-                    id: settingsBtn
+                    id: menuBtn
                     anchors.fill: parent
-                    glyph: Theme.icons.settings
+                    glyph: Theme.icons.menu
                     variant: "ghost"
-                    text: qsTr("Settings")
-                    active: settingsMenu.opened
-                    tooltip: qsTr("Workspace, theme, language and more")
-                    onClicked: settingsMenu.popup(0, settingsButton.height + Theme.spacingMd)
+                    text: qsTr("Menu")
+                    active: mainMenu.opened
+                    tooltip: qsTr("Project, settings, extras and more")
+                    onClicked: mainMenu.popup(0, menuButton.height + Theme.spacingSm)
+                }
+
+                Rectangle {
+                    visible: menuButton.attention
+                    width: 6
+                    height: 6
+                    radius: 3
+                    color: Theme.destructive
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 2
                 }
 
                 ThemedContextMenu {
-                    id: settingsMenu
+                    id: mainMenu
                     implicitWidth: 248
+
+                    ThemedMenuItem {
+                        sectionHeader: true
+                        text: qsTr("File")
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("New project")
+                        icon.name: Theme.icons.plus
+                        onTriggered: root.requestNewProject()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Open project…")
+                        icon.name: Theme.icons.folder
+                        onTriggered: root.openProject()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Save")
+                        icon.name: Theme.icons.save
+                        onTriggered: root.saveProject()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Save as…")
+                        icon.name: Theme.icons.save
+                        onTriggered: root.saveProjectAs()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Package project…")
+                        icon.name: Theme.icons["package"]
+                        onTriggered: root.packageProject()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Project properties…")
+                        icon.name: Theme.icons.info
+                        onTriggered: projectPropertiesDialog.openDialog()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Export…")
+                        icon.name: Theme.icons.upload
+                        enabled: !EditorState.exportInProgress
+                        onTriggered: root.exportVideo()
+                    }
+
+                    ThemedMenuSeparator { }
+
+                    ThemedMenuItem {
+                        text: qsTr("Video size and layout…")
+                        icon.name: Theme.icons.ratio
+                        onTriggered: videoSizeDialog.openDialog()
+                    }
+
+                    ThemedMenuSeparator { }
 
                     ThemedMenuItem {
                         sectionHeader: true
@@ -599,88 +575,101 @@ Rectangle {
                         icon.name: Theme.icons.sliders
                         onTriggered: root.Window.window.openSettings()
                     }
+
+                    ThemedMenuSeparator { }
+
+                    ThemedMenuItem {
+                        text: menuButton.attention ? qsTr("Extras (recommended packs and updates)") : qsTr("Extras")
+                        icon.name: Theme.icons.puzzle
+                        onTriggered: root.Window.window.openExtras()
+                    }
+
+                    ThemedMenuItem {
+                        text: EditorState.mcpRunning ? qsTr("Agent access (on)") : qsTr("Agent access…")
+                        icon.name: Theme.icons.bot
+                        onTriggered: agentAccessDialog.openDialog()
+                    }
                 }
             }
 
-            HeaderSeparator {}
+            IconButton {
+                glyph: Theme.icons.save
+                variant: "ghost"
+                tooltip: {
+                    const keys = EditorState.shortcutFor("save")
+                    return keys.length > 0 ? qsTr("Save project (%1)").arg(Theme.shortcutDisplay(keys))
+                                           : qsTr("Save project")
+                }
+                anchors.verticalCenter: parent.verticalCenter
+                onClicked: root.saveProject()
+            }
+        }
 
-            // Extras. Pulses with a red shockwave while essential packs or updates need
-            // attention — the dialog itself never opens on its own (see UpdateDialog).
+        // Absorbs leftover space so the two groups stay apart but can compress.
+        Item {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+        }
+
+        // --- Right: appearance | extras | agent | infrequent | export ------
+        Row {
+            Layout.alignment: Qt.AlignVCenter
+            spacing: Theme.spacingSm
+
             Item {
-                id: extrasButton
-                implicitWidth: extrasBtn.implicitWidth
-                implicitHeight: extrasBtn.implicitHeight
-                width: implicitWidth
+                id: downloadsButton
+                visible: Market.configured
+                implicitWidth: downloadsBtn.implicitWidth
+                implicitHeight: downloadsBtn.implicitHeight
+                width: visible ? implicitWidth : 0
                 height: implicitHeight
                 anchors.verticalCenter: parent.verticalCenter
 
-                readonly property bool attention: {
-                    const win = root.Window.window
-                    return win && win.addonAttentionNeeded
+                IconButton {
+                    id: downloadsBtn
+                    anchors.fill: parent
+                    glyph: Theme.icons.download
+                    variant: "ghost"
+                    active: Market.activeDownloadCount > 0
+                    tooltip: Market.activeDownloadCount > 0
+                             ? qsTr("Downloads — %n running", "", Market.activeDownloadCount)
+                             : qsTr("Downloads")
+                    onClicked: root.downloadsRequested()
                 }
 
-                // Expanding rings behind the icon — reads as a soft shockwave, not a badge.
-                Repeater {
-                    model: 2
+                // Count rather than a plain dot: with a queue behind a three-at-a-time cap,
+                // how many are outstanding is the thing worth knowing at a glance.
+                Rectangle {
+                    visible: Market.activeDownloadCount > 0
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingXs
+                    width: Math.max(Theme.spacingXl, downloadCount.implicitWidth + Theme.spacingSm)
+                    height: Theme.spacingXl
+                    radius: height / 2
+                    color: Theme.primary
 
-                    Item {
-                        id: wave
-                        required property int index
-
+                    Text {
+                        id: downloadCount
                         anchors.centerIn: parent
-                        width: Theme.iconButtonSize
-                        height: Theme.iconButtonSize
-                        scale: 0.85
-                        opacity: 0
-                        visible: extrasButton.attention
-                        z: -1
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 2
-                            border.color: Theme.destructive
-                        }
-
-                        SequentialAnimation {
-                            running: extrasButton.attention
-                            loops: Animation.Infinite
-
-                            PauseAnimation { duration: wave.index * 700 }
-                            ParallelAnimation {
-                                NumberAnimation {
-                                    target: wave
-                                    property: "opacity"
-                                    from: 0.55
-                                    to: 0
-                                    duration: 1400
-                                    easing.type: Easing.OutCubic
-                                }
-                                NumberAnimation {
-                                    target: wave
-                                    property: "scale"
-                                    from: 0.85
-                                    to: 1.75
-                                    duration: 1400
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
-                            PauseAnimation { duration: (1 - wave.index) * 700 }
-                        }
+                        text: String(Market.activeDownloadCount)
+                        color: Theme.primaryForeground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXs
                     }
                 }
+            }
 
-                IconButton {
-                    id: extrasBtn
-                    anchors.fill: parent
-                    glyph: Theme.icons.puzzle
-                    variant: "ghost"
-                    text: qsTr("Extras")
-                    tooltip: extrasButton.attention
-                             ? qsTr("Recommended packs and updates")
-                             : qsTr("Extras")
-                    onClicked: root.Window.window.openExtras()
+            component HeaderSeparator: Item {
+                width: Theme.spacingLg + Theme.borderWidth
+                height: 24
+                anchors.verticalCenter: parent.verticalCenter
+
+                Rectangle {
+                    width: Theme.borderWidth
+                    height: 16
+                    anchors.centerIn: parent
+                    color: Theme.panelBorder
                 }
             }
 
@@ -717,18 +706,14 @@ Rectangle {
                 }
             }
 
-            HeaderSeparator {}
-
             IconButton {
-                glyph: Theme.icons.bot
+                glyph: Theme.icons.ratio
                 variant: "ghost"
-                text: qsTr("Agent")
-                active: EditorState.mcpRunning
-                tooltip: EditorState.mcpRunning
-                         ? qsTr("Agent access is on")
-                         : qsTr("Agent access")
+                text: qsTr("Video")
+                active: videoSizeDialog.visible || EditorState.canvasCropMode
+                tooltip: qsTr("Video size and layout")
                 anchors.verticalCenter: parent.verticalCenter
-                onClicked: agentAccessDialog.openDialog()
+                onClicked: videoSizeDialog.openDialog()
             }
 
             HeaderSeparator {}
@@ -780,8 +765,8 @@ Rectangle {
                 readonly property bool busy: EditorState.exportInProgress
 
                 width: exportRow.implicitWidth + Theme.spacing3xl
-                height: 32
-                radius: Theme.radiusMd
+                height: 24
+                radius: Theme.radiusSm
                 color: Theme.exportGlow
                 anchors.verticalCenter: parent.verticalCenter
                 opacity: busy ? 0.55 : 1
@@ -799,8 +784,7 @@ Rectangle {
 
                 Rectangle {
                     anchors.fill: parent
-                    anchors.margins: 2
-                    radius: parent.radius - 2
+                    radius: parent.radius
                     // Brightens on hover, darkens on press.
                     opacity: exportButton.busy ? 1
                              : (exportMouse.pressed ? 0.85 : (exportMouse.containsMouse ? 1 : 0.94))

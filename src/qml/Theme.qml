@@ -140,22 +140,22 @@ QtObject {
 
     // --- Color palettes: app shell vs. panel surfaces, light and dark ------------
     readonly property var _dark: ({
-        appBackground: "#0d0d0d",
-        foreground: "#dedede",
-        border: "#292929",
-        accent: "#242424",
-        accentForeground: "#f2f2f2",
-        mutedForeground: "#808080",
-        popoverHover: "#212121",
-        panelBackground: "#1a1a1a",
-        panelForeground: "#d9d9d9",
-        panelBorder: "#2e2e2e",
-        panelAccent: "#262626",
-        panelAccentForeground: "#ededed",
-        panelMuted: "#383838",
-        panelSecondaryBg: "#26200a",
-        panelSecondaryBorder: "#4a3d00",
-        panelSecondaryForeground: "#ffcf4a"
+        appBackground: "#070709",
+        foreground: "#d4d4d4",
+        border: "#29292d",
+        accent: "#29292d",
+        accentForeground: "#fafafa",
+        mutedForeground: "#999999",
+        popoverHover: "#252528",
+        panelBackground: "#1b1b1c",
+        panelForeground: "#d4d4d4",
+        panelBorder: "#29292d",
+        panelAccent: "#29292d",
+        panelAccentForeground: "#fafafa",
+        panelMuted: "#343337",
+        panelSecondaryBg: "#213539",
+        panelSecondaryBorder: "#004d52",
+        panelSecondaryForeground: "#4adfe9"
     })
     readonly property var _light: ({
         appBackground: "#ffffff",
@@ -171,9 +171,9 @@ QtObject {
         panelAccent: "#ededed",
         panelAccentForeground: "#0d0d0d",
         panelMuted: "#d4d4d4",
-        panelSecondaryBg: "#fff6da",
-        panelSecondaryBorder: "#ffe7a3",
-        panelSecondaryForeground: "#9a6f00"
+        panelSecondaryBg: "#dff8fa",
+        panelSecondaryBorder: "#a3e9ee",
+        panelSecondaryForeground: "#007882"
     })
     readonly property var _palette: darkMode ? _dark : _light
 
@@ -194,11 +194,11 @@ QtObject {
     readonly property color panelAccentForeground: _palette.panelAccentForeground
     readonly property color panelMuted: _palette.panelMuted
     // Slider groove — lighter than panelMuted in dark mode so the track reads at rest.
-    readonly property color sliderTrack: darkMode ? "#505050" : panelMuted
+    readonly property color sliderTrack: darkMode ? "#4c4c4c" : panelMuted
     // Scrollbar track + handle (timeline horizontal bar, panel flickables).
-    readonly property color scrollbarTrack: darkMode ? "#2a2a2a" : panelBorder
-    readonly property color scrollbarHandle: darkMode ? "#6a6a6a" : panelMuted
-    readonly property color scrollbarHandleHover: darkMode ? "#888888" : mutedForeground
+    readonly property color scrollbarTrack: darkMode ? "#202023" : panelBorder
+    readonly property color scrollbarHandle: darkMode ? "#4c4c4c" : panelMuted
+    readonly property color scrollbarHandleHover: darkMode ? "#6c6c6c" : mutedForeground
     readonly property color scrollbarHandlePressed: darkMode ? "#b8b8b8" : foreground
     // Bottom-sheet drag pill. panelBorder put it at 1.28:1 against the sheet in both
     // themes, so the one affordance saying "this sheet moves" was invisible; these
@@ -209,17 +209,17 @@ QtObject {
     readonly property color panelSecondaryForeground: _palette.panelSecondaryForeground
 
     // --- Colors: shared semantic (identical in both themes) -----------------------
-    readonly property color primary: "#F8B81C"
-    readonly property color primaryForeground: "#221900"
-    // `primary` as a *foreground* on a panel surface. The brand amber is a fill
+    readonly property color primary: "#00C1CD"
+    readonly property color primaryForeground: "#00191B"
+    // `primary` as a *foreground* on a panel surface. The brand accent is a fill
     // colour: on the light panel it lands at 1.69:1, so a selected tab tinted with
-    // it was effectively invisible. Dark mode keeps the amber (9.8:1); light mode
-    // uses the darkened brand tone (5.2:1). Only for text/glyphs on panels —
+    // it was effectively invisible. Dark mode keeps the accent; light mode
+    // uses the darkened brand tone. Only for text/glyphs on panels —
     // fills, rings and progress arcs still use `primary` in both themes.
-    readonly property color accentOnPanel: darkMode ? primary : "#8a6300"
-    readonly property color destructive: "#e91616"
+    readonly property color accentOnPanel: darkMode ? primary : "#007882"
+    readonly property color destructive: "#ff303d"
     readonly property color constructive: "#23d160"
-    readonly property color warning: "#f97316"
+    readonly property color warning: "#f2c921"
 
     // Keyboard focus indicator. Shared by every focusable control so a Tab pass
     // reads as one system regardless of which control has focus.
@@ -227,9 +227,9 @@ QtObject {
 
     // Export CTA gradient stops (the documented inline-color exception, sourced
     // from here so the button still tracks the token system).
-    readonly property color exportGradientTop: "#ffcf4a"
-    readonly property color exportGradientBottom: "#f59e0b"
-    readonly property color exportGlow: "#fbbf24"
+    readonly property color exportGradientTop: "#00C1CD"
+    readonly property color exportGradientBottom: "#00C1CD"
+    readonly property color exportGlow: "#00C1CD"
 
     // Scrims/overlays drawn over media (clip name bands, preview letterbox,
     // thumbnail duration badges). Fixed regardless of app theme because they sit
@@ -245,8 +245,8 @@ QtObject {
     // Timeline snap indicator.
     readonly property color snapGuide: "#f5c542"
     // Async placeholder fill for thumbnails, filmstrips and waveforms.
-    readonly property color skeletonColor: darkMode ? "#242424" : "#e8e8e8"
-    readonly property color skeletonHighlight: darkMode ? "#333333" : "#f5f5f5"
+    readonly property color skeletonColor: darkMode ? "#252528" : "#e8e8e8"
+    readonly property color skeletonHighlight: darkMode ? "#343337" : "#f5f5f5"
 
     // --- Colors: timeline clip types (fixed regardless of app theme) ---------------
     readonly property color clipText: "#5DBAA0"
@@ -318,10 +318,10 @@ QtObject {
     }
 
     // --- Radius --------------------------------------------------------------
-    readonly property real radiusSm: 5.6
-    readonly property real radiusMd: 10.4
-    readonly property real radiusLg: 13.12
-    readonly property real radiusXs: 3    // badges, tick marks, hairline chrome
+    readonly property real radiusSm: touchUi ? 5.6 : 4
+    readonly property real radiusMd: touchUi ? 10.4 : 8
+    readonly property real radiusLg: touchUi ? 13.12 : 12
+    readonly property real radiusXs: touchUi ? 3 : 2    // badges, tick marks, hairline chrome
     readonly property real radiusPill: 999
 
     // --- Spacing scale ---------------------------------------------------------
@@ -376,9 +376,9 @@ QtObject {
     // Retained as an alias so the ~25 existing call sites keep compiling while they are
     // migrated to touchInput / compact / liftDragRequired one surface at a time.
     readonly property bool touchUi: touchInput
-    readonly property real controlHeight: touchUi ? 44 : 30
-    readonly property real controlHeightSm: touchUi ? 36 : 26   // chips, segmented toggles
-    readonly property real iconButtonSize: touchUi ? 40 : 28
+    readonly property real controlHeight: touchUi ? 44 : 22
+    readonly property real controlHeightSm: touchUi ? 36 : 20   // chips, segmented toggles
+    readonly property real iconButtonSize: touchUi ? 40 : 24
     readonly property real borderWidth: 1
     readonly property real borderWidthFocus: 2
 
@@ -415,21 +415,24 @@ QtObject {
     readonly property real dialogMargin: 32
 
     // --- Typography ------------------------------------------------------------
-    readonly property real fontSizeXs: 11.52
-    readonly property real fontSizeSm: 12.64
-    readonly property real fontSizeBase: 14.72
+    readonly property real fontSizeXs: touchUi ? 11.52 : 10
+    readonly property real fontSizeSm: touchUi ? 12.64 : 11
+    readonly property real fontSizeBase: touchUi ? 14.72 : 12
     readonly property real fontSizeTiny: 9.6   // 0.6rem clip captions
     readonly property real fontSizeTick: 10    // literal 10px ruler tick labels
-    readonly property real fontSizeCard: 11.2  // 0.7rem asset card filenames
+    readonly property real fontSizeCard: touchUi ? 11.2 : 10  // 0.7rem asset card filenames
 
     // --- Layout: chrome ------------------------------------------------------
-    readonly property real headerHeight: 54.4
+    readonly property real headerHeight: touchUi ? 54.4 : 36
     readonly property real panelGap: 3
     readonly property real pagePadding: 12
 
     // --- Layout: assets panel -----------------------------------------------
-    readonly property real panelHeaderHeight: touchUi ? 52 : 44
+    readonly property real panelHeaderHeight: touchUi ? 52 : 42
     readonly property real tabRailWidth: touchUi ? 52 : 40
+    // Assets panel top tab bar: icon over label.
+    readonly property real tabBarHeight: touchUi ? 56 : 42
+    readonly property real tabBarItemMinWidth: touchUi ? 60 : 48
     readonly property real assetCardWidth: 112
     readonly property real assetCardGap: 16
 
@@ -451,14 +454,16 @@ QtObject {
     readonly property real previewToolbarPaddingBottom: 12
 
     // --- Layout: timeline ------------------------------------------------------
-    readonly property real timelineToolbarHeight: 40
+    readonly property real timelineToolbarHeight: touchUi ? 40 : 32
     // Tall enough to be an easy seek/scrub hit target (CapCut/Premiere-style).
     readonly property real timelineRulerHeight: 28
     readonly property real timelineBookmarkRowHeight: 18
-    readonly property real trackHeightVideo: 65
+    readonly property real trackHeightVideo: touchUi ? 65 : 62
+    // The main (bottom) video track is taller than the overlay tracks above it.
+    readonly property real trackHeightVideoMain: touchUi ? 65 : 76
     readonly property real trackHeightAudio: 50
-    readonly property real trackHeightText: touchUi ? 44 : 25
-    readonly property real trackHeightSubtitle: touchUi ? 44 : 25
+    readonly property real trackHeightText: touchUi ? 44 : 24
+    readonly property real trackHeightSubtitle: touchUi ? 44 : 24
     readonly property real trackHeightShape: 50
     // An adjustment carries no picture and no waveform — just the list of effects in it — so it
     // needs a label's worth of room, not a video track's.
@@ -469,10 +474,10 @@ QtObject {
     // 20px lanes came out at 12-14dp of usable strip on a phone once the row borders were
     // taken off — under half the touch floor for the toggles that live in them.
     readonly property real adjustmentLaneHeight: touchUi ? 24 : 20
-    readonly property real trackGap: 6
+    readonly property real trackGap: touchUi ? 6 : 4
     // Invisible hit area above tracks (no visible UI) for new-track drops when timeline has clips.
     readonly property real newTrackHitSlop: 24
-    readonly property real trackLabelsWidth: 130
+    readonly property real trackLabelsWidth: touchUi ? 130 : 152
     readonly property real pixelsPerSecondBase: 50
     // Empty runway after the last clip: fixed in pixels at every zoom (not a
     // fixed number of seconds). Sized as a fraction of the timeline viewport.
@@ -585,6 +590,8 @@ QtObject {
         linkTwo: "link-2",
         unlink: "unlink-2",
         foldHorizontal: "fold-horizontal",
+        mainTrackMagnet: "main-track-magnet",
+        mainTrackMagnetOff: "main-track-magnet-off",
         zoomOut: "zoom-out",
         zoomIn: "zoom-in",
         zoomFit: "chevrons-left-right-ellipsis",
@@ -637,6 +644,7 @@ QtObject {
         sortByKind: "tags",
         gripVertical: "grip-vertical",
         ellipsis: "ellipsis",
+        menu: "menu",
         save: "save",
         setStart: "arrow-left-to-line",
         setEnd: "arrow-right-to-line",

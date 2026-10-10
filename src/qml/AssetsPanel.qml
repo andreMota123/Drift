@@ -591,24 +591,23 @@ PanelFrame {
         "shortcuts": qsTr("Shortcuts")
     })
 
-    // Rail order: project media → on-canvas graphics → processing → prefs.
-    // `separatorAfter` draws a hairline under the tab so groups read as sections.
+    // Tab order follows the usual editing flow: media, audio, text, stickers, effects, transitions, captions.
     // tabId "sounds" is kept for favorites persistence (settings key).
     ListModel {
         id: tabsModel
-        ListElement { tabId: "media"; icon: 0; separatorAfter: false }
-        ListElement { tabId: "market"; icon: 12; separatorAfter: true }
-        ListElement { tabId: "text"; icon: 1; separatorAfter: false }
-        ListElement { tabId: "subtitles"; icon: 2; separatorAfter: false }
-        ListElement { tabId: "stickers"; icon: 3; separatorAfter: false }
-        ListElement { tabId: "shapes"; icon: 4; separatorAfter: false }
-        ListElement { tabId: "masks"; icon: 11; separatorAfter: true }
-        ListElement { tabId: "scenes"; icon: 10; separatorAfter: true }
-        ListElement { tabId: "effects"; icon: 5; separatorAfter: false }
-        ListElement { tabId: "templates"; icon: 6; separatorAfter: false }
-        ListElement { tabId: "transitions"; icon: 7; separatorAfter: false }
-        ListElement { tabId: "sounds"; icon: 8; separatorAfter: true }
-        ListElement { tabId: "shortcuts"; icon: 9; separatorAfter: false }
+        ListElement { tabId: "media"; icon: 0 }
+        ListElement { tabId: "sounds"; icon: 8 }
+        ListElement { tabId: "text"; icon: 1 }
+        ListElement { tabId: "stickers"; icon: 3 }
+        ListElement { tabId: "effects"; icon: 5 }
+        ListElement { tabId: "transitions"; icon: 7 }
+        ListElement { tabId: "subtitles"; icon: 2 }
+        ListElement { tabId: "templates"; icon: 6 }
+        ListElement { tabId: "shapes"; icon: 4 }
+        ListElement { tabId: "masks"; icon: 11 }
+        ListElement { tabId: "scenes"; icon: 10 }
+        ListElement { tabId: "market"; icon: 12 }
+        ListElement { tabId: "shortcuts"; icon: 9 }
     }
     property var tabIcons: [
         Theme.icons.film,
@@ -705,100 +704,128 @@ PanelFrame {
         }
     }
 
-    Row {
+    Column {
         anchors.fill: parent
         spacing: 0
 
-        // Vertical tab rail. Up/Down move between tabs once it has focus.
-        // Flickable so short panel heights can still reach lower icons.
+        // Top tab bar, icon over label. Left/Right move between tabs once it has
+        // focus. Flickable so a narrow panel can still reach the last tabs.
         // Hidden in sheetMode — AndroidBottomRail drives showTab() instead.
         Flickable {
             id: tabRail
-            width: root.sheetMode ? 0 : Theme.tabRailWidth
-            height: parent.height
+            width: parent.width
+            height: root.sheetMode ? 0 : Theme.tabBarHeight
             visible: !root.sheetMode
-            contentWidth: width
-            contentHeight: tabRailColumn.height
+            contentWidth: tabRailRow.width
+            contentHeight: height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            interactive: contentHeight > height
-            ScrollBar.vertical: AppScrollBar {
-                policy: tabRail.contentHeight > tabRail.height
-                        ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-            }
+            flickableDirection: Flickable.HorizontalFlick
+            interactive: contentWidth > width
 
             Accessible.role: Accessible.PageTabList
 
-            Keys.onUpPressed: function(event) {
+            function reveal(index) {
+                const item = tabRepeater.itemAt(index)
+                if (!item || contentWidth <= width)
+                    return
+                if (item.x < contentX)
+                    contentX = item.x
+                else if (item.x + item.width > contentX + width)
+                    contentX = item.x + item.width - width
+            }
+
+            Keys.onLeftPressed: function(event) {
                 root.activeTab = (root.activeTab - 1 + tabsModel.count) % tabsModel.count
                 event.accepted = true
             }
-            Keys.onDownPressed: function(event) {
+            Keys.onRightPressed: function(event) {
                 root.activeTab = (root.activeTab + 1) % tabsModel.count
                 event.accepted = true
             }
 
-            Column {
-                id: tabRailColumn
-                width: parent.width
-                topPadding: Theme.spacingSm
-                spacing: Theme.spacingXs
+            Connections {
+                target: root
+                function onActiveTabChanged() { tabRail.reveal(root.activeTab) }
+            }
+
+            // Wheel over the bar scrolls it sideways; a plain mouse has no other way.
+            WheelHandler {
+                enabled: tabRail.interactive
+                onWheel: function(event) {
+                    const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                    tabRail.contentX = Math.max(0, Math.min(tabRail.contentWidth - tabRail.width,
+                                                            tabRail.contentX - delta / 2))
+                }
+            }
+
+            Row {
+                id: tabRailRow
+                height: parent.height
+                leftPadding: Theme.spacingSm
+                rightPadding: Theme.spacingSm
+                spacing: 0
 
                 Repeater {
+                    id: tabRepeater
                     model: tabsModel
-                    delegate: Column {
+                    delegate: Item {
+                        id: tabItem
                         required property int index
                         required property var model
+                        readonly property bool current: root.activeTab === index
 
-                        width: parent.width
-                        spacing: 0
+                        width: Math.max(Theme.tabBarItemMinWidth, tabLabel.implicitWidth + Theme.spacingLg)
+                        height: tabRailRow.height
 
-                        IconButton {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            glyph: root.tabIcons[model.icon]
-                            variant: "ghost"
-                            tooltip: tabLabels[model.tabId]
-                            active: root.activeTab === index
-                            onClicked: root.activeTab = index
+                        Accessible.role: Accessible.PageTab
+                        Accessible.name: tabLabels[model.tabId]
+                        Accessible.checked: current
+                        Accessible.onPressAction: root.activeTab = index
 
-                            Accessible.role: Accessible.PageTab
-                            Accessible.name: tabLabels[model.tabId]
-                            Accessible.checked: root.activeTab === index
-                        }
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: Theme.spacingXs
 
-                        // Group divider — sits in the rail gap so related tabs
-                        // cluster and prefs stay visually apart from content.
-                        Item {
-                            visible: model.separatorAfter
-                            width: parent.width
-                            height: visible ? Theme.spacingLg + Theme.borderWidth : 0
-
-                            Rectangle {
+                            IconGlyph {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.iconSizeSm
-                                height: Theme.borderWidth
-                                radius: height / 2
-                                color: Theme.panelBorder
-                                opacity: 0.85
+                                glyph: root.tabIcons[tabItem.model.icon]
+                                iconSize: Theme.iconSizeLg
+                                iconColor: tabItem.current ? Theme.accentOnPanel
+                                         : tabHover.hovered ? Theme.panelForeground
+                                         : Theme.mutedForeground
+                            }
+
+                            Text {
+                                id: tabLabel
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: tabLabels[tabItem.model.tabId]
+                                color: tabItem.current ? Theme.accentOnPanel
+                                     : tabHover.hovered ? Theme.panelForeground
+                                     : Theme.mutedForeground
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
                             }
                         }
+
+                        HoverHandler { id: tabHover; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: root.activeTab = tabItem.index }
                     }
                 }
             }
         }
 
         Rectangle {
-            width: root.sheetMode ? 0 : Theme.borderWidth
-            height: parent.height
+            width: parent.width
+            height: root.sheetMode ? 0 : Theme.borderWidth
             visible: !root.sheetMode
             color: Theme.panelBorder
         }
 
         Column {
             id: assetsContent
-            width: parent.width - (root.sheetMode ? 0 : (Theme.tabRailWidth + Theme.borderWidth))
-            height: parent.height
+            width: parent.width
+            height: parent.height - (root.sheetMode ? 0 : (Theme.tabBarHeight + Theme.borderWidth))
 
             Rectangle {
                 width: parent.width
@@ -942,7 +969,7 @@ PanelFrame {
                 id: emojiPicker
                 // Hangs off the button at the panel's right edge, and slides back rather than
                 // running off-window when the panel is dragged narrow.
-                x: Math.max(-Theme.tabRailWidth, assetsContent.width - width - 8)
+                x: Math.max(0, assetsContent.width - width - 8)
                 y: Theme.panelHeaderHeight + 4
                 onAddonManagerRequested: root.Window.window.openAddonManager("stickers")
                 onAdded: root.addCompleted()

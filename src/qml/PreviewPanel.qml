@@ -29,6 +29,9 @@ PanelFrame {
         return fps > 0 ? fps : 30
     }
 
+    // Hands the current preview frame to `callback` as an image URL.
+    function grabFrame(callback) { preview.grabFrame(callback) }
+
     function formatTimecode(seconds) {
         const fps = root.projectFps;
         const totalFrames = Math.round(seconds * fps);
@@ -165,6 +168,11 @@ PanelFrame {
                     PreviewItem {
                         id: preview
                         anchors.fill: parent
+
+                        // A still of what is on screen now, for the export dialog's preview.
+                        function grabFrame(callback) {
+                            preview.grabToImage(function(result) { callback(result.url) })
+                        }
 
                         // Canvas size is derived from this, so it has to be real
                         // screen pixels: item geometry is in logical units, and

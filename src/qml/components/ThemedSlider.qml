@@ -23,6 +23,11 @@ Slider {
     // Callers should set it; the formatter is a fallback, not a substitute.
     property string label: ""
 
+    // True when the range runs from negative to positive, i.e. zero is the neutral value.
+    readonly property bool zeroCrossing: from < 0 && to > 0
+    // Lets a caller turn the neutral magnet off for a range where zero means nothing special.
+    property bool snapToZero: true
+
     from: 0
     to: 1
     live: true
@@ -91,15 +96,22 @@ Slider {
         x: root.leftPadding
         y: root.topPadding + root.availableHeight / 2 - height / 2
         width: root.availableWidth
-        height: Theme.spacingSm
+        // Desktop: a hairline track with a light fill (CapCut-style). Touch keeps the thicker,
+        // accent-filled one, which is easier to follow under a finger.
+        height: Theme.touchUi ? Theme.spacingSm : 2
         radius: height / 2
         color: Theme.sliderTrack
 
         Rectangle {
-            width: root.visualPosition * parent.width
+            // A range that crosses zero fills from zero, so the bar shows how far the value
+            // is from neutral and in which direction.
+            readonly property real zeroPos: root.zeroCrossing
+                                            ? (0 - root.from) / (root.to - root.from) : 0
+            x: Math.min(zeroPos, root.visualPosition) * parent.width
+            width: Math.abs(root.visualPosition - zeroPos) * parent.width
             height: parent.height
             radius: parent.radius
-            color: Theme.primary
+            color: Theme.touchUi ? Theme.primary : Theme.panelForeground
 
             // Eases programmatic value changes (a preset chip, a reset button)
             // without fighting the drag, which sets position continuously.
@@ -115,12 +127,15 @@ Slider {
         id: handleRect
         x: root.leftPadding + root.visualPosition * (root.availableWidth - width)
         y: root.topPadding + root.availableHeight / 2 - height / 2
-        width: Theme.iconSizeMd
-        height: Theme.iconSizeMd
-        radius: width / 2
-        color: root.pressed ? Theme.panelSecondaryForeground
-                            : (root.hovered ? Qt.lighter(Theme.primary, 1.25) : Qt.lighter(Theme.primary, 1.15))
-        border.width: Theme.borderWidthFocus
+        // Desktop: a small light pill. Touch keeps the round accent knob.
+        width: Theme.touchUi ? Theme.iconSizeMd : 8
+        height: Theme.touchUi ? Theme.iconSizeMd : 12
+        radius: Theme.touchUi ? width / 2 : 2
+        color: Theme.touchUi
+               ? (root.pressed ? Theme.panelSecondaryForeground
+                               : (root.hovered ? Qt.lighter(Theme.primary, 1.25) : Qt.lighter(Theme.primary, 1.15)))
+               : (root.pressed || root.hovered ? Theme.panelAccentForeground : Theme.panelForeground)
+        border.width: Theme.touchUi || root.visualFocus ? Theme.borderWidthFocus : 0
         border.color: root.visualFocus ? Theme.focusRing : Theme.primaryForeground
         // Grows slightly on hover so the grab target is legible.
         scale: root.pressed ? 1.1 : (root.hovered || root.visualFocus ? 1.05 : 1.0)
@@ -151,6 +166,9 @@ Slider {
         const span = to - from
         if (span <= 0)
             return
+        // Magnet at neutral: within 1.5% of the range the value lands exactly on zero.
+        if (zeroCrossing && snapToZero && value !== 0 && Math.abs(value) <= span * 0.015)
+            value = 0
         const t = (value - from) / span
         if (t <= 0.002) {
             if (!_hapticMin) {

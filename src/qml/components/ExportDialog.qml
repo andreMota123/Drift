@@ -8,7 +8,50 @@ ThemedDialog {
 
     title: qsTr("Export")
     acceptText: qsTr("Export")
-    preferredWidth: Theme.dialogWidthLg
+    // Two columns on desktop (CapCut-style): a still and a summary of what will be written on
+    // the left, the settings on the right. A compact window keeps the single settings column.
+    readonly property bool showSummary: !Theme.compact && !Theme.touchUi
+    readonly property real summaryWidth: 260
+    preferredWidth: showSummary ? Theme.dialogWidthLg + summaryWidth + Theme.spacing2xl
+                                : Theme.dialogWidthLg
+    property url previewUrl: ""
+
+    // Rough size of the file about to be written. Exact for a fixed bitrate; for constant
+    // quality it is a guess from resolution, frame rate and the quality number, good to tell
+    // 50 MB from 500 MB and no better.
+    readonly property real estimatedMegabytes: {
+        const seconds = root.exportWorkAreaOnly
+                        ? Math.max(0, EditorState.workAreaOutSeconds - EditorState.workAreaInSeconds)
+                        : EditorState.durationSeconds
+        if (seconds <= 0)
+            return 0
+        const audioKbps = root.audioBitrateKbps > 0 ? root.audioBitrateKbps : 192
+        if (root.exportMode === "audio")
+            return audioKbps * seconds / 8 / 1024
+        let videoKbps = root.videoBitrateKbps
+        if (root.rateControl === "crf" || root.exportMode === "gif") {
+            const h = root.targetHeight > 0 ? root.targetHeight : EditorState.projectHeight()
+            const w = h * EditorState.projectWidth() / Math.max(1, EditorState.projectHeight())
+            const fps = root.fpsNum > 0 ? root.fpsNum / Math.max(1, root.fpsDen) : EditorState.projectFps()
+            videoKbps = w * h * fps * 0.07 * Math.pow(2, (23 - root.crf) / 6) / 1000
+            if (root.videoCodecId !== "h264")
+                videoKbps *= 0.65
+        }
+        return (videoKbps + audioKbps) * seconds / 8 / 1024
+    }
+
+    function formatSize(mb) {
+        if (mb <= 0)
+            return "—"
+        return mb >= 1024 ? qsTr("about %1 GB").arg((mb / 1024).toFixed(1))
+                          : qsTr("about %1 MB").arg(Math.max(1, Math.round(mb)))
+    }
+
+    function formatDuration(seconds) {
+        const total = Math.max(0, Math.round(seconds))
+        const pad = (n) => (n < 10 ? "0" : "") + n
+        return pad(Math.floor(total / 3600)) + ":" + pad(Math.floor((total % 3600) / 60)) + ":" + pad(total % 60)
+    }
 
     property string exportMode: "video" // "video" | "audio" | "gif"
     property string scaleId: "source"
@@ -182,6 +225,10 @@ ThemedDialog {
     }
 
     function openDialog() {
+        previewUrl = ""
+        const host = root.parent && root.parent.Window ? root.parent.Window.window : null
+        if (root.showSummary && host && host.grabPreviewFrame)
+            host.grabPreviewFrame(function(url) { root.previewUrl = url })
         videoCodecs = EditorState.exportVideoCodecs()
         audioCodecs = EditorState.exportAudioCodecs()
         scaleOptions = EditorState.exportScaleOptions()
@@ -344,9 +391,85 @@ ThemedDialog {
     // With Advanced open this content is ~800px tall against a 560px minimum
     // window height, so it has to scroll: unscrolled, the dialog overflowed the
     // window and took the Export/Cancel buttons off-screen with it.
-    contentItem: Flickable {
+    contentItem: Item {
+        implicitHeight: Math.max(contentFlick.implicitHeight,
+                                 root.showSummary ? Math.min(summaryColumn.implicitHeight,
+                                                             root.availableContentHeight) : 0)
+
+        Column {
+            id: summaryColumn
+            visible: root.showSummary
+            width: root.summaryWidth
+            spacing: Theme.spacingLg
+
+            Rectangle {
+                width: parent.width
+                height: Math.round(width * 9 / 16)
+                radius: Theme.radiusMd
+                color: Theme.overlayColor
+                border.width: Theme.borderWidth
+                border.color: Theme.panelBorder
+                clip: true
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    source: root.previewUrl
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: false
+                }
+            }
+
+            ThemedLabel {
+                width: parent.width
+                text: EditorState.projectName
+                tone: "default"
+                size: "sm"
+                elide: Text.ElideRight
+                font.weight: Font.DemiBold
+            }
+
+            component SummaryRow: Row {
+                property alias label: summaryKey.text
+                property alias value: summaryValue.text
+                width: parent ? parent.width : 0
+                ThemedLabel { id: summaryKey; width: parent.width * 0.45; size: "xs" }
+                ThemedLabel { id: summaryValue; width: parent.width * 0.55; size: "xs"; tone: "default"; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
+            }
+
+            SummaryRow {
+                visible: root.exportMode !== "audio"
+                label: qsTr("Resolution")
+                value: {
+                    const ph = EditorState.projectHeight(), pw = EditorState.projectWidth()
+                    const h = root.targetHeight > 0 ? root.targetHeight : ph
+                    return Math.round(h * pw / Math.max(1, ph)) + " × " + h
+                }
+            }
+            SummaryRow {
+                visible: root.exportMode !== "audio"
+                label: qsTr("Frame rate")
+                value: (root.fpsNum > 0 ? (root.fpsNum / Math.max(1, root.fpsDen)).toFixed(root.fpsDen > 1 ? 2 : 0)
+                                        : EditorState.projectFps()) + " fps"
+            }
+            SummaryRow {
+                label: qsTr("Duration")
+                value: root.formatDuration(root.exportWorkAreaOnly
+                           ? EditorState.workAreaOutSeconds - EditorState.workAreaInSeconds
+                           : EditorState.durationSeconds)
+            }
+            SummaryRow {
+                label: qsTr("Estimated size")
+                value: root.formatSize(root.estimatedMegabytes)
+            }
+        }
+
+    Flickable {
         id: contentFlick
-        width: parent ? parent.width : Theme.dialogWidthLg
+        x: root.showSummary ? root.summaryWidth + Theme.spacing2xl : 0
+        width: parent.width - x
+        height: parent.height
         implicitHeight: Math.min(exportColumn.height, root.availableContentHeight)
         contentWidth: width
         contentHeight: exportColumn.height
@@ -1044,5 +1167,6 @@ ThemedDialog {
                 }
             }
         }
+    }
     }
 }

@@ -35,6 +35,17 @@ SkBlendMode toSkBlendMode(BlendMode mode)
         return SkBlendMode::kDarken;
     case BlendMode::Lighten:
         return SkBlendMode::kLighten;
+    case BlendMode::HardLight:
+        return SkBlendMode::kHardLight;
+    case BlendMode::SoftLight:
+        return SkBlendMode::kSoftLight;
+    case BlendMode::LinearBurn:
+        // Skia has no linear burn; multiply is the nearest darkening mode it does have.
+        return SkBlendMode::kMultiply;
+    case BlendMode::ColorBurn:
+        return SkBlendMode::kColorBurn;
+    case BlendMode::ColorDodge:
+        return SkBlendMode::kColorDodge;
     }
     return SkBlendMode::kSrcOver;
 }
