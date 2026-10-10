@@ -1153,6 +1153,12 @@ Item {
                 onTriggered: EditorState.combineSelectionToClip()
             }
             ThemedMenuItem {
+                text: qsTr("Export selected clips…")
+                icon.name: Theme.icons.upload
+                enabled: !EditorState.exportInProgress
+                onTriggered: EditorState.requestBatchExport()
+            }
+            ThemedMenuItem {
                 text: qsTr("Create compound clip")
                 icon.name: Theme.icons.package
                 visible: EditorState.combineAvailable

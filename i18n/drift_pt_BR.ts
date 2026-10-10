@@ -3741,6 +3741,14 @@
         <source>Media linked</source>
         <translation>Mídia vinculada</translation>
     </message>
+    <message>
+        <source>Clips exported</source>
+        <translation>Clipes exportados</translation>
+    </message>
+    <message>
+        <source>Some clips could not be exported</source>
+        <translation>Alguns clipes não puderam ser exportados</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -6319,6 +6327,21 @@
     <message>
         <source>Imported from the marketplace.</source>
         <translation>Importado da loja.</translation>
+    </message>
+    <message>
+        <source>Could not export the clips. Check the save location and free space on your disk.</source>
+        <translation>Não foi possível exportar os clipes. Confira o local de salvamento e o espaço livre em disco.</translation>
+    </message>
+    <message>
+        <source>%1 exported, %2 failed.</source>
+        <translation>%1 exportados, %2 falharam.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n clip(s) exported.</source>
+        <translation>
+            <numerusform>%n clipe exportado.</numerusform>
+            <numerusform>%n clipes exportados.</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -10962,6 +10985,10 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Edit volume</source>
         <translation>Editar volume</translation>
     </message>
+    <message>
+        <source>Export selected clips…</source>
+        <translation>Exportar clipes selecionados…</translation>
+    </message>
 </context>
 <context>
     <name>TimelinePanel</name>
@@ -11215,6 +11242,10 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Fit timeline in view</source>
         <translation>Ajustar linha do tempo à tela</translation>
+    </message>
+    <message>
+        <source>Export selected clips…</source>
+        <translation>Exportar clipes selecionados…</translation>
     </message>
 </context>
 <context>
@@ -12180,6 +12211,64 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Maximum number of guides reached.</source>
         <translation>Número máximo de guias atingido.</translation>
+    </message>
+</context>
+<context>
+    <name>BatchExportDialog</name>
+    <message>
+        <source>Export selected clips</source>
+        <translation>Exportar clipes selecionados</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Exportar</translation>
+    </message>
+    <message>
+        <source>Select the clips to export first.</source>
+        <translation>Selecione primeiro os clipes a exportar.</translation>
+    </message>
+    <message>
+        <source>Choose a folder to save the clips in.</source>
+        <translation>Escolha a pasta onde salvar os clipes.</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Título</translation>
+    </message>
+    <message>
+        <source>Files are named with this title followed by a number.</source>
+        <translation>O arquivo exportado será nomeado com esse título seguido de um número sequencial.</translation>
+    </message>
+    <message>
+        <source>Save in</source>
+        <translation>Salvar em</translation>
+    </message>
+    <message>
+        <source>No folder chosen</source>
+        <translation>Nenhuma pasta escolhida</translation>
+    </message>
+    <message>
+        <source>Choose folder</source>
+        <translation>Escolher pasta</translation>
+    </message>
+    <message>
+        <source>Save clips in</source>
+        <translation>Salvar clipes em</translation>
+    </message>
+    <message>
+        <source>Only the clip itself, without the other tracks</source>
+        <translation>Só o clipe, sem as outras faixas</translation>
+    </message>
+    <message>
+        <source>Resolution, codec and quality follow your last export.</source>
+        <translation>Resolução, codec e qualidade seguem a sua última exportação.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n clip(s) will be exported, each as its own file.</source>
+        <translation>
+            <numerusform>%n clipe será exportado, em arquivo próprio.</numerusform>
+            <numerusform>%n clipes serão exportados, cada um em seu arquivo.</numerusform>
+        </translation>
     </message>
 </context>
 </TS>

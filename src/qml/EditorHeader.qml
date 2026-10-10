@@ -215,6 +215,7 @@ Rectangle {
                 exportProgressDialog.openDialog()
             }
         }
+        function onBatchExportRequested() { batchExportDialog.openDialog() }
         function onSaveRequested() { root.saveProject() }
         function onSaveAsRequested() { root.saveProjectAs() }
         function onOpenRequested() { root.openProject() }
@@ -223,6 +224,10 @@ Rectangle {
 
     ExportDialog {
         id: exportDialog
+    }
+
+    BatchExportDialog {
+        id: batchExportDialog
     }
 
     ExportProgressDialog {

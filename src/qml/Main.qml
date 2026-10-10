@@ -688,6 +688,17 @@ ApplicationWindow {
             missingAddonsDialog.openFor(addons)
         }
 
+        function onBatchExportFinished(succeeded, failed, folder) {
+            if (succeeded === 0 && failed === 0)
+                return
+            if (failed === 0)
+                Toasts.success(qsTr("%n clip(s) exported.", "", succeeded))
+            else if (succeeded === 0)
+                Toasts.error(qsTr("Could not export the clips. Check the save location and free space on your disk."))
+            else
+                Toasts.warning(qsTr("%1 exported, %2 failed.").arg(succeeded).arg(failed))
+        }
+
         function onMissingMediaFound(count) {
             relinkMediaDialog.openForMissing()
         }

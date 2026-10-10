@@ -1569,6 +1569,17 @@ public:
     Q_INVOKABLE void exportProject(const QUrl &outputUrl);
     Q_INVOKABLE void exportWithPreset(const QUrl &outputUrl, const QString &presetId);
     Q_INVOKABLE void exportWithSettings(const QUrl &outputUrl, const QVariantMap &settings);
+    // How many files exportSelectedClips would write: one per selected clip, a video and the
+    // audio linked to it counting as one.
+    Q_INVOKABLE int exportableSelectionCount() const;
+    Q_INVOKABLE void requestBatchExport() { emit batchExportRequested(); }
+    // One file per selected clip, in timeline order, named "<title> 01", "<title> 02"… inside
+    // `folderUrl`. With `clipOnly` each file holds that clip (and what is linked to it) alone;
+    // without it, everything the timeline shows over that stretch. Progress and cancel go
+    // through the same exportProgress / cancelExport as a normal export; batchExportFinished
+    // reports the outcome.
+    Q_INVOKABLE void exportSelectedClips(const QUrl &folderUrl, const QString &title,
+                                         const QVariantMap &settings, bool clipOnly);
     Q_INVOKABLE void cancelExport();
     // Copies the finished export into the shared media collection and hands it to the system share
     // sheet. Deferred to this point rather than done as part of the export because it is a second
@@ -1717,6 +1728,9 @@ signals:
     void draggingAssetIndexChanged();
     void assetPreviewWindowOpenChanged();
     void exportFinished(bool success);
+    void batchExportFinished(int succeeded, int failed, const QString &folder);
+    // Asks the window to open the "Export selected clips" dialog.
+    void batchExportRequested();
     void projectMutated();
     void waveformReady(const QString &path);
     // A block of the timeline waveform landed. Separate from waveformReady so the dialogs,
@@ -1956,6 +1970,8 @@ protected:
     // partners ride along. Returns true when anything moved.
     bool applyMainTrackMagnet();
     bool compactTrackGaps(int trackIndex, bool fromZero);
+    // The selection as export units: each entry is the ids of one clip and its linked partners.
+    QList<QSet<QString>> selectionExportUnits() const;
     void restoreLockedTracks(const drift::Project &before);
     void restoreFilmstripsAfterLoad();
     void normalizeSelection();

@@ -2113,6 +2113,22 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({});
     }
 
+    if (tool == QLatin1String("export_selected_clips")) {
+        const QString folder = argString(args, QStringLiteral("folder"));
+        if (folder.isEmpty() || !QFileInfo(folder).isDir())
+            return err("bad_args", QStringLiteral("folder must be an existing directory"));
+        const int count = m_controller->exportableSelectionCount();
+        if (count == 0)
+            return err("not_found", QStringLiteral("Nothing selected: select_clip / select_clips first"));
+        QVariantMap settings = m_controller->lastExportSettings();
+        if (settings.isEmpty())
+            settings = m_controller->exportDefaultSettings();
+        const bool clipOnly = !args.contains(QStringLiteral("clipOnly")) || jsonBool(args.value(QStringLiteral("clipOnly")));
+        m_controller->exportSelectedClips(QUrl::fromLocalFile(folder), argString(args, QStringLiteral("title")),
+                                          settings, clipOnly);
+        return ok({{QStringLiteral("clips"), count}, {QStringLiteral("started"), true}});
+    }
+
     if (tool == QLatin1String("set_reference_lines")) {
         if (args.contains(QStringLiteral("vertical")) || args.contains(QStringLiteral("horizontal"))) {
             // Replacing the set is simpler to reason about than editing it by index.

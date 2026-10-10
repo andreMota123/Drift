@@ -1036,6 +1036,16 @@
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Left edge of the hole, timeline seconds"))}},
                        {QStringLiteral("track"), QStringLiteral("at")}) },
+        { "export_selected_clips", "project", "One file per selected clip",
+          "Export each selected clip as its own video, in timeline order, named \"<title> 01\", "
+          "\"<title> 02\"… inside `folder` (a video and its linked audio count as one). Uses the "
+          "settings of the last export. clipOnly (default true) writes the clip alone; false writes "
+          "everything the timeline shows over that stretch. Returns at once; the encode runs in the "
+          "background like export.",
+          objectSchema({{QStringLiteral("folder"), stringProp(QStringLiteral("Existing directory to write into"))},
+                        {QStringLiteral("title"), stringProp(QStringLiteral("File name prefix (default: Clip)"))},
+                        {QStringLiteral("clipOnly"), boolProp(QStringLiteral("Only the clip, without the other tracks"))}},
+                       {QStringLiteral("folder")}) },
         { "set_reference_lines", "ui", "Place ruler guides on the preview",
           "Guides the preview's clips snap to when moved or resized, saved with the project. `vertical` "
           "(x positions) and `horizontal` (y positions) are in project pixels from the top-left and "

@@ -13749,6 +13749,167 @@ bool AppController::canCombineSelection() const
     return valid >= 2;
 }
 
+QList<QSet<QString>> AppController::selectionExportUnits() const
+{
+    QList<QPair<int, int>> pairs = m_selection;
+    if (pairs.isEmpty() && m_selectedTrack >= 0 && m_selectedClip >= 0)
+        pairs.append(qMakePair(m_selectedTrack, m_selectedClip));
+
+    struct Unit {
+        drift::TimeUs start;
+        QSet<QString> ids;
+    };
+    QList<Unit> units;
+    QSet<QString> seen;
+    for (const QPair<int, int> &pair : pairs) {
+        if (!isValidClipIndex(pair.first, pair.second))
+            continue;
+        const drift::Clip &clip = m_project.tracks().at(pair.first).clips.at(pair.second);
+        if (seen.contains(clip.id))
+            continue;
+        Unit unit{clip.timelineStart, {clip.id}};
+        for (const drift::ClipRef &ref : drift::linkedPartners(m_project, clip)) {
+            const drift::Clip &partner = m_project.tracks().at(ref.trackIndex).clips.at(ref.clipIndex);
+            unit.ids.insert(partner.id);
+            unit.start = qMin(unit.start, partner.timelineStart);
+        }
+        seen.unite(unit.ids);
+        units.append(unit);
+    }
+    std::stable_sort(units.begin(), units.end(), [](const Unit &a, const Unit &b) { return a.start < b.start; });
+
+    QList<QSet<QString>> out;
+    out.reserve(units.size());
+    for (const Unit &unit : units)
+        out.append(unit.ids);
+    return out;
+}
+
+int AppController::exportableSelectionCount() const
+{
+    return selectionExportUnits().size();
+}
+
+void AppController::exportSelectedClips(const QUrl &folderUrl, const QString &title,
+                                        const QVariantMap &settings, bool clipOnly)
+{
+    const QString folder = folderUrl.isLocalFile() ? folderUrl.toLocalFile() : folderUrl.toString();
+    if (folder.isEmpty() || !QFileInfo(folder).isDir()) {
+        setLastMessage(tr("That save location isn’t valid"), QStringLiteral("error"));
+        emit batchExportFinished(0, 0, folder);
+        return;
+    }
+    if (m_exportInProgress) {
+        setLastMessage(tr("Export already in progress"), QStringLiteral("warning"));
+        return;
+    }
+
+    struct Job {
+        drift::Project project;
+        drift::TimeUs startUs = 0;
+        drift::TimeUs endUs = 0;
+    };
+    QList<Job> jobs;
+    for (const QSet<QString> &ids : selectionExportUnits()) {
+        Job job;
+        drift::Project slice;
+        if (!drift::restrictProjectToClips(m_project, ids, slice, &job.startUs, &job.endUs)
+            || job.endUs <= job.startUs)
+            continue;
+        // The slice is the clip on its own; the whole project over the same stretch is what
+        // the preview shows there.
+        job.project = clipOnly ? slice : m_project;
+        jobs.append(job);
+    }
+    if (jobs.isEmpty()) {
+        emit batchExportFinished(0, 0, folder);
+        return;
+    }
+
+    ExportSettings exportSettings = Exporter::settingsFromMap(settings);
+    exportSettings.gifExport = false;
+    exportSettings.audioOnly = false;
+    const QString suffix = Exporter::defaultSuffix(
+        Exporter::preferredContainer(exportSettings.videoCodecId, exportSettings.audioCodecId), false);
+
+    // Characters no file system we write to accepts, and no trailing dot.
+    QString base = title.trimmed();
+    base.remove(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|\\r\\n]")));
+    while (base.endsWith(QLatin1Char('.')))
+        base.chop(1);
+    if (base.isEmpty())
+        base = tr("Clip");
+
+    setPlaying(false);
+    m_exportCancel.storeRelaxed(0);
+    m_exportProgress = 0.0;
+    emit exportProgressChanged();
+    m_exportInProgress = true;
+    emit exportInProgressChanged();
+    setLastMessage(tr("Exporting…"));
+
+    (void)QtConcurrent::run([this, jobs, exportSettings, folder, base, suffix]() {
+        Exporter::BackgroundHold hold(QStringLiteral("Exporting"), /*cancellable=*/true);
+        const int total = jobs.size();
+        const int digits = total >= 100 ? 3 : 2;
+        int succeeded = 0;
+        int failed = 0;
+        for (int i = 0; i < total; ++i) {
+            if (m_exportCancel.loadRelaxed() != 0 || Exporter::BackgroundHold::cancelRequested())
+                break;
+            // Never over a file that is already there: step past it.
+            QString path;
+            for (int bump = 0;; ++bump) {
+                const QString number = QStringLiteral("%1").arg(i + 1, digits, 10, QLatin1Char('0'));
+                const QString name = bump == 0 ? QStringLiteral("%1 %2").arg(base, number)
+                                               : QStringLiteral("%1 %2 (%3)").arg(base, number).arg(bump + 1);
+                path = QDir(folder).filePath(name + QLatin1Char('.') + suffix);
+                if (!QFileInfo::exists(path))
+                    break;
+            }
+
+            ExportSettings one = exportSettings;
+            one.startUs = jobs.at(i).startUs;
+            one.endUs = jobs.at(i).endUs;
+            const auto report = [this, i, total](double fraction) {
+                QMetaObject::invokeMethod(
+                    this,
+                    [this, i, total, fraction]() {
+                        m_exportProgress = (i + qBound(0.0, fraction, 1.0)) / total;
+                        emit exportProgressChanged();
+                    },
+                    Qt::QueuedConnection);
+                return m_exportCancel.loadRelaxed() == 0 && !Exporter::BackgroundHold::cancelRequested();
+            };
+            QString error;
+            if (Exporter::run(jobs.at(i).project, one, path, &error, report)) {
+                ++succeeded;
+            } else {
+                ++failed;
+                QFile::remove(path);
+            }
+        }
+        const bool cancelled = m_exportCancel.loadRelaxed() != 0;
+
+        QMetaObject::invokeMethod(
+            this,
+            [this, succeeded, failed, cancelled, folder]() {
+                m_exportInProgress = false;
+                m_exportProgress = failed == 0 && !cancelled ? 1.0 : 0.0;
+                emit exportProgressChanged();
+                emit exportInProgressChanged();
+                // A cancelled clip is the one being written when Cancel landed, not a failure.
+                const int realFailures = cancelled ? qMax(0, failed - 1) : failed;
+                setLastMessage(cancelled ? tr("Export cancelled")
+                                         : (realFailures == 0 ? tr("Clips exported") : tr("Some clips could not be exported")),
+                               cancelled ? QStringLiteral("warning")
+                                         : (realFailures == 0 ? QStringLiteral("success") : QStringLiteral("error")));
+                emit batchExportFinished(succeeded, realFailures, folder);
+            },
+            Qt::QueuedConnection);
+    });
+}
+
 void AppController::combineSelectionToClip()
 {
     renderSelectionToClip(/*asCompound=*/false);
