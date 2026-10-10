@@ -164,6 +164,17 @@ Item {
         return true
     }
 
+    function cutCueFromVideo(index) {
+        if (index < 0 || index >= cues.length || !clip)
+            return
+        const start = (clip.start || 0) + cues[index].start
+        const end = (clip.start || 0) + cues[index].end
+        if (EditorState.cutTimeRange(start, end))
+            Toasts.success(qsTr("%1 s cut out. Ctrl+Z brings it back.").arg((end - start).toFixed(1)))
+        else
+            Toasts.warning(EditorState.lastMessage)
+    }
+
     function replaceCues(newCues) {
         EditorState.setSubtitleCues(trackIndex, clipIndex, newCues)
     }
@@ -569,7 +580,7 @@ Item {
                     y: 7
                     // The bin's slot is reserved even while it is hidden, so the wrapped
                     // caption text doesn't reflow as the pointer moves down the list.
-                    width: parent.width - 24 - deleteButton.width
+                    width: parent.width - 24 - deleteButton.width - cutButton.width
                     spacing: 2
 
                     Text {
@@ -615,6 +626,23 @@ Item {
                     opacity: (rowHover.containsMouse || cueDelegate.isSelected || visualFocus) ? 1 : 0
                     enabled: opacity > 0
                     onClicked: root.removeCue(cueDelegate.index)
+
+                    Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
+                }
+
+                // Editing by the text: takes what is said here out of the video itself. Every
+                // track is cut over the caption's stretch and what follows closes up.
+                IconButton {
+                    id: cutButton
+                    anchors.right: deleteButton.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    glyph: Theme.icons.scissors
+                    variant: "ghost"
+                    iconSize: Theme.iconSizeSm
+                    tooltip: qsTr("Cut this stretch out of the video")
+                    opacity: deleteButton.opacity
+                    enabled: opacity > 0
+                    onClicked: root.cutCueFromVideo(cueDelegate.index)
 
                     Behavior on opacity { NumberAnimation { duration: Theme.durationFast } }
                 }

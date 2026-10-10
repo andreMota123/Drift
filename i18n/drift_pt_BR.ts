@@ -3769,6 +3769,18 @@
         <source>Open the other timeline once this one has finished rendering</source>
         <translation>Abra a outra timeline quando esta terminar de renderizar</translation>
     </message>
+    <message>
+        <source>Stretch cut out</source>
+        <translation>Trecho cortado</translation>
+    </message>
+    <message>
+        <source>Unlock every track before cutting a stretch of time out</source>
+        <translation>Destrave todas as faixas antes de cortar um trecho de tempo</translation>
+    </message>
+    <message>
+        <source>A clip under that stretch could not be cut</source>
+        <translation>Um clipe sob esse trecho não pôde ser cortado</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -9918,6 +9930,14 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Clear search</source>
         <translation>Limpar pesquisa</translation>
+    </message>
+    <message>
+        <source>Cut this stretch out of the video</source>
+        <translation>Cortar este trecho do vídeo</translation>
+    </message>
+    <message>
+        <source>%1 s cut out. Ctrl+Z brings it back.</source>
+        <translation>%1 s cortados. Ctrl+Z traz de volta.</translation>
     </message>
 </context>
 <context>

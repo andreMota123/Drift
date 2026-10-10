@@ -1038,6 +1038,10 @@ public:
     Q_INVOKABLE int reportMissingMedia();
     Q_INVOKABLE void closeGap(int trackIndex, double gapStartSeconds);
     Q_INVOKABLE void closeAllGaps(int trackIndex);
+    // Removes [start, end) from the whole timeline: every track is cut at both ends, what lies
+    // between goes, and everything after closes up by the same amount. One undo step. Refuses
+    // while any track is locked, since a track left behind would fall out of sync.
+    Q_INVOKABLE bool cutTimeRange(double startSeconds, double endSeconds);
     Q_INVOKABLE void alignSelectedClipLeft();
     Q_INVOKABLE void alignSelectedClipRight();
     Q_INVOKABLE void splitSelectedClipLeft();
@@ -2001,6 +2005,8 @@ protected:
     // `carryLinked` also moves the clips on other tracks that start over a clip being moved,
     // for the track types in m_mainTrackLinkage.
     bool compactTrackGaps(int trackIndex, bool fromZero, bool carryLinked = false);
+    // Cuts every clip under `timeUs` in two, linked partners together. No undo entry.
+    bool splitAllTracksAt(drift::TimeUs timeUs);
     // The selection as export units: each entry is the ids of one clip and its linked partners.
     QList<QSet<QString>> selectionExportUnits() const;
     void restoreLockedTracks(const drift::Project &before);

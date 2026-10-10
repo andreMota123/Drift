@@ -6383,23 +6383,22 @@ void AppController::closeAllGaps(int trackIndex)
     finishEdit(tr("Close all gaps"));
 }
 
-void AppController::splitAtPlayhead()
+bool AppController::splitAllTracksAt(drift::TimeUs timeUs)
 {
-    const drift::Project before = m_project;
     bool splitAny = false;
     QSet<QString> handledLinkIds;
 
     for (drift::Track &track : m_project.tracks()) {
         for (int clipIndex = 0; clipIndex < track.clips.size(); ++clipIndex) {
             drift::Clip &clip = track.clips[clipIndex];
-            if (!clip.containsTime(m_playheadUs))
+            if (!clip.containsTime(timeUs))
                 continue;
-            if (m_playheadUs == clip.timelineStart)
+            if (timeUs == clip.timelineStart)
                 continue;
             if (!clip.linkId.isEmpty() && handledLinkIds.contains(clip.linkId))
                 continue;
 
-            const drift::TimeUs offset = m_playheadUs - clip.timelineStart;
+            const drift::TimeUs offset = timeUs - clip.timelineStart;
             drift::Clip tail;
             if (!drift::splitClipAtOffset(clip, tail, offset))
                 continue;
@@ -6408,12 +6407,80 @@ void AppController::splitAtPlayhead()
             const QString tailLinkId = drift::assignSplitLinkIds(clip, tail);
             if (!clip.linkId.isEmpty())
                 handledLinkIds.insert(clip.linkId);
-            splitLinkedPartnerAt(m_project, clip, m_playheadUs, tailLinkId);
+            splitLinkedPartnerAt(m_project, clip, timeUs, tailLinkId);
             track.clips.insert(clipIndex + 1, tail);
             splitAny = true;
             ++clipIndex;
         }
     }
+    return splitAny;
+}
+
+bool AppController::cutTimeRange(double startSeconds, double endSeconds)
+{
+    const drift::TimeUs startUs = qMax<drift::TimeUs>(0, drift::secondsToUs(startSeconds));
+    const drift::TimeUs endUs = drift::secondsToUs(endSeconds);
+    if (endUs - startUs < drift::kUsPerSecond / 100)
+        return false;
+    for (const drift::Track &track : m_project.tracks()) {
+        if (track.locked) {
+            setLastMessage(tr("Unlock every track before cutting a stretch of time out"), QStringLiteral("warning"));
+            return false;
+        }
+    }
+
+    const drift::Project before = m_project;
+    // Later cut first, so the earlier one does not have to chase a clip that just moved.
+    splitAllTracksAt(endUs);
+    splitAllTracksAt(startUs);
+
+    const drift::TimeUs length = endUs - startUs;
+    // A split refuses to leave a sliver shorter than the minimum clip, so an edge may sit that
+    // far inside the range. Anything reaching further in was not cut — a clip that cannot be
+    // split — and removing it whole would take far more than was asked for: give up instead.
+    const drift::TimeUs slack = drift::kMinClipDurationUs;
+    for (const drift::Track &track : std::as_const(m_project.tracks())) {
+        for (const drift::Clip &clip : track.clips) {
+            const bool inside = clip.timelineStart >= startUs - slack && clip.timelineEnd() <= endUs + slack;
+            const bool clear = clip.timelineEnd() <= startUs + slack || clip.timelineStart >= endUs - slack;
+            if (!inside && !clear) {
+                m_project = before;
+                setLastMessage(tr("A clip under that stretch could not be cut"), QStringLiteral("warning"));
+                return false;
+            }
+        }
+    }
+    for (drift::Track &track : m_project.tracks()) {
+        for (int i = track.clips.size() - 1; i >= 0; --i) {
+            const drift::Clip &clip = track.clips.at(i);
+            if (clip.timelineStart >= startUs - slack && clip.timelineEnd() <= endUs + slack)
+                track.clips.removeAt(i);
+        }
+        for (drift::Clip &clip : track.clips) {
+            if (clip.timelineStart >= endUs - slack)
+                clip.timelineStart = qMax(startUs, clip.timelineStart - length);
+        }
+        // A transition whose clips are gone would point nowhere.
+        QSet<QString> remaining;
+        for (const drift::Clip &clip : std::as_const(track.clips))
+            remaining.insert(clip.id);
+        track.transitions.removeIf([&remaining](const drift::Transition &transition) {
+            return !remaining.contains(transition.fromClipId) || !remaining.contains(transition.toClipId);
+        });
+    }
+    clearSelection();
+    if (m_playheadUs > startUs)
+        setPlayheadUs(m_playheadUs >= endUs ? m_playheadUs - length : startUs);
+
+    pushProjectEdit(before, tr("Stretch cut out"));
+    finishEdit(tr("Stretch cut out"));
+    return true;
+}
+
+void AppController::splitAtPlayhead()
+{
+    const drift::Project before = m_project;
+    const bool splitAny = splitAllTracksAt(m_playheadUs);
 
     if (splitAny) {
         pushProjectEdit(before, tr("Split at current time"));

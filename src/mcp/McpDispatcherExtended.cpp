@@ -2113,6 +2113,16 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({});
     }
 
+    if (tool == QLatin1String("cut_time_range")) {
+        if (!args.contains(QStringLiteral("start")) || !args.contains(QStringLiteral("end")))
+            return err("bad_args", QStringLiteral("start and end required"));
+        const double start = jsonNumber(args.value(QStringLiteral("start")), 0.0);
+        const double end = jsonNumber(args.value(QStringLiteral("end")), 0.0);
+        if (!m_controller->cutTimeRange(start, end))
+            return err("bad_args", QStringLiteral("Nothing cut: the range is empty, or a track is locked"));
+        return ok({{QStringLiteral("removed"), end - start}});
+    }
+
     if (tool == QLatin1String("export_selected_clips")) {
         const QString folder = argString(args, QStringLiteral("folder"));
         if (folder.isEmpty() || !QFileInfo(folder).isDir())

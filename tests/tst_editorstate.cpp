@@ -141,6 +141,7 @@ private slots:
     void closeAllGapsPacksTrack();
     void relinkMediaRepointsAssetsAndClips();
     void referenceLinesPersistWithProject();
+    void cutTimeRangeClosesEveryTrack();
     void lockedTrackKeepsItsClips();
     void rollTrimMovesTheSharedCut();
     void combineSelectionRendersOneClip();
@@ -3359,6 +3360,65 @@ void EditorStateTest::referenceLinesPersistWithProject()
     other.setReferenceLinesLocked(false);
     other.clearReferenceLines();
     QVERIFY(other.referenceLinesV().isEmpty() && other.referenceLinesH().isEmpty());
+}
+
+void EditorStateTest::cutTimeRangeClosesEveryTrack()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    drift::Project &project = *state.project();
+    project.tracks().clear();
+    project.tracks().append(drift::Track{.type = drift::TrackType::Subtitle});
+    project.tracks().append(drift::Track{.type = drift::TrackType::Video});
+
+    drift::Clip picture;
+    picture.id = QStringLiteral("picture");
+    picture.type = drift::ClipType::Shape;
+    picture.timelineDuration = drift::secondsToUs(10.0);
+    picture.srcOut = picture.timelineDuration;
+    drift::Clip later = picture;
+    later.id = QStringLiteral("later");
+    later.timelineStart = drift::secondsToUs(10.0);
+    later.timelineDuration = drift::secondsToUs(2.0);
+    later.srcOut = later.timelineDuration;
+    project.tracks()[1].clips.append(picture);
+    project.tracks()[1].clips.append(later);
+
+    drift::Clip captions;
+    captions.id = QStringLiteral("captions");
+    captions.type = drift::ClipType::Subtitle;
+    captions.timelineDuration = drift::secondsToUs(10.0);
+    captions.srcOut = captions.timelineDuration;
+    captions.subtitleCues = {{0, drift::secondsToUs(4.0), QStringLiteral("um")},
+                             {drift::secondsToUs(4.0), drift::secondsToUs(6.0), QStringLiteral("hum")},
+                             {drift::secondsToUs(6.0), drift::secondsToUs(10.0), QStringLiteral("dois")}};
+    project.tracks()[0].clips.append(captions);
+
+    // Cut the "hum" out: 4 s to 6 s.
+    QVERIFY(state.cutTimeRange(4.0, 6.0));
+    const QList<drift::Clip> &video = project.tracks().at(1).clips;
+    QCOMPARE(video.size(), 3);
+    QCOMPARE(video.at(0).timelineDuration, drift::secondsToUs(4.0));
+    QCOMPARE(video.at(1).timelineStart, drift::secondsToUs(4.0));
+    QCOMPARE(video.at(1).timelineDuration, drift::secondsToUs(4.0));
+    QCOMPARE(video.at(2).id, QStringLiteral("later"));
+    QCOMPARE(video.at(2).timelineStart, drift::secondsToUs(8.0));
+
+    // The captions were cut with it: "um" before the seam, "dois" after, "hum" gone.
+    QStringList words;
+    for (const drift::Clip &clip : project.tracks().at(0).clips) {
+        for (const drift::SubtitleCue &cue : clip.subtitleCues)
+            words.append(cue.text);
+    }
+    QCOMPARE(words, QStringList({QStringLiteral("um"), QStringLiteral("dois")}));
+
+    state.undo();
+    QCOMPARE(project.tracks().at(1).clips.size(), 2);
+    QCOMPARE(project.tracks().at(1).clips.at(1).timelineStart, drift::secondsToUs(10.0));
+
+    // A locked track would be left behind, so the cut is refused.
+    project.tracks()[0].locked = true;
+    QVERIFY(!state.cutTimeRange(1.0, 2.0));
 }
 
 void EditorStateTest::lockedTrackKeepsItsClips()

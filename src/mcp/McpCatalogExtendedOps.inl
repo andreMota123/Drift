@@ -1036,6 +1036,14 @@
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Left edge of the hole, timeline seconds"))}},
                        {QStringLiteral("track"), QStringLiteral("at")}) },
+        { "cut_time_range", "timeline", "Remove a stretch of time from every track",
+          "Cut [start, end) out of the whole timeline: every track is split at both ends, what lies "
+          "between is removed and everything after moves left by the same amount, so picture, sound "
+          "and captions stay in sync. One undo step. Fails while any track is locked. This is how to "
+          "delete a spoken word or sentence: pass the times of its caption.",
+          objectSchema({{QStringLiteral("start"), numberProp(QStringLiteral("Timeline seconds where the cut begins"))},
+                        {QStringLiteral("end"), numberProp(QStringLiteral("Timeline seconds where it ends"))}},
+                       {QStringLiteral("start"), QStringLiteral("end")}) },
         { "export_selected_clips", "project", "One file per selected clip",
           "Export each selected clip as its own video, in timeline order, named \"<title> 01\", "
           "\"<title> 02\"… inside `folder` (a video and its linked audio count as one). Uses the "
