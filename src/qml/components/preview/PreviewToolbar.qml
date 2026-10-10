@@ -252,6 +252,69 @@ Item {
             onClicked: EditorState.guidesEnabled = !EditorState.guidesEnabled
         }
 
+        // Which guide: the classic ones and the social-app previews (CapCut 9.5).
+        IconButton {
+            id: guideTypeButton
+            glyph: Theme.icons.chevronDown
+            variant: "text"
+            buttonSize: 16
+            iconSize: 12
+            tooltip: qsTr("Choose the guide or a social media preview")
+            anchors.verticalCenter: parent.verticalCenter
+            // Upwards: the toolbar sits at the bottom of the panel. The menu has no height
+            // of its own until it has been shown once, so the first time it is worked out
+            // from its rows: six entries, a header and a separator.
+            property real menuHeight: 6 * 28 + 24 + 12 + 2 * Theme.spacingSm
+            onClicked: guideTypeMenu.popup(guideTypeButton, 0, -menuHeight - 4)
+
+            ThemedContextMenu {
+                id: guideTypeMenu
+                onOpened: guideTypeButton.menuHeight = height
+
+                Repeater {
+                    model: [
+                        { id: "thirds", label: qsTr("Rule of thirds") },
+                        { id: "crosshair", label: qsTr("Center cross") },
+                        { id: "safe", label: qsTr("Safe margins") }
+                    ]
+                    ThemedMenuItem {
+                        required property var modelData
+                        iconSlot: true
+                        text: modelData.label
+                        icon.name: EditorState.guidesEnabled && EditorState.guideType === modelData.id
+                                   ? Theme.icons.check : ""
+                        onTriggered: {
+                            EditorState.guideType = modelData.id
+                            EditorState.guidesEnabled = true
+                        }
+                    }
+                }
+                ThemedMenuSeparator {}
+                ThemedMenuItem {
+                    sectionHeader: true
+                    text: qsTr("Social media preview")
+                }
+                Repeater {
+                    model: [
+                        { id: "tiktok", label: "TikTok" },
+                        { id: "shorts", label: "YouTube Shorts" },
+                        { id: "reels", label: "Instagram Reels" }
+                    ]
+                    ThemedMenuItem {
+                        required property var modelData
+                        iconSlot: true
+                        text: modelData.label
+                        icon.name: EditorState.guidesEnabled && EditorState.guideType === modelData.id
+                                   ? Theme.icons.check : ""
+                        onTriggered: {
+                            EditorState.guideType = modelData.id
+                            EditorState.guidesEnabled = true
+                        }
+                    }
+                }
+            }
+        }
+
         IconButton {
             glyph: Theme.icons.mask
             variant: "text"

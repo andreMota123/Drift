@@ -96,7 +96,10 @@ Item {
                     model: [
                         { id: "thirds", label: qsTr("Rule of thirds") },
                         { id: "crosshair", label: qsTr("Center cross") },
-                        { id: "safe", label: qsTr("Safe margins") }
+                        { id: "safe", label: qsTr("Safe margins") },
+                        { id: "tiktok", label: "TikTok" },
+                        { id: "shorts", label: "YouTube Shorts" },
+                        { id: "reels", label: "Instagram Reels" }
                     ]
                     tooltip: qsTr("Which guide to show")
                     currentIndex: {

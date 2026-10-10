@@ -7624,6 +7624,26 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Fullscreen preview</source>
         <translation>Pré-visualização em tela cheia</translation>
     </message>
+    <message>
+        <source>Choose the guide or a social media preview</source>
+        <translation>Escolher a guia ou uma prévia de mídia social</translation>
+    </message>
+    <message>
+        <source>Rule of thirds</source>
+        <translation>Regra dos terços</translation>
+    </message>
+    <message>
+        <source>Center cross</source>
+        <translation>Cruz central</translation>
+    </message>
+    <message>
+        <source>Safe margins</source>
+        <translation>Margens seguras</translation>
+    </message>
+    <message>
+        <source>Social media preview</source>
+        <translation>Prévia de mídia social</translation>
+    </message>
 </context>
 <context>
     <name>Project</name>

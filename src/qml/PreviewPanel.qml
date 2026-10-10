@@ -251,13 +251,19 @@ PanelFrame {
                         }
                         Rectangle {
                             visible: EditorState.guideType === "safe"
-                            x: parent.width * 0.025
-                            y: parent.height * 0.025
-                            width: parent.width * 0.95
-                            height: parent.height * 0.95
+                            x: parent.width * 0.10
+                            y: parent.height * 0.10
+                            width: parent.width * 0.80
+                            height: parent.height * 0.80
                             color: "transparent"
                             border.width: 1
                             border.color: Theme.guideWeak
+                        }
+
+                        SocialSafeOverlay {
+                            anchors.fill: parent
+                            visible: ["tiktok", "shorts", "reels"].indexOf(EditorState.guideType) >= 0
+                            network: EditorState.guideType
                         }
                     }
 
