@@ -1,0 +1,42 @@
+{
+  "id": "adjust.lut",
+  "displayName": "LUT",
+  "category": "color",
+  "order": 16,
+  "description": "Apply a 3D LUT from a .cube file: a camera log conversion or a look exported from a grading app. Intensity blends it with the original.",
+  "parameters": [
+    {
+      "identifier": "lutFile",
+      "displayName": "LUT file",
+      "type": "file",
+      "defaultValue": "",
+      "fileFilters": ["3D LUT (*.cube)", "All files (*)"]
+    },
+    {
+      "identifier": "intensity",
+      "displayName": "Intensity",
+      "type": "float",
+      "minValue": 0,
+      "maxValue": 1,
+      "defaultValue": 1
+    }
+  ],
+  "backend": "gpu",
+  "pipeline": {
+    "intermediateBuffers": [],
+    "textures": [
+      { "id": "lut", "param": "lutFile", "kind": "cube" }
+    ],
+    "passes": [
+      {
+        "passIndex": 0,
+        "fragmentShader": "main.frag",
+        "inputs": [
+          { "type": "source_texture" },
+          { "type": "texture", "id": "lut" }
+        ],
+        "output": { "type": "canvas" }
+      }
+    ]
+  }
+}

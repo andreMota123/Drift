@@ -1,0 +1,187 @@
+{
+  "id": "adjust.curves",
+  "displayName": "Curves",
+  "category": "color",
+  "order": 13,
+  "description": "Tone curves for overall brightness and for red, green and blue: five points each (blacks, shadows, midtones, lights, whites) joined by a smooth curve.",
+  "parameters": [
+    {
+      "identifier": "lumaBlacks",
+      "displayName": "Brightness blacks",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "lumaShadows",
+      "displayName": "Brightness shadows",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "lumaMids",
+      "displayName": "Brightness midtones",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "lumaLights",
+      "displayName": "Brightness lights",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "lumaWhites",
+      "displayName": "Brightness whites",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redBlacks",
+      "displayName": "Red blacks",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redShadows",
+      "displayName": "Red shadows",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redMids",
+      "displayName": "Red midtones",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redLights",
+      "displayName": "Red lights",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "redWhites",
+      "displayName": "Red whites",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenBlacks",
+      "displayName": "Green blacks",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenShadows",
+      "displayName": "Green shadows",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenMids",
+      "displayName": "Green midtones",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenLights",
+      "displayName": "Green lights",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "greenWhites",
+      "displayName": "Green whites",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueBlacks",
+      "displayName": "Blue blacks",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueShadows",
+      "displayName": "Blue shadows",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueMids",
+      "displayName": "Blue midtones",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueLights",
+      "displayName": "Blue lights",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    },
+    {
+      "identifier": "blueWhites",
+      "displayName": "Blue whites",
+      "type": "float",
+      "minValue": -1,
+      "maxValue": 1,
+      "defaultValue": 0
+    }
+  ],
+  "backend": "gpu",
+  "pipeline": {
+    "intermediateBuffers": [],
+    "passes": [
+      {
+        "passIndex": 0,
+        "fragmentShader": "main.frag",
+        "inputs": [
+          {
+            "type": "source_texture"
+          }
+        ],
+        "output": {
+          "type": "canvas"
+        }
+      }
+    ]
+  }
+}

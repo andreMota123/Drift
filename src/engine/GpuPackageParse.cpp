@@ -226,14 +226,22 @@ bool loadGpuPipeline(const QJsonObject &root, const QString &packageDir, int max
         drift::GpuEffectTextureSpec tex;
         tex.id = t.value(QStringLiteral("id")).toString();
         tex.file = t.value(QStringLiteral("file")).toString();
-        if (tex.id.isEmpty() || tex.file.isEmpty()) {
-            fail(errorOut, QStringLiteral("texture needs both id and file"));
+        tex.param = t.value(QStringLiteral("param")).toString();
+        tex.kind = t.value(QStringLiteral("kind")).toString(QStringLiteral("image"));
+        if (tex.id.isEmpty() || (tex.file.isEmpty() && tex.param.isEmpty())) {
+            fail(errorOut, QStringLiteral("texture needs an id and either a file or a param"));
             return false;
         }
-        tex.path = QDir(packageDir).filePath(tex.file);
-        if (!QFileInfo::exists(tex.path)) {
-            fail(errorOut, QStringLiteral("missing texture file '%1'").arg(tex.file));
+        if (tex.kind != QLatin1String("image") && tex.kind != QLatin1String("cube")) {
+            fail(errorOut, QStringLiteral("unknown texture kind '%1'").arg(tex.kind));
             return false;
+        }
+        if (!tex.file.isEmpty()) {
+            tex.path = QDir(packageDir).filePath(tex.file);
+            if (!QFileInfo::exists(tex.path)) {
+                fail(errorOut, QStringLiteral("missing texture file '%1'").arg(tex.file));
+                return false;
+            }
         }
         out->textures.append(tex);
     }

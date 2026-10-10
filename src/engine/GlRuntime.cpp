@@ -7,6 +7,11 @@
 #endif
 
 #include <QColor>
+#include <vector>
+#include <QRgba64>
+#include <QDateTime>
+#include <QFileInfo>
+#include <QFile>
 #include <QCoreApplication>
 #include <QMatrix3x3>
 #include <QMutex>
@@ -2422,6 +2427,125 @@ GLuint staticTexture(GlRuntime &rt, QOpenGLExtraFunctions *gl, const QString &pa
     return tex;
 }
 
+// Reads a .cube 3D LUT into a strip image: N slices side by side (one per blue step), each N wide
+// (red) and N tall (green). Returns a null image for anything that is not a well-formed 3D
+// .cube; 1D LUTs are not handled.
+QImage loadCubeLut(const QString &path, int *sizeOut)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return {};
+    int size = 0;
+    double lo[3] = {0.0, 0.0, 0.0};
+    double hi[3] = {1.0, 1.0, 1.0};
+    std::vector<float> values;
+    while (!file.atEnd()) {
+        const QByteArray line = file.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith('#'))
+            continue;
+        const QList<QByteArray> parts = line.simplified().split(' ');
+        if (parts.isEmpty())
+            continue;
+        const QByteArray key = parts.first().toUpper();
+        if (key == "LUT_3D_SIZE" && parts.size() >= 2) {
+            size = parts.at(1).toInt();
+            // 256 would be a 4 GB table; real LUTs are 17 to 65.
+            if (size < 2 || size > 128)
+                return {};
+            values.reserve(size_t(size) * size * size * 3);
+            continue;
+        }
+        if ((key == "DOMAIN_MIN" || key == "DOMAIN_MAX") && parts.size() >= 4) {
+            double *target = key == "DOMAIN_MIN" ? lo : hi;
+            for (int i = 0; i < 3; ++i)
+                target[i] = parts.at(i + 1).toDouble();
+            continue;
+        }
+        if (parts.size() < 3)
+            continue;
+        bool okR = false, okG = false, okB = false;
+        const double r = parts.at(0).toDouble(&okR);
+        const double g = parts.at(1).toDouble(&okG);
+        const double b = parts.at(2).toDouble(&okB);
+        if (!okR || !okG || !okB)
+            continue; // TITLE, LUT_1D_SIZE and other keywords
+        values.push_back(float(r));
+        values.push_back(float(g));
+        values.push_back(float(b));
+    }
+    if (size == 0 || values.size() != size_t(size) * size * size * 3)
+        return {};
+
+    // 16 bits a channel: an 8-bit table bands visibly in smooth gradients once interpolated.
+    QImage strip(size * size, size, QImage::Format_RGBA64);
+    size_t at = 0;
+    // .cube order: red changes fastest, then green, then blue.
+    for (int b = 0; b < size; ++b) {
+        for (int g = 0; g < size; ++g) {
+            QRgba64 *row = reinterpret_cast<QRgba64 *>(strip.scanLine(g));
+            for (int r = 0; r < size; ++r, at += 3) {
+                quint16 c[3];
+                for (int i = 0; i < 3; ++i) {
+                    const double span = hi[i] - lo[i];
+                    const double v = span > 0.0 ? (values[at + size_t(i)] - lo[i]) / span : 0.0;
+                    c[i] = quint16(std::lround(qBound(0.0, v, 1.0) * 65535.0));
+                }
+                row[b * size + r] = QRgba64::fromRgba64(c[0], c[1], c[2], 65535);
+            }
+        }
+    }
+    if (sizeOut)
+        *sizeOut = size;
+    return strip;
+}
+
+// A user-picked LUT, uploaded once per file version. Returns 0 (and size 0) when there is no
+// file or it does not parse, which the shader reads as "leave the picture alone".
+GLuint lutTexture(GlRuntime &rt, QOpenGLExtraFunctions *gl, const QString &path, int *sizeOut)
+{
+    *sizeOut = 0;
+    if (path.isEmpty())
+        return 0;
+    const QFileInfo info(path);
+    if (!info.exists())
+        return 0;
+    // Keyed by modification time too, so re-exporting the LUT from a grading app is picked up.
+    const QString key = QStringLiteral("cube:%1:%2:%3")
+                            .arg(info.absoluteFilePath())
+                            .arg(info.lastModified().toMSecsSinceEpoch())
+                            .arg(info.size());
+    const auto it = rt.staticTextures.find(key);
+    if (it != rt.staticTextures.end()) {
+        *sizeOut = rt.lutSizes[key];
+        return it->second;
+    }
+
+    int size = 0;
+    const QImage strip = loadCubeLut(info.absoluteFilePath(), &size);
+    if (strip.isNull()) {
+        qWarning("GlRuntime: '%s' is not a readable 3D .cube LUT", qPrintable(path));
+        rt.staticTextures[key] = 0;
+        rt.lutSizes[key] = 0;
+        return 0;
+    }
+
+    GLuint tex = 0;
+    gl->glGenTextures(1, &tex);
+    gl->glBindTexture(GL_TEXTURE_2D, tex);
+    gl->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, strip.width(), strip.height(), 0, GL_RGBA,
+                     GL_UNSIGNED_SHORT, strip.constBits());
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    rt.staticTextures[key] = tex;
+    rt.lutSizes[key] = size;
+    *sizeOut = size;
+    return tex;
+}
+
 GLuint cachedUploadTexture(GlRuntime &rt, QOpenGLExtraFunctions *gl, const QImage &image)
 {
     if (image.isNull() || !gl)
@@ -2744,8 +2868,19 @@ GlTarget runPipeline(GlRuntime &rt, QOpenGLExtraFunctions *gl, const QString &ca
     }
 
     std::map<QString, GLuint> textures;
-    for (const drift::GpuEffectTextureSpec &spec : gpu.textures)
-        textures[spec.id] = staticTexture(rt, gl, spec.path);
+    // u_<id>Size for each .cube texture: the LUT's edge length, or 0 when none is loaded.
+    std::map<QString, int> lutSizeById;
+    for (const drift::GpuEffectTextureSpec &spec : gpu.textures) {
+        const QString path = spec.param.isEmpty() ? spec.path
+                                                  : parameters.value(spec.param).toString();
+        if (spec.kind == QLatin1String("cube")) {
+            int size = 0;
+            textures[spec.id] = lutTexture(rt, gl, path, &size);
+            lutSizeById[spec.id] = size;
+        } else {
+            textures[spec.id] = path.isEmpty() ? 0 : staticTexture(rt, gl, path);
+        }
+    }
 
     GlTarget canvas = rt.acquireTarget(canvasSize.width(), canvasSize.height());
     if (!canvas.isValid()) {
@@ -2779,6 +2914,10 @@ GlTarget runPipeline(GlRuntime &rt, QOpenGLExtraFunctions *gl, const QString &ca
 
         program->bind();
         setPackageUniforms(program, parameters, inputSize, timeUs, progress);
+        for (const auto &entry : lutSizeById) {
+            program->setUniformValue(qPrintable(QStringLiteral("u_%1Size").arg(entry.first)),
+                                     float(entry.second));
+        }
 
         // Bind all declared inputs: unit 0 → u_currentTexture, unit i → u_texture{i}.
         const QList<drift::GpuEffectPassInput> inputs =

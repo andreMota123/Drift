@@ -114,6 +114,8 @@ public:
     std::unique_ptr<QOpenGLShaderProgram> copyProgram;
     std::map<QString, CompiledEffect> programs;
     std::map<QString, GLuint> staticTextures; // absolute path -> GL texture
+    // Edge length N of each .cube LUT uploaded through staticTextures, by the same key.
+    std::map<QString, int> lutSizes;
 
     // Face Swap source photos. Keyed on "<absolutePath>|<mtimeMs>|<size>", so editing a photo in
     // place rebuilds the textures instead of serving a stale one. Destroyed in shutdown()

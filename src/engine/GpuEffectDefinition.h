@@ -53,6 +53,12 @@ struct GpuEffectTextureSpec
     QString id;
     QString file; // relative to packageDir
     QString path; // resolved absolute path
+    // Instead of a package file, the path can come from one of the effect's file parameters:
+    // the user picks it (a LUT, say), so it changes per effect instance.
+    QString param;
+    // "image" (default) or "cube": a .cube 3D LUT, unpacked into a 2D strip of N slices each
+    // N×N, with its size N published to the shader as the float uniform u_<id>Size.
+    QString kind;
 };
 
 struct GpuEffectPassInput
