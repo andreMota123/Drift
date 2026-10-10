@@ -13902,6 +13902,33 @@ QVariantMap AppController::removePauses(int trackIndex, int clipIndex, double mi
                             kPausePadding).toVariantMap();
 }
 
+QUrl AppController::newRecordingUrl(const QString &kind) const
+{
+    QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (base.isEmpty())
+        base = QDir::homePath();
+    const QDir dir(QDir(base).filePath(QStringLiteral("Drift")));
+    dir.mkpath(QStringLiteral("."));
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    QString name = kind;
+    name.remove(QRegularExpression(QStringLiteral("[^a-z]")));
+    if (name.isEmpty())
+        name = QStringLiteral("take");
+    return QUrl::fromLocalFile(dir.filePath(QStringLiteral("%1-%2").arg(name, stamp)));
+}
+
+bool AppController::discardEmptyRecording(const QUrl &file) const
+{
+    const QString path = file.isLocalFile() ? file.toLocalFile() : file.toString();
+    const QFileInfo info(path);
+    // A container that was opened and closed without a single packet is a few hundred bytes
+    // of header at most.
+    if (!info.exists() || info.size() >= 1024)
+        return false;
+    QFile::remove(path);
+    return true;
+}
+
 QVariantList AppController::soundClips() const
 {
     QVariantList out;

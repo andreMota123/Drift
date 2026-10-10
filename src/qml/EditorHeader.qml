@@ -239,6 +239,10 @@ Rectangle {
         id: suggestionsDialog
     }
 
+    RecordDialog {
+        id: recordDialog
+    }
+
     ExportProgressDialog {
         id: exportProgressDialog
         onClosed: if (EditorState.exportInProgress) root.exportProgressDismissed = true
@@ -489,6 +493,12 @@ Rectangle {
                         text: qsTr("Project properties…")
                         icon.name: Theme.icons.info
                         onTriggered: projectPropertiesDialog.openDialog()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Record…")
+                        icon.name: Theme.icons.video
+                        onTriggered: recordDialog.openDialog()
                     }
 
                     ThemedMenuItem {

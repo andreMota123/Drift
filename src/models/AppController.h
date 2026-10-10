@@ -1589,6 +1589,12 @@ public:
     Q_INVOKABLE int exportableSelectionCount() const;
     Q_INVOKABLE void requestBatchExport() { emit batchExportRequested(); }
     Q_INVOKABLE void requestRemovePauses() { emit removePausesRequested(); }
+    // Where the next take goes: Videos/Drift/<kind>-<date>-<time>, without a suffix — the
+    // recorder adds the one that matches the container it settles on.
+    Q_INVOKABLE QUrl newRecordingUrl(const QString &kind) const;
+    // Deletes a take that came out with no data. True when it did, so the caller can say so
+    // instead of importing a broken file.
+    Q_INVOKABLE bool discardEmptyRecording(const QUrl &file) const;
     // ---- Smart suggestions: measure, then fix every affected clip in one undo step ----------
     // Clips that carry sound, on unlocked video and audio tracks:
     // [{ id, track, clip, name, duration }].

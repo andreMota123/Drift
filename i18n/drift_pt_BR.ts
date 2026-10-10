@@ -5073,6 +5073,10 @@
         <source>Smart suggestions…</source>
         <translation>Sugestões inteligentes…</translation>
     </message>
+    <message>
+        <source>Record…</source>
+        <translation>Gravar…</translation>
+    </message>
 </context>
 <context>
     <name>EffectBrowser</name>
@@ -12505,6 +12509,73 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
             <numerusform>%n pausa removida.</numerusform>
             <numerusform>%n pausas removidas.</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>RecordDialog</name>
+    <message>
+        <source>Record</source>
+        <translation>Gravar</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>Recording added to the timeline.</source>
+        <translation>Gravação adicionada à timeline.</translation>
+    </message>
+    <message>
+        <source>The recording could not be imported.</source>
+        <translation>Não foi possível importar a gravação.</translation>
+    </message>
+    <message>
+        <source>Recording failed: %1</source>
+        <translation>A gravação falhou: %1</translation>
+    </message>
+    <message>
+        <source>Microphone</source>
+        <translation>Microfone</translation>
+    </message>
+    <message>
+        <source>Screen</source>
+        <translation>Tela</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>Câmera</translation>
+    </message>
+    <message>
+        <source>No camera was found. In the Flatpak version the camera has to be allowed first.</source>
+        <translation>Nenhuma câmera foi encontrada. Na versão Flatpak é preciso liberar a câmera antes.</translation>
+    </message>
+    <message>
+        <source>The screen appears here once recording starts. Your system may ask which screen or window to share.</source>
+        <translation>A tela aparece aqui quando a gravação começa. O sistema pode perguntar qual tela ou janela compartilhar.</translation>
+    </message>
+    <message>
+        <source>Record the microphone too</source>
+        <translation>Gravar também o microfone</translation>
+    </message>
+    <message>
+        <source>No microphone was found.</source>
+        <translation>Nenhum microfone foi encontrado.</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>Parar</translation>
+    </message>
+    <message>
+        <source>The take is saved in Videos/Drift and placed on a new track at the playhead.</source>
+        <translation>A gravação é salva em Vídeos/Drift e colocada numa faixa nova, na posição da agulha.</translation>
+    </message>
+    <message>
+        <source>The screen could not be captured: %1</source>
+        <translation>Não foi possível capturar a tela: %1</translation>
+    </message>
+    <message>
+        <source>Nothing was captured, so no file was kept.</source>
+        <translation>Nada foi capturado, então nenhum arquivo foi guardado.</translation>
     </message>
 </context>
 </TS>

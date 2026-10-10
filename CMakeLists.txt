@@ -1003,6 +1003,7 @@ qt_add_qml_module(drift
         src/qml/components/BatchExportDialog.qml
         src/qml/components/RemovePausesDialog.qml
         src/qml/components/SuggestionsDialog.qml
+        src/qml/components/RecordDialog.qml
         src/qml/components/UpdateDialog.qml
         src/qml/components/DebugInfoDialog.qml
         src/qml/components/preview/PlaybackStatsOverlay.qml
