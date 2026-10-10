@@ -11247,6 +11247,38 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Export selected clips…</source>
         <translation>Exportar clipes selecionados…</translation>
     </message>
+    <message>
+        <source>Linkage settings</source>
+        <translation>Configurações de vinculação</translation>
+    </message>
+    <message>
+        <source>Moves with the main track&apos;s clips</source>
+        <translation>Move junto com os clipes da faixa principal</translation>
+    </message>
+    <message>
+        <source>Overlay video</source>
+        <translation>Camada (vídeo sobreposto)</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texto</translation>
+    </message>
+    <message>
+        <source>Subtitles</source>
+        <translation>Legendas</translation>
+    </message>
+    <message>
+        <source>Shapes and stickers</source>
+        <translation>Formas e adesivos</translation>
+    </message>
+    <message>
+        <source>Effects and adjustments</source>
+        <translation>Efeitos e ajustes</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Áudio</translation>
+    </message>
 </context>
 <context>
     <name>ToastHost</name>

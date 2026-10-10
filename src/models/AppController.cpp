@@ -993,6 +993,11 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
         settings.value(QStringLiteral("preview/mediaCodecZeroCopy"), false).toBool();
     m_invertTimelineScroll = settings.value(QStringLiteral("timeline/invertScroll"), false).toBool();
     m_magneticMainTrack = settings.value(QStringLiteral("timeline/magneticMainTrack"), false).toBool();
+    // Everything that sits on top of the picture follows it by default; audio beds do not.
+    m_mainTrackLinkage = settings.value(QStringLiteral("timeline/mainTrackLinkage"),
+                                        QStringList{QStringLiteral("video"), QStringLiteral("text"),
+                                                    QStringLiteral("subtitle"), QStringLiteral("shape"),
+                                                    QStringLiteral("adjustment")}).toStringList();
     m_uiLanguage = storedUiLanguage();
     m_needsUiLanguagePrompt = needsFirstLaunchLanguagePrompt();
     m_uiScale = storedUiScale();
@@ -5071,11 +5076,44 @@ bool AppController::applyMainTrackMagnet()
     }
     if (mainIndex < 0)
         return false;
-    return compactTrackGaps(mainIndex, true);
+    return compactTrackGaps(mainIndex, true, true);
 }
 
-bool AppController::compactTrackGaps(int mainIndex, bool fromZero)
+void AppController::setMainTrackLinkage(const QStringList &types)
 {
+    QStringList cleaned;
+    for (const QString &type : types) {
+        if (drift::trackTypeToString(drift::trackTypeFromString(type)) == type && !cleaned.contains(type))
+            cleaned.append(type);
+    }
+    if (cleaned == m_mainTrackLinkage)
+        return;
+    m_mainTrackLinkage = cleaned;
+    QSettings settings;
+    settings.setValue(QStringLiteral("timeline/mainTrackLinkage"), m_mainTrackLinkage);
+    emit mainTrackLinkageChanged();
+}
+
+void AppController::setMainTrackLinkageType(const QString &type, bool linked)
+{
+    QStringList next = m_mainTrackLinkage;
+    next.removeAll(type);
+    if (linked)
+        next.append(type);
+    setMainTrackLinkage(next);
+}
+
+bool AppController::compactTrackGaps(int mainIndex, bool fromZero, bool carryLinked)
+{
+    // Where each moved clip sat before, and how far it went: what the linked clips follow.
+    struct Move {
+        drift::TimeUs oldStart;
+        drift::TimeUs oldEnd;
+        drift::TimeUs delta;
+    };
+    QList<Move> moves;
+    QSet<QString> alreadyMoved;
+
     QList<int> order;
     {
         const drift::Track &track = m_project.tracks().at(mainIndex);
@@ -5096,17 +5134,42 @@ bool AppController::compactTrackGaps(int mainIndex, bool fromZero)
         const drift::Clip snapshot = m_project.tracks().at(mainIndex).clips.at(clipIndex);
         if (snapshot.timelineStart > cursor) {
             const drift::TimeUs delta = cursor - snapshot.timelineStart;
+            moves.append({snapshot.timelineStart, snapshot.timelineEnd(), delta});
             for (const drift::ClipRef &ref : drift::linkedPartners(m_project, snapshot)) {
                 if (ref.trackIndex == mainIndex)
                     continue;
                 drift::Clip &partner = m_project.tracks()[ref.trackIndex].clips[ref.clipIndex];
                 partner.timelineStart = qMax<drift::TimeUs>(0, partner.timelineStart + delta);
+                alreadyMoved.insert(partner.id);
             }
             m_project.tracks()[mainIndex].clips[clipIndex].timelineStart = cursor;
             moved = true;
             cursor += snapshot.timelineDuration;
         } else {
             cursor = qMax(cursor, snapshot.timelineEnd());
+        }
+    }
+
+    // A title, sticker or effect that starts over a main-track clip belongs to that clip:
+    // it goes where the clip goes. Matched against the positions from before the move, so
+    // two clips closing up cannot hand an item from one to the other.
+    if (carryLinked && !moves.isEmpty() && !m_mainTrackLinkage.isEmpty()) {
+        for (int t = 0; t < m_project.tracks().size(); ++t) {
+            if (t == mainIndex)
+                continue;
+            drift::Track &track = m_project.tracks()[t];
+            if (track.locked || !m_mainTrackLinkage.contains(drift::trackTypeToString(track.type)))
+                continue;
+            for (drift::Clip &clip : track.clips) {
+                if (alreadyMoved.contains(clip.id))
+                    continue;
+                for (const Move &move : std::as_const(moves)) {
+                    if (clip.timelineStart < move.oldStart || clip.timelineStart >= move.oldEnd)
+                        continue;
+                    clip.timelineStart = qMax<drift::TimeUs>(0, clip.timelineStart + move.delta);
+                    break;
+                }
+            }
         }
     }
     return moved;

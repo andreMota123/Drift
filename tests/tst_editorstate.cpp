@@ -3205,6 +3205,34 @@ void EditorStateTest::mainTrackMagnetClosesGaps()
     QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, drift::TimeUs{0});
     QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, firstLen);
 
+    // A title that starts over the second clip rides along with it; with text unlinked it stays.
+    const QStringList linkageBefore = state.mainTrackLinkage();
+    const auto restoreLinkage = qScopeGuard([&state, linkageBefore] { state.setMainTrackLinkage(linkageBefore); });
+    {
+        drift::Track titles;
+        titles.type = drift::TrackType::Text;
+        drift::Clip title;
+        title.id = QStringLiteral("magnet-title");
+        title.timelineDuration = drift::secondsToUs(1.0);
+        titles.clips.append(title);
+        state.project()->tracks().append(titles);
+    }
+    const int titleTrack = state.project()->tracks().size() - 1;
+    const drift::TimeUs gap = drift::secondsToUs(6.0);
+    const drift::TimeUs into = drift::secondsToUs(0.5);
+    state.setMainTrackLinkage({QStringLiteral("text")});
+    state.project()->tracks()[0].clips[1].timelineStart = firstLen + gap;
+    state.project()->tracks()[titleTrack].clips[0].timelineStart = firstLen + gap + into;
+    state.moveClip(0, 1, drift::usToSeconds(firstLen + gap));
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, firstLen);
+    QCOMPARE(state.project()->tracks().at(titleTrack).clips.at(0).timelineStart, firstLen + into);
+
+    state.setMainTrackLinkage({});
+    state.project()->tracks()[0].clips[1].timelineStart = firstLen + gap;
+    state.project()->tracks()[titleTrack].clips[0].timelineStart = firstLen + gap + into;
+    state.moveClip(0, 1, drift::usToSeconds(firstLen + gap));
+    QCOMPARE(state.project()->tracks().at(titleTrack).clips.at(0).timelineStart, firstLen + gap + into);
+
     // Off again, a gap stays where it was put.
     state.setMagneticMainTrack(false);
     state.moveClip(0, 1, drift::usToSeconds(firstLen) + 10.0);

@@ -414,6 +414,45 @@ Item {
             active: EditorState.magneticMainTrack
             onClicked: EditorState.magneticMainTrack = !EditorState.magneticMainTrack
         }
+        // What rides along with the main track's clips when the magnet moves them (CapCut 9.5).
+        IconButton {
+            id: linkageButton
+            glyph: Theme.icons.chevronDown
+            variant: "text"
+            buttonSize: 16
+            iconSize: 12
+            tooltip: qsTr("Linkage settings")
+            anchors.verticalCenter: parent.verticalCenter
+            onClicked: linkageMenu.popup(linkageButton, 0, linkageButton.height + 2)
+
+            ThemedContextMenu {
+                id: linkageMenu
+                implicitWidth: 260
+
+                ThemedMenuItem {
+                    sectionHeader: true
+                    text: qsTr("Moves with the main track's clips")
+                }
+                Repeater {
+                    model: [
+                        { type: "video", label: qsTr("Overlay video") },
+                        { type: "text", label: qsTr("Text") },
+                        { type: "subtitle", label: qsTr("Subtitles") },
+                        { type: "shape", label: qsTr("Shapes and stickers") },
+                        { type: "adjustment", label: qsTr("Effects and adjustments") },
+                        { type: "audio", label: qsTr("Audio") }
+                    ]
+                    ThemedMenuItem {
+                        required property var modelData
+                        readonly property bool linked: EditorState.mainTrackLinkage.indexOf(modelData.type) >= 0
+                        iconSlot: true
+                        text: modelData.label
+                        icon.name: linked ? Theme.icons.check : ""
+                        onTriggered: EditorState.setMainTrackLinkageType(modelData.type, !linked)
+                    }
+                }
+            }
+        }
         IconButton {
             id: rippleButton
             glyph: Theme.icons.foldHorizontal

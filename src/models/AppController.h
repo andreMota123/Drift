@@ -93,6 +93,9 @@ class AppController : public QObject
     Q_PROPERTY(bool rippleEnabled READ rippleEnabled WRITE setRippleEnabled NOTIFY rippleEnabledChanged)
     Q_PROPERTY(bool allowClipOverlap READ allowClipOverlap WRITE setAllowClipOverlap NOTIFY allowClipOverlapChanged)
     Q_PROPERTY(bool magneticMainTrack READ magneticMainTrack WRITE setMagneticMainTrack NOTIFY magneticMainTrackChanged)
+    // Track types ("video", "audio", "text", "subtitle", "shape", "adjustment") whose clips ride
+    // along when the main track magnet moves the main-track clip they start over.
+    Q_PROPERTY(QStringList mainTrackLinkage READ mainTrackLinkage WRITE setMainTrackLinkage NOTIFY mainTrackLinkageChanged)
   // Per-project UI prefs (serialized with the .drift file, not global QSettings).
     Q_PROPERTY(bool mediaGridMode READ mediaGridMode WRITE setMediaGridMode NOTIFY mediaGridModeChanged)
     // "grid" | "list" | "tree". mediaGridMode above is the older two-state view of the same
@@ -373,6 +376,9 @@ public:
     bool rippleEnabled() const { return m_rippleEnabled; }
     bool allowClipOverlap() const { return m_allowClipOverlap; }
     bool magneticMainTrack() const { return m_magneticMainTrack; }
+    QStringList mainTrackLinkage() const { return m_mainTrackLinkage; }
+    void setMainTrackLinkage(const QStringList &types);
+    Q_INVOKABLE void setMainTrackLinkageType(const QString &type, bool linked);
     bool darkModeOverridden() const { return m_darkModeOverridden; }
     bool darkModePreferred() const { return m_darkModePreferred; }
     bool projectPortrait() const { return m_project.height() > m_project.width(); }
@@ -1624,6 +1630,7 @@ signals:
     void rippleEnabledChanged();
     void allowClipOverlapChanged();
     void magneticMainTrackChanged();
+    void mainTrackLinkageChanged();
     void darkModePreferenceChanged();
     void workspaceLayoutPreferenceChanged();
     void mediaGridModeChanged();
@@ -1969,7 +1976,9 @@ protected:
     // Packs the main (bottommost video) track so no clip leaves a gap before it. Linked
     // partners ride along. Returns true when anything moved.
     bool applyMainTrackMagnet();
-    bool compactTrackGaps(int trackIndex, bool fromZero);
+    // `carryLinked` also moves the clips on other tracks that start over a clip being moved,
+    // for the track types in m_mainTrackLinkage.
+    bool compactTrackGaps(int trackIndex, bool fromZero, bool carryLinked = false);
     // The selection as export units: each entry is the ids of one clip and its linked partners.
     QList<QSet<QString>> selectionExportUnits() const;
     void restoreLockedTracks(const drift::Project &before);
@@ -2063,6 +2072,7 @@ protected:
     bool m_rippleEnabled = false;
     bool m_allowClipOverlap = false;
     bool m_magneticMainTrack = false;
+    QStringList m_mainTrackLinkage;
     bool m_loopWorkAreaEnabled = false;
     bool m_darkModeOverridden = false;
     bool m_darkModePreferred = true;
