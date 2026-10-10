@@ -2113,6 +2113,33 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({});
     }
 
+    if (tool == QLatin1String("set_reference_lines")) {
+        if (args.contains(QStringLiteral("vertical")) || args.contains(QStringLiteral("horizontal"))) {
+            // Replacing the set is simpler to reason about than editing it by index.
+            const bool wasLocked = m_controller->referenceLinesLocked();
+            m_controller->setReferenceLinesLocked(false);
+            m_controller->clearReferenceLines();
+            const double w = qMax(1, m_controller->projectWidth());
+            const double h = qMax(1, m_controller->projectHeight());
+            for (const QJsonValue &x : args.value(QStringLiteral("vertical")).toArray())
+                m_controller->addReferenceLine(true, x.toDouble() / w);
+            for (const QJsonValue &y : args.value(QStringLiteral("horizontal")).toArray())
+                m_controller->addReferenceLine(false, y.toDouble() / h);
+            m_controller->setReferenceLinesLocked(wasLocked);
+        }
+        if (args.contains(QStringLiteral("visible")))
+            m_controller->setReferenceLinesVisible(jsonBool(args.value(QStringLiteral("visible"))));
+        if (args.contains(QStringLiteral("locked")))
+            m_controller->setReferenceLinesLocked(jsonBool(args.value(QStringLiteral("locked"))));
+        if (args.contains(QStringLiteral("rulers")))
+            m_controller->setRulersVisible(jsonBool(args.value(QStringLiteral("rulers"))));
+        return ok({{QStringLiteral("vertical"), m_controller->referenceLinesV().size()},
+                   {QStringLiteral("horizontal"), m_controller->referenceLinesH().size()},
+                   {QStringLiteral("visible"), m_controller->referenceLinesVisible()},
+                   {QStringLiteral("locked"), m_controller->referenceLinesLocked()},
+                   {QStringLiteral("rulers"), m_controller->rulersVisible()}});
+    }
+
     if (tool == QLatin1String("list_missing_media"))
         return ok({{QStringLiteral("missing"), QJsonArray::fromVariantList(m_controller->missingMedia())}});
 

@@ -293,6 +293,13 @@ class AppController : public QObject
     Q_PROPERTY(int selectedTransitionLeftClip READ selectedTransitionLeftClip NOTIFY selectedTransitionDataChanged)
     Q_PROPERTY(bool guidesEnabled READ guidesEnabled WRITE setGuidesEnabled NOTIFY guidesChanged)
     Q_PROPERTY(QString guideType READ guideType WRITE setGuideType NOTIFY guidesChanged)
+    // Guides the user pulled out of the preview rulers. Positions are fractions of the frame,
+    // measured from its left (vertical guides) or top (horizontal ones); saved with the project.
+    Q_PROPERTY(QVariantList referenceLinesV READ referenceLinesV NOTIFY referenceLinesChanged)
+    Q_PROPERTY(QVariantList referenceLinesH READ referenceLinesH NOTIFY referenceLinesChanged)
+    Q_PROPERTY(bool referenceLinesVisible READ referenceLinesVisible WRITE setReferenceLinesVisible NOTIFY referenceLinesChanged)
+    Q_PROPERTY(bool referenceLinesLocked READ referenceLinesLocked WRITE setReferenceLinesLocked NOTIFY referenceLinesChanged)
+    Q_PROPERTY(bool rulersVisible READ rulersVisible WRITE setRulersVisible NOTIFY referenceLinesChanged)
     Q_PROPERTY(QVariantMap background READ background NOTIFY backgroundChanged)
     Q_PROPERTY(bool canvasCropMode READ canvasCropMode WRITE setCanvasCropMode NOTIFY canvasCropModeChanged)
     Q_PROPERTY(bool maskEditMode READ maskEditMode WRITE setMaskEditMode NOTIFY maskEditModeChanged)
@@ -456,6 +463,19 @@ public:
     int selectedTransitionLeftClip() const { return m_selectedTransitionLeftClip; }
     bool guidesEnabled() const { return m_guidesEnabled; }
     QString guideType() const { return m_guideType; }
+    QVariantList referenceLinesV() const;
+    QVariantList referenceLinesH() const;
+    bool referenceLinesVisible() const { return m_refLinesVisible; }
+    void setReferenceLinesVisible(bool visible);
+    bool referenceLinesLocked() const { return m_refLinesLocked; }
+    void setReferenceLinesLocked(bool locked);
+    bool rulersVisible() const { return m_rulersVisible; }
+    void setRulersVisible(bool visible);
+    // Returns the new guide's index, or -1 at the limit of kMaxReferenceLines per direction.
+    Q_INVOKABLE int addReferenceLine(bool vertical, double position);
+    Q_INVOKABLE void moveReferenceLine(bool vertical, int index, double position);
+    Q_INVOKABLE void removeReferenceLine(bool vertical, int index);
+    Q_INVOKABLE void clearReferenceLines();
     QVariantMap background() const;
     QVariantList actions() const;
     QVariantList bookmarks() const;
@@ -1589,6 +1609,7 @@ signals:
     void audioOutputDevicesChanged();
     void audioOutputDeviceIdChanged();
     void snapEnabledChanged();
+    void referenceLinesChanged();
     void rippleEnabledChanged();
     void allowClipOverlapChanged();
     void magneticMainTrackChanged();
@@ -2018,6 +2039,11 @@ protected:
     drift::TimeUs m_playheadUs = 0;
     bool m_playing = false;
     bool m_snapEnabled = true;
+    QList<double> m_refLinesV;
+    QList<double> m_refLinesH;
+    bool m_refLinesVisible = true;
+    bool m_refLinesLocked = false;
+    bool m_rulersVisible = false;
     bool m_rippleEnabled = false;
     bool m_allowClipOverlap = false;
     bool m_magneticMainTrack = false;

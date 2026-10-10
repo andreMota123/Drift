@@ -365,6 +365,16 @@ PanelFrame {
                              && !EditorState.canvasCropMode && !EditorState.maskEditActive
                 }
 
+                // Rulers and the guides pulled out of them. Above the transform gizmo so a guide
+                // can be grabbed where it crosses a clip; its grab strips are only 7 px wide.
+                ReferenceLinesOverlay {
+                    anchors.fill: parent
+                    frame: canvasRect
+                    z: 160
+                    visible: EditorState.projectWidth() > 0 && !EditorState.canvasCropMode
+                             && !root.previewFullscreen
+                }
+
                 // Canvas crop tool. Lives outside the (clipped) canvas rect so the
                 // crop frame can be dragged past the current edges to grow the
                 // output. Values are kept in project pixels; committing hands the

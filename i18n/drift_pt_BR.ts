@@ -7656,6 +7656,26 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Social media preview</source>
         <translation>Prévia de mídia social</translation>
     </message>
+    <message>
+        <source>Rulers and guides</source>
+        <translation>Réguas e guias</translation>
+    </message>
+    <message>
+        <source>Rulers</source>
+        <translation>Réguas</translation>
+    </message>
+    <message>
+        <source>My guides</source>
+        <translation>Minhas guias</translation>
+    </message>
+    <message>
+        <source>Lock guides</source>
+        <translation>Bloquear guias</translation>
+    </message>
+    <message>
+        <source>Clear guides</source>
+        <translation>Limpar guias</translation>
+    </message>
 </context>
 <context>
     <name>Project</name>
@@ -12133,6 +12153,33 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Link media…</source>
         <translation>Vincular mídia…</translation>
+    </message>
+</context>
+<context>
+    <name>ReferenceLinesOverlay</name>
+    <message>
+        <source>Guides are locked.</source>
+        <translation>Guias bloqueadas.</translation>
+    </message>
+    <message>
+        <source>Delete guide</source>
+        <translation>Excluir guia</translation>
+    </message>
+    <message>
+        <source>Unlock guides</source>
+        <translation>Desbloquear guias</translation>
+    </message>
+    <message>
+        <source>Lock guides</source>
+        <translation>Bloquear guias</translation>
+    </message>
+    <message>
+        <source>Clear guides</source>
+        <translation>Limpar guias</translation>
+    </message>
+    <message>
+        <source>Maximum number of guides reached.</source>
+        <translation>Número máximo de guias atingido.</translation>
     </message>
 </context>
 </TS>

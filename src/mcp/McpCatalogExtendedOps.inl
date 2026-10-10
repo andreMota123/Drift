@@ -1036,6 +1036,16 @@
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Left edge of the hole, timeline seconds"))}},
                        {QStringLiteral("track"), QStringLiteral("at")}) },
+        { "set_reference_lines", "ui", "Place ruler guides on the preview",
+          "Guides the preview's clips snap to when moved or resized, saved with the project. `vertical` "
+          "(x positions) and `horizontal` (y positions) are in project pixels from the top-left and "
+          "REPLACE the current set — pass both to keep both. Also toggles the rulers, hides or locks "
+          "the guides. Not undoable.",
+          objectSchema({{QStringLiteral("vertical"), arrayProp({{QStringLiteral("type"), QStringLiteral("number")}}, QStringLiteral("x of each vertical guide, project px"))},
+                        {QStringLiteral("horizontal"), arrayProp({{QStringLiteral("type"), QStringLiteral("number")}}, QStringLiteral("y of each horizontal guide, project px"))},
+                        {QStringLiteral("visible"), boolProp(QStringLiteral("Show the guides"))},
+                        {QStringLiteral("locked"), boolProp(QStringLiteral("Stop guides being moved or deleted by hand"))},
+                        {QStringLiteral("rulers"), boolProp(QStringLiteral("Show the rulers (an app preference)"))}}) },
         { "list_missing_media", "media", "Media whose file is gone",
           "Assets the project points at that are no longer on disk: [{id, name, path, duration, kind}]. "
           "Fix them with relink_media.",

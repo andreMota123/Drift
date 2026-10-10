@@ -266,8 +266,25 @@ Item {
             property real rotateGrabOffset: 0
 
             // Canvas edges and centre lines, in layout px.
-            readonly property var snapTargetsX: [0, handle.canvasW / 2, handle.canvasW]
-            readonly property var snapTargetsY: [0, handle.canvasH / 2, handle.canvasH]
+            // The user's guides follow the frame's own lines, so those win a tie.
+            readonly property var snapTargetsX: {
+                const out = [0, handle.canvasW / 2, handle.canvasW]
+                if (EditorState.referenceLinesVisible) {
+                    const lines = EditorState.referenceLinesV
+                    for (let i = 0; i < lines.length; ++i)
+                        out.push(lines[i] * handle.canvasW)
+                }
+                return out
+            }
+            readonly property var snapTargetsY: {
+                const out = [0, handle.canvasH / 2, handle.canvasH]
+                if (EditorState.referenceLinesVisible) {
+                    const lines = EditorState.referenceLinesH
+                    for (let i = 0; i < lines.length; ++i)
+                        out.push(lines[i] * handle.canvasH)
+                }
+                return out
+            }
             readonly property real snapTolX: root.snapTolPx / handle.sx
             readonly property real snapTolY: root.snapTolPx / handle.sy
             // A rotated box has no axis-aligned edges to stick with, so it does

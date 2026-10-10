@@ -263,8 +263,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             // Upwards: the toolbar sits at the bottom of the panel. The menu has no height
             // of its own until it has been shown once, so the first time it is worked out
-            // from its rows: six entries, a header and a separator.
-            property real menuHeight: 6 * 28 + 24 + 12 + 2 * Theme.spacingSm
+            // from its rows: ten entries, two headers and two separators.
+            property real menuHeight: 10 * 28 + 2 * 24 + 2 * 12 + 2 * Theme.spacingSm
             onClicked: guideTypeMenu.popup(guideTypeButton, 0, -menuHeight - 4)
 
             ThemedContextMenu {
@@ -311,6 +311,35 @@ Item {
                             EditorState.guidesEnabled = true
                         }
                     }
+                }
+                ThemedMenuSeparator {}
+                ThemedMenuItem {
+                    sectionHeader: true
+                    text: qsTr("Rulers and guides")
+                }
+                ThemedMenuItem {
+                    iconSlot: true
+                    text: qsTr("Rulers")
+                    icon.name: EditorState.rulersVisible ? Theme.icons.check : ""
+                    onTriggered: EditorState.rulersVisible = !EditorState.rulersVisible
+                }
+                ThemedMenuItem {
+                    iconSlot: true
+                    text: qsTr("My guides")
+                    icon.name: EditorState.referenceLinesVisible ? Theme.icons.check : ""
+                    onTriggered: EditorState.referenceLinesVisible = !EditorState.referenceLinesVisible
+                }
+                ThemedMenuItem {
+                    iconSlot: true
+                    text: qsTr("Lock guides")
+                    icon.name: EditorState.referenceLinesLocked ? Theme.icons.check : ""
+                    onTriggered: EditorState.referenceLinesLocked = !EditorState.referenceLinesLocked
+                }
+                ThemedMenuItem {
+                    iconSlot: true
+                    text: qsTr("Clear guides")
+                    enabled: EditorState.referenceLinesV.length + EditorState.referenceLinesH.length > 0
+                    onTriggered: EditorState.clearReferenceLines()
                 }
             }
         }

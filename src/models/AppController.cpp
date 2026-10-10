@@ -977,6 +977,7 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
     settings.endGroup();
     m_guidesEnabled = settings.value(QStringLiteral("preview/guidesEnabled"), false).toBool();
     m_guideType = settings.value(QStringLiteral("preview/guideType"), QStringLiteral("thirds")).toString();
+    m_rulersVisible = settings.value(QStringLiteral("preview/rulers"), false).toBool();
     m_loopWorkAreaEnabled = settings.value(QStringLiteral("playback/loopWorkArea"), false).toBool();
     m_playback.setLoopWorkArea(m_loopWorkAreaEnabled);
     // Off by default: with it on, nudging a clip while the playhead sits anywhere writes a
@@ -4911,6 +4912,116 @@ void AppController::jumpSeconds(double seconds)
 int AppController::keyboardModifiers() const
 {
     return static_cast<int>(QGuiApplication::keyboardModifiers());
+}
+
+namespace {
+constexpr int kMaxReferenceLines = 50;
+
+QVariantList toVariantList(const QList<double> &values)
+{
+    QVariantList out;
+    out.reserve(values.size());
+    for (double value : values)
+        out.append(value);
+    return out;
+}
+
+QList<double> referenceLinesFromJson(const QJsonValue &value)
+{
+    QList<double> out;
+    const QJsonArray array = value.toArray();
+    for (const QJsonValue &entry : array) {
+        if (out.size() >= kMaxReferenceLines)
+            break;
+        out.append(qBound(0.0, entry.toDouble(), 1.0));
+    }
+    return out;
+}
+
+QJsonArray referenceLinesToJson(const QList<double> &values)
+{
+    QJsonArray out;
+    for (double value : values)
+        out.append(value);
+    return out;
+}
+} // namespace
+
+QVariantList AppController::referenceLinesV() const
+{
+    return toVariantList(m_refLinesV);
+}
+
+QVariantList AppController::referenceLinesH() const
+{
+    return toVariantList(m_refLinesH);
+}
+
+void AppController::setReferenceLinesVisible(bool visible)
+{
+    if (m_refLinesVisible == visible)
+        return;
+    m_refLinesVisible = visible;
+    emit referenceLinesChanged();
+}
+
+void AppController::setReferenceLinesLocked(bool locked)
+{
+    if (m_refLinesLocked == locked)
+        return;
+    m_refLinesLocked = locked;
+    emit referenceLinesChanged();
+}
+
+void AppController::setRulersVisible(bool visible)
+{
+    if (m_rulersVisible == visible)
+        return;
+    m_rulersVisible = visible;
+    QSettings settings;
+    settings.setValue(QStringLiteral("preview/rulers"), m_rulersVisible);
+    emit referenceLinesChanged();
+}
+
+int AppController::addReferenceLine(bool vertical, double position)
+{
+    QList<double> &lines = vertical ? m_refLinesV : m_refLinesH;
+    if (lines.size() >= kMaxReferenceLines)
+        return -1;
+    lines.append(qBound(0.0, position, 1.0));
+    m_refLinesVisible = true;
+    emit referenceLinesChanged();
+    return lines.size() - 1;
+}
+
+void AppController::moveReferenceLine(bool vertical, int index, double position)
+{
+    QList<double> &lines = vertical ? m_refLinesV : m_refLinesH;
+    if (m_refLinesLocked || index < 0 || index >= lines.size())
+        return;
+    const double clamped = qBound(0.0, position, 1.0);
+    if (qFuzzyCompare(lines.at(index) + 1.0, clamped + 1.0))
+        return;
+    lines[index] = clamped;
+    emit referenceLinesChanged();
+}
+
+void AppController::removeReferenceLine(bool vertical, int index)
+{
+    QList<double> &lines = vertical ? m_refLinesV : m_refLinesH;
+    if (m_refLinesLocked || index < 0 || index >= lines.size())
+        return;
+    lines.removeAt(index);
+    emit referenceLinesChanged();
+}
+
+void AppController::clearReferenceLines()
+{
+    if (m_refLinesV.isEmpty() && m_refLinesH.isEmpty())
+        return;
+    m_refLinesV.clear();
+    m_refLinesH.clear();
+    emit referenceLinesChanged();
 }
 
 void AppController::setSnapEnabled(bool enabled)
@@ -19379,6 +19490,13 @@ QByteArray AppController::serializeProjectJson() const
     root.insert(QStringLiteral("playheadUs"), static_cast<double>(m_playheadUs));
     root.insert(QStringLiteral("snapEnabled"), m_snapEnabled);
     root.insert(QStringLiteral("rippleEnabled"), m_rippleEnabled);
+    if (!m_refLinesV.isEmpty() || !m_refLinesH.isEmpty()) {
+        root.insert(QStringLiteral("referenceLines"),
+                    QJsonObject{{QStringLiteral("vertical"), referenceLinesToJson(m_refLinesV)},
+                                {QStringLiteral("horizontal"), referenceLinesToJson(m_refLinesH)},
+                                {QStringLiteral("visible"), m_refLinesVisible},
+                                {QStringLiteral("locked"), m_refLinesLocked}});
+    }
     root.insert(QStringLiteral("allowClipOverlap"), m_allowClipOverlap);
     root.insert(QStringLiteral("mediaViewMode"), m_mediaViewMode);
     // Still written so a project saved here opens with the right view in builds that
@@ -19492,6 +19610,14 @@ bool AppController::applyProjectJson(const QByteArray &data, QString *error)
     setPlaying(false);
     m_snapEnabled = root.value(QStringLiteral("snapEnabled")).toBool(true);
     m_rippleEnabled = root.value(QStringLiteral("rippleEnabled")).toBool(false);
+    {
+        const QJsonObject lines = root.value(QStringLiteral("referenceLines")).toObject();
+        m_refLinesV = referenceLinesFromJson(lines.value(QStringLiteral("vertical")));
+        m_refLinesH = referenceLinesFromJson(lines.value(QStringLiteral("horizontal")));
+        m_refLinesVisible = lines.value(QStringLiteral("visible")).toBool(true);
+        m_refLinesLocked = lines.value(QStringLiteral("locked")).toBool(false);
+        emit referenceLinesChanged();
+    }
     m_allowClipOverlap = root.value(QStringLiteral("allowClipOverlap")).toBool(false);
 
     if (root.contains(QStringLiteral("mediaViewMode"))) {
@@ -20523,6 +20649,11 @@ void AppController::newProject()
     // that was just discarded. Same defaults applyProjectJson falls back to.
     m_snapEnabled = true;
     m_rippleEnabled = false;
+    m_refLinesV.clear();
+    m_refLinesH.clear();
+    m_refLinesVisible = true;
+    m_refLinesLocked = false;
+    emit referenceLinesChanged();
     m_allowClipOverlap = false;
     setLoopWorkAreaEnabled(false);
     setMediaGridMode(true);

@@ -140,6 +140,7 @@ private slots:
     void mainTrackMagnetClosesGaps();
     void closeAllGapsPacksTrack();
     void relinkMediaRepointsAssetsAndClips();
+    void referenceLinesPersistWithProject();
     void lockedTrackKeepsItsClips();
     void rollTrimMovesTheSharedCut();
     void combineSelectionRendersOneClip();
@@ -3294,6 +3295,42 @@ void EditorStateTest::relinkMediaRepointsAssetsAndClips()
 
     state.undo();
     QCOMPARE(state.project()->assets().value(QStringLiteral("asset-0")).path, oldA);
+}
+
+void EditorStateTest::referenceLinesPersistWithProject()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    QCOMPARE(state.addReferenceLine(true, 0.25), 0);
+    QCOMPARE(state.addReferenceLine(true, 2.0), 1); // clamped to the frame
+    QCOMPARE(state.addReferenceLine(false, 0.5), 0);
+    QCOMPARE(state.referenceLinesV().at(1).toDouble(), 1.0);
+
+    state.moveReferenceLine(true, 0, 0.4);
+    QCOMPARE(state.referenceLinesV().at(0).toDouble(), 0.4);
+
+    // Locked guides neither move nor go away.
+    state.setReferenceLinesLocked(true);
+    state.moveReferenceLine(true, 0, 0.9);
+    state.removeReferenceLine(false, 0);
+    QCOMPARE(state.referenceLinesV().at(0).toDouble(), 0.4);
+    QCOMPARE(state.referenceLinesH().size(), 1);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QUrl file = QUrl::fromLocalFile(dir.filePath(QStringLiteral("guias.drift")));
+    state.saveProject(file);
+    AssetLibrary otherLibrary;
+    AppController other(&otherLibrary);
+    other.loadProject(file);
+    QCOMPARE(other.referenceLinesV().size(), 2);
+    QCOMPARE(other.referenceLinesV().at(0).toDouble(), 0.4);
+    QCOMPARE(other.referenceLinesH().at(0).toDouble(), 0.5);
+    QVERIFY(other.referenceLinesLocked());
+
+    other.setReferenceLinesLocked(false);
+    other.clearReferenceLines();
+    QVERIFY(other.referenceLinesV().isEmpty() && other.referenceLinesH().isEmpty());
 }
 
 void EditorStateTest::lockedTrackKeepsItsClips()
