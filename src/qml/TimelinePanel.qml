@@ -1938,7 +1938,28 @@ PanelFrame {
                         height: Math.max(root.totalTracksHeight(),
                                          flick.contentHeight - flick.headerHeight)
                         z: 250
-                        keys: ["text/plain"]
+                        // text/uri-list: files dragged in from a file manager land straight on
+                        // a track, not only in the media bin.
+                        keys: ["text/plain", "text/uri-list"]
+
+                        // Where an external file drag is hovering, in content x; -1 when none.
+                        property real externalDropX: -1
+
+                        function isFileDrop(drop) {
+                            return EditorState.draggingAssetIndex < 0 && drop.hasUrls
+                                   && drop.urls.length > 0
+                        }
+
+                        // Imports the dropped files, then places each on the timeline where
+                        // the drop happened, once its probe has settled and its real duration
+                        // and kind are known. With overlap off, the placement pushes each clip
+                        // to the next free gap, so several files end up one after another.
+                        function importAndPlace(urls, dropX, dropY) {
+                            MediaImport.importUrls(urls, true, function(added) {
+                                for (let i = 0; i < added; ++i)
+                                    root.performAssetDrop(AssetLibrary.count - added + i, dropX, dropY)
+                            })
+                        }
 
                         function assetIndexFromDrop(drop) {
                             if (EditorState.draggingAssetIndex >= 0)
@@ -1949,6 +1970,12 @@ PanelFrame {
                         }
 
                         function updateAssetDrag(drop) {
+                            if (isFileDrop(drop)) {
+                                root.clearLandingPreview()
+                                externalDropX = drop.x
+                                return
+                            }
+                            externalDropX = -1
                             const assetIndex = assetIndexFromDrop(drop)
                             if (assetIndex < 0) {
                                 root.clearLandingPreview()
@@ -1959,12 +1986,53 @@ PanelFrame {
 
                         onEntered: (drop) => updateAssetDrag(drop)
                         onPositionChanged: (drop) => updateAssetDrag(drop)
-                        onExited: root.clearLandingPreview()
+                        onExited: {
+                            externalDropX = -1
+                            root.clearLandingPreview()
+                        }
                         onDropped: (drop) => {
                             drop.accept(Qt.CopyAction)
+                            if (isFileDrop(drop)) {
+                                externalDropX = -1
+                                importAndPlace(drop.urls, drop.x, drop.y)
+                                return
+                            }
                             const assetIndex = assetIndexFromDrop(drop)
                             root.clearLandingPreview()
                             root.performAssetDrop(assetIndex, drop.x, drop.y)
+                        }
+                    }
+
+                    // Where a file dragged in from outside will land: a marker at the pointer's
+                    // time. The clip's real length is not known until the file has been probed,
+                    // so this shows the start, not a ghost of the clip.
+                    Rectangle {
+                        visible: timelineAssetDrop.externalDropX >= 0
+                        x: timelineAssetDrop.externalDropX
+                        y: Theme.timelineRulerHeight + Theme.timelineBookmarkRowHeight
+                        width: 2
+                        height: timelineAssetDrop.height
+                        z: 260
+                        color: Theme.primary
+
+                        Rectangle {
+                            x: 6
+                            y: 4
+                            width: dropHint.implicitWidth + Theme.spacingLg * 2
+                            height: dropHint.implicitHeight + Theme.spacingMd
+                            radius: Theme.radiusSm
+                            color: Theme.primary
+
+                            Text {
+                                id: dropHint
+                                anchors.centerIn: parent
+                                text: qsTr("Drop to add at %1").arg(root.formatTick(
+                                          timelineAssetDrop.externalDropX / root.pxPerSecond))
+                                color: Theme.primaryForeground
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSizeXs
+                                font.weight: Font.DemiBold
+                            }
                         }
                     }
 

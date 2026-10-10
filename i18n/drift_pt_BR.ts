@@ -10905,6 +10905,10 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Close Gap</source>
         <translation>Fechar espaço</translation>
     </message>
+    <message>
+        <source>Drop to add at %1</source>
+        <translation>Solte para adicionar em %1</translation>
+    </message>
 </context>
 <context>
     <name>TimelineToolbar</name>
