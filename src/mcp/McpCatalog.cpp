@@ -108,6 +108,8 @@ QJsonObject maskSchema()
         {QStringLiteral("rotation"), numberProp(QStringLiteral("Degrees clockwise (default 0)"))},
         {QStringLiteral("feather"), numberProp(QStringLiteral("Alpha edge blur in pixels (default 0)"))},
         {QStringLiteral("invert"), boolProp(QStringLiteral("Invert coverage (default false)"))},
+        {QStringLiteral("cornerRadius"), numberProp(QStringLiteral("rectangle: corner rounding, 0 square … 1 fully round (default 0)"), 0, 1)},
+        {QStringLiteral("expand"), numberProp(QStringLiteral("Grow (>0) or shrink (<0) the outline, as a fraction of the frame's shorter side (default 0)"), -0.2, 0.2)},
         {QStringLiteral("points"),
          arrayProp({{QStringLiteral("type"), QJsonArray{QStringLiteral("array"), QStringLiteral("object")}}},
                    QStringLiteral("freeform only: [{x,y}, …] as inspect emits it, or [[x,y], …]; normalised 0..1"))},

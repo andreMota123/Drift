@@ -51,6 +51,8 @@ QJsonObject maskToJson(const Mask &m)
         {QStringLiteral("rotation"), m.rotation},
         {QStringLiteral("feather"), m.feather},
         {QStringLiteral("invert"), m.invert},
+        {QStringLiteral("cornerRadius"), m.cornerRadius},
+        {QStringLiteral("expand"), m.expand},
         {QStringLiteral("points"), points},
         {QStringLiteral("mediaPath"), m.mediaPath},
         {QStringLiteral("mediaFgrPath"), m.mediaFgrPath},
@@ -77,6 +79,8 @@ Mask maskFromJson(const QJsonObject &o)
     m.rotation = o.value(QStringLiteral("rotation")).toDouble(m.rotation);
     m.feather = o.value(QStringLiteral("feather")).toDouble(m.feather);
     m.invert = o.value(QStringLiteral("invert")).toBool(m.invert);
+    m.cornerRadius = qBound(0.0, o.value(QStringLiteral("cornerRadius")).toDouble(0.0), 1.0);
+    m.expand = qBound(-0.2, o.value(QStringLiteral("expand")).toDouble(0.0), 0.2);
     m.op = maskOpFromString(o.value(QStringLiteral("op")).toString());
     m.enabled = o.value(QStringLiteral("enabled")).toBool(m.enabled);
     m.name = o.value(QStringLiteral("name")).toString(m.name);

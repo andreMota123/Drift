@@ -6735,6 +6735,14 @@
         <source>Invert</source>
         <translation>Inverter</translation>
     </message>
+    <message>
+        <source>Corner radius</source>
+        <translation>Raio dos cantos</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Expandir</translation>
+    </message>
 </context>
 <context>
     <name>MasksTab</name>

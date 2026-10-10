@@ -2325,6 +2325,8 @@ QVariantMap maskToMap(const drift::Mask &m, drift::TimeUs timelineStart = 0)
         {QStringLiteral("rotation"), m.rotation},
         {QStringLiteral("feather"), m.feather},
         {QStringLiteral("invert"), m.invert},
+        {QStringLiteral("cornerRadius"), m.cornerRadius},
+        {QStringLiteral("expand"), m.expand},
         {QStringLiteral("points"), points},
         {QStringLiteral("mediaPath"), m.mediaPath},
         {QStringLiteral("mediaFgrPath"), m.mediaFgrPath},
@@ -2351,6 +2353,8 @@ drift::Mask maskFromMap(const QVariantMap &m)
     mask.rotation = m.value(QStringLiteral("rotation"), mask.rotation).toDouble();
     mask.feather = m.value(QStringLiteral("feather"), mask.feather).toDouble();
     mask.invert = m.value(QStringLiteral("invert"), mask.invert).toBool();
+    mask.cornerRadius = qBound(0.0, m.value(QStringLiteral("cornerRadius"), mask.cornerRadius).toDouble(), 1.0);
+    mask.expand = qBound(-0.2, m.value(QStringLiteral("expand"), mask.expand).toDouble(), 0.2);
     mask.op = drift::maskOpFromString(m.value(QStringLiteral("op")).toString());
     mask.enabled = m.value(QStringLiteral("enabled"), mask.enabled).toBool();
     mask.name = m.value(QStringLiteral("name"), mask.name).toString();

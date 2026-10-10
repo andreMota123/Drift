@@ -63,6 +63,11 @@ struct Mask
     double rotation = 0.0;
     double feather = 0.0; // px blur on the alpha edge
     bool invert = false;
+    // Rectangle only: corner rounding, 0 (square) to 1 (the shorter side becomes a semicircle).
+    double cornerRadius = 0.0;
+    // Grows (> 0) or shrinks (< 0) the outline evenly, as a fraction of the frame's shorter
+    // side. Parametric shapes and Freeform; -0.2 … 0.2.
+    double expand = 0.0;
     QVector<QPointF> points; // normalized, for Freeform
 
     // Media only: an image or video whose pixels are the coverage map.

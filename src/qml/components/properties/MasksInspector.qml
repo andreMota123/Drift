@@ -171,6 +171,62 @@ Item {
             }
         }
 
+        // Corner rounding (rectangle) and expansion: plain values, not keyframed.
+        Repeater {
+            model: [
+                { key: "cornerRadius", label: qsTr("Corner radius"), from: 0, to: 1,
+                  shapes: ["rectangle"] },
+                { key: "expand", label: qsTr("Expand"), from: -0.2, to: 0.2,
+                  shapes: ["rectangle", "ellipse", "star", "heart", "freeform"] }
+            ]
+            delegate: Column {
+                id: plainRow
+                required property var modelData
+                readonly property real stored: Number((root.clipData.mask || {})[modelData.key]) || 0
+                width: parent.width
+                spacing: 2
+                visible: !root.isMedia && modelData.shapes.indexOf(root.maskShape) >= 0
+
+                Item {
+                    width: parent.width
+                    height: plainLabel.implicitHeight
+                    Text {
+                        id: plainLabel
+                        text: plainRow.modelData.label
+                        color: Theme.mutedForeground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeXs
+                    }
+                    Text {
+                        anchors.right: parent.right
+                        text: Math.round((plainSlider.pressed ? plainSlider.value : plainRow.stored) * 100) + "%"
+                        color: Theme.panelForeground
+                        font.family: Theme.monoFontFamily
+                        font.pixelSize: Theme.fontSizeXs
+                    }
+                }
+                ThemedSlider {
+                    id: plainSlider
+                    width: parent.width
+                    from: plainRow.modelData.from
+                    to: plainRow.modelData.to
+                    showValueTooltip: false
+                    Binding on value {
+                        when: !plainSlider.pressed
+                        value: plainRow.stored
+                    }
+                    // One edit per drag, on release, so undo steps back a whole gesture.
+                    onPressedChanged: {
+                        if (pressed || Math.abs(value - plainRow.stored) < 1e-6)
+                            return
+                        const mask = Object.assign({}, root.clipData.mask || {})
+                        mask[plainRow.modelData.key] = value
+                        EditorState.setClipMask(EditorState.selectedTrack, EditorState.selectedClip, mask)
+                    }
+                }
+            }
+        }
+
         Row {
             width: parent.width
             spacing: 8

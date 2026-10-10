@@ -6,13 +6,18 @@
 #include <QPainterPath>
 #include <QtMath>
 
+#include <cmath>
+
 namespace drift {
 
 QPainterPath maskPath(const Mask &mask, int canvasWidth, int canvasHeight)
 {
     const QPointF center(mask.x * canvasWidth, mask.y * canvasHeight);
-    const double halfW = qMax(1.0, mask.w * canvasWidth * 0.5);
-    const double halfH = qMax(1.0, mask.h * canvasHeight * 0.5);
+    // Expansion in px. The boxed shapes simply take a bigger or smaller box; a freeform outline
+    // is offset below.
+    const double grow = qBound(-0.2, mask.expand, 0.2) * qMin(canvasWidth, canvasHeight);
+    const double halfW = qMax(1.0, mask.w * canvasWidth * 0.5 + grow);
+    const double halfH = qMax(1.0, mask.h * canvasHeight * 0.5 + grow);
     // The mask's own rect. Star and heart used to be forced into a square of qMin(halfW, halfH),
     // which quietly threw away whichever of the width and height sliders was larger; both
     // generators handle a non-square box, so both sliders now mean something.
@@ -21,7 +26,11 @@ QPainterPath maskPath(const Mask &mask, int canvasWidth, int canvasHeight)
     switch (mask.shape) {
     case drift::MaskShape::Rectangle: {
         QPainterPath path;
-        path.addRect(bounds);
+        const double radius = qBound(0.0, mask.cornerRadius, 1.0) * qMin(halfW, halfH);
+        if (radius > 0.0)
+            path.addRoundedRect(bounds, radius, radius);
+        else
+            path.addRect(bounds);
         return path;
     }
     case drift::MaskShape::Ellipse: {
@@ -55,6 +64,15 @@ QPainterPath maskPath(const Mask &mask, int canvasWidth, int canvasHeight)
                 path.lineTo(pt);
         }
         path.closeSubpath();
+        if (!qFuzzyIsNull(grow)) {
+            // The band the outline's stroke covers, added to the shape or taken from it.
+            QPainterPathStroker stroker;
+            stroker.setWidth(std::abs(grow) * 2.0);
+            stroker.setJoinStyle(Qt::RoundJoin);
+            const QPainterPath band = stroker.createStroke(path);
+            path.setFillRule(Qt::WindingFill);
+            return grow > 0.0 ? path.united(band) : path.subtracted(band);
+        }
         return path;
     }
     case drift::MaskShape::Media:

@@ -98,6 +98,7 @@ class EngineTest : public QObject
     Q_OBJECT
 
 private slots:
+    void maskCornerRadiusAndExpand();
     void initTestCase();
     void matteWriterRoundTripsThroughClipReader();
     void matteWriterPreservesSoftAlpha();
@@ -9274,6 +9275,37 @@ void EngineTest::waveformSheetSpectrogramSeparatesTones()
     }
     QCOMPARE(peak, 1.0f);
     QVERIFY(spectrogram(mono.constData(), 100, rate, bins, columns).isEmpty());
+}
+
+void EngineTest::maskCornerRadiusAndExpand()
+{
+    drift::Mask mask;
+    mask.shape = drift::MaskShape::Rectangle;
+    mask.x = 0.5;
+    mask.y = 0.5;
+    mask.w = 0.5;
+    mask.h = 0.5;
+    // 400×200 frame: the rect is 200×100 at (100, 50).
+    QVERIFY(drift::maskPath(mask, 400, 200).contains(QPointF(102, 52)));
+    mask.cornerRadius = 1.0;
+    QVERIFY(!drift::maskPath(mask, 400, 200).contains(QPointF(102, 52)));
+    QVERIFY(drift::maskPath(mask, 400, 200).contains(QPointF(200, 52)));
+
+    // Expansion is a share of the shorter side: 0.1 of 200 = 20 px all round.
+    mask.cornerRadius = 0.0;
+    mask.expand = 0.1;
+    QCOMPARE(drift::maskPath(mask, 400, 200).boundingRect(), QRectF(80, 30, 240, 140));
+    mask.expand = -0.1;
+    QCOMPARE(drift::maskPath(mask, 400, 200).boundingRect(), QRectF(120, 70, 160, 60));
+
+    drift::Mask free;
+    free.shape = drift::MaskShape::Freeform;
+    free.points = {QPointF(0.25, 0.25), QPointF(0.75, 0.25), QPointF(0.75, 0.75), QPointF(0.25, 0.75)};
+    const QRectF plain = drift::maskPath(free, 400, 200).boundingRect();
+    free.expand = 0.1;
+    QVERIFY(drift::maskPath(free, 400, 200).boundingRect().width() > plain.width() + 30);
+    free.expand = -0.1;
+    QVERIFY(drift::maskPath(free, 400, 200).boundingRect().width() < plain.width() - 30);
 }
 
 QTEST_MAIN(EngineTest)
