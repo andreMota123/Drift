@@ -12,7 +12,12 @@ namespace drift {
 // Named tangent shapes. These are *presets* that write handles onto a single key, not a
 // separate interpolation system — except Hold, which is a step discontinuity and therefore
 // not expressible as a bezier at all, so it stays a flag on the key.
-enum class Interpolation { Linear, Hold, Ease };
+//
+// EaseIn and EaseOut are the one-sided halves of Ease: EaseIn flattens only the outgoing
+// tangent (the move away from this key starts slowly), EaseOut only the incoming one (the move
+// into this key lands slowly). They mark the key as a corner, which is also what tells them
+// apart from an Ease that simply has no neighbour on one side.
+enum class Interpolation { Linear, Hold, Ease, EaseIn, EaseOut };
 
 inline QString interpolationToString(Interpolation mode)
 {
@@ -21,6 +26,10 @@ inline QString interpolationToString(Interpolation mode)
         return QStringLiteral("hold");
     case Interpolation::Ease:
         return QStringLiteral("ease");
+    case Interpolation::EaseIn:
+        return QStringLiteral("easeIn");
+    case Interpolation::EaseOut:
+        return QStringLiteral("easeOut");
     case Interpolation::Linear:
     default:
         return QStringLiteral("linear");
@@ -33,6 +42,11 @@ inline Interpolation interpolationFromString(const QString &mode)
         return Interpolation::Hold;
     if (mode == QLatin1String("ease"))
         return Interpolation::Ease;
+    // Case-insensitive: the agent dispatcher lowercases enum arguments.
+    if (mode.compare(QLatin1String("easeIn"), Qt::CaseInsensitive) == 0)
+        return Interpolation::EaseIn;
+    if (mode.compare(QLatin1String("easeOut"), Qt::CaseInsensitive) == 0)
+        return Interpolation::EaseOut;
     return Interpolation::Linear;
 }
 
@@ -125,13 +139,13 @@ public:
             return;
 
         it->hold = mode == Interpolation::Hold;
-        it->corner = false;
-        if (mode == Interpolation::Ease) {
+        it->corner = mode == Interpolation::EaseIn || mode == Interpolation::EaseOut;
+        if (mode == Interpolation::Ease || it->corner) {
             const TimeUs toPrev = it == m_values.begin() ? 0 : time - std::prev(it).key();
             auto next = std::next(it);
             const TimeUs toNext = next == m_values.end() ? 0 : next.key() - time;
-            it->inDx = -static_cast<double>(toPrev) / 3.0;
-            it->outDx = static_cast<double>(toNext) / 3.0;
+            it->inDx = mode == Interpolation::EaseIn ? 0.0 : -static_cast<double>(toPrev) / 3.0;
+            it->outDx = mode == Interpolation::EaseOut ? 0.0 : static_cast<double>(toNext) / 3.0;
             it->inDy = 0.0;
             it->outDy = 0.0;
         } else {
@@ -157,6 +171,10 @@ public:
             return Interpolation::Linear; // no chip will match; treated as custom by callers
         if (qFuzzyIsNull(it->inDx) && qFuzzyIsNull(it->outDx))
             return Interpolation::Linear;
+        if (it->corner && qFuzzyIsNull(it->inDx))
+            return Interpolation::EaseIn;
+        if (it->corner && qFuzzyIsNull(it->outDx))
+            return Interpolation::EaseOut;
         return Interpolation::Ease;
     }
 
@@ -176,8 +194,11 @@ public:
         const TimeUs toPrev = it == m_values.constBegin() ? 0 : time_ - std::prev(it).key();
         auto next = std::next(it);
         const TimeUs toNext = next == m_values.constEnd() ? 0 : next.key() - time_;
-        const double wantIn = -static_cast<double>(toPrev) / 3.0;
-        const double wantOut = static_cast<double>(toNext) / 3.0;
+        // The one-sided presets leave the other handle at zero.
+        const double wantIn = it->corner && qFuzzyIsNull(it->inDx)
+                                  ? 0.0 : -static_cast<double>(toPrev) / 3.0;
+        const double wantOut = it->corner && qFuzzyIsNull(it->outDx)
+                                   ? 0.0 : static_cast<double>(toNext) / 3.0;
         return !qFuzzyCompare(it->inDx + 1.0, wantIn + 1.0)
             || !qFuzzyCompare(it->outDx + 1.0, wantOut + 1.0);
     }

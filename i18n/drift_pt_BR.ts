@@ -8022,6 +8022,26 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Click to type an exact %1</source>
         <translation>Clique para digitar um valor exato de %1</translation>
     </message>
+    <message>
+        <source>Ease in</source>
+        <translation>Entrada suave</translation>
+    </message>
+    <message>
+        <source>Ease out</source>
+        <translation>Saída suave</translation>
+    </message>
+    <message>
+        <source>Ease in and out</source>
+        <translation>Suavização</translation>
+    </message>
+    <message>
+        <source>Linear</source>
+        <translation>Linear</translation>
+    </message>
+    <message>
+        <source>Remove %1&apos;s keyframe at the playhead. Right-click for curves</source>
+        <translation>Remover o quadro-chave de %1 no cursor de reprodução. Clique direito para as curvas</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>

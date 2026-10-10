@@ -347,6 +347,28 @@ void CoreTest::keyframeEaseInterpolation()
     QCOMPARE(drift::interpolationToString(drift::Interpolation::Ease), QStringLiteral("ease"));
     QCOMPARE(drift::interpolationFromString(QStringLiteral("ease")), drift::Interpolation::Ease);
 
+    // The one-sided presets flatten a single tangent and survive a round trip through the name.
+    drift::KeyframeTrack<double> half;
+    half.setKeyframe(0, 0.0);
+    half.setKeyframe(drift::secondsToUs(1.0), 10.0);
+    half.setKeyframe(drift::secondsToUs(2.0), 0.0);
+    const drift::TimeUs midKey = drift::secondsToUs(1.0);
+    half.setEasing(midKey, drift::Interpolation::EaseIn);
+    QVERIFY(half.easingAt(midKey) == drift::Interpolation::EaseIn);
+    QVERIFY(!half.hasCustomTangents(midKey));
+    // Arrives in a straight line, leaves slowly.
+    QCOMPARE(half.evaluateAt(drift::secondsToUs(0.5)), 5.0);
+    QVERIFY(half.evaluateAt(drift::secondsToUs(1.25)) > 7.5);
+    half.setEasing(midKey, drift::Interpolation::EaseOut);
+    QVERIFY(half.easingAt(midKey) == drift::Interpolation::EaseOut);
+    QVERIFY(!half.hasCustomTangents(midKey));
+    QVERIFY(half.evaluateAt(drift::secondsToUs(0.75)) > 7.5);
+    QCOMPARE(half.evaluateAt(drift::secondsToUs(1.5)), 5.0);
+    QCOMPARE(drift::interpolationFromString(drift::interpolationToString(
+                 drift::Interpolation::EaseIn)), drift::Interpolation::EaseIn);
+    QCOMPARE(drift::interpolationFromString(drift::interpolationToString(
+                 drift::Interpolation::EaseOut)), drift::Interpolation::EaseOut);
+
     // Zero-length handles are a straight line, because x and y then share blend weights.
     drift::KeyframeTrack<double> linear;
     linear.setKeyframe(0, 0.0);

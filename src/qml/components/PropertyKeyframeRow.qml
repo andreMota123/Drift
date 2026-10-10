@@ -295,7 +295,8 @@ Column {
                 id: easeChip
                 text: qsTr("Ease")
                 tooltip: qsTr("Ease — accelerates out and decelerates in")
-                selected: root.interpolationMode === "ease"
+                selected: root.interpolationMode === "ease" || root.interpolationMode === "easeIn"
+                          || root.interpolationMode === "easeOut"
                 enabled: root.activeKey !== null
                 chipHeight: 18
                 horizontalPadding: Theme.spacingSm
@@ -354,7 +355,8 @@ Column {
                 iconSize: 16
                 glyph: root.activeKey ? Theme.icons.diamondMinus : Theme.icons.diamondPlus
                 tooltip: root.activeKey
-                         ? qsTr("Remove %1's keyframe at the playhead").arg(root.propDef.label)
+                         ? qsTr("Remove %1's keyframe at the playhead. Right-click for curves")
+                           .arg(root.propDef.label)
                          : qsTr("Add a keyframe for %1 at the playhead").arg(root.propDef.label)
                 onClicked: {
                     EditorState.showKeyframeGraphProperty(root.propDef.key)
@@ -364,6 +366,37 @@ Column {
                             root.activeKey.seconds)
                     } else {
                         root.commitValue(root.currentValue)
+                    }
+                }
+
+                // Right-click the key for the ready-made curves (CapCut 9.5).
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: {
+                        if (root.activeKey)
+                            curveMenu.popup()
+                    }
+                }
+
+                ThemedContextMenu {
+                    id: curveMenu
+                    Repeater {
+                        model: [
+                            { id: "easeIn", label: qsTr("Ease in") },
+                            { id: "easeOut", label: qsTr("Ease out") },
+                            { id: "ease", label: qsTr("Ease in and out") },
+                            { id: "linear", label: qsTr("Linear") },
+                            { id: "hold", label: qsTr("Jump") }
+                        ]
+                        ThemedMenuItem {
+                            required property var modelData
+                            iconSlot: true
+                            text: modelData.label
+                            icon.name: root.interpolationMode === modelData.id
+                                       ? Theme.icons.check : ""
+                            onTriggered: root.setInterpolation(modelData.id)
+                        }
                     }
                 }
             }
