@@ -3801,6 +3801,8 @@ QVariantMap AppController::clipToMap(const drift::Clip &clip, const drift::Clip 
         {QStringLiteral("audioStreamIndex"), clip.audioStreamIndex},
         {QStringLiteral("pan"), clip.pan},
         {QStringLiteral("volume"), clip.volume.isEmpty() ? 1.0 : clip.volume.evaluateAt(0)},
+        // True when volume changes over the clip; the on-clip volume line only edits a constant.
+        {QStringLiteral("volumeAnimated"), clip.volume.enabled() && clip.volume.keyframes().size() > 1},
         {QStringLiteral("fadeIn"), drift::usToSeconds(clip.fadeInUs)},
         {QStringLiteral("fadeOut"), drift::usToSeconds(clip.fadeOutUs)},
         {QStringLiteral("fadeCurve"), drift::fadeCurveToString(clip.fadeCurve)},

@@ -645,6 +645,93 @@ Item {
             }
             readonly property real laneHeight: height / Math.max(1, laneCount)
 
+            // Volume line (CapCut-style): a horizontal rule across the waveform at the clip's
+            // level, dragged up and down to change it. The lane spans 0 to 200%, so unity sits
+            // on the centre line, where the drag snaps. Hidden while volume is keyframed — a
+            // flat line would misstate an animated level, and the inspector edits those.
+            Item {
+                id: volumeLine
+                z: 5
+                visible: !clipItem.trackLocked && clipItem.clipData.volumeAnimated !== true
+                         && waveformHost.height >= 20 && !clipItem.touchMode
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 9
+                readonly property real level: volumeMouse.pressed ? volumeMouse.liveLevel
+                                                                  : (clipItem.clipData.volume === undefined
+                                                                     ? 1 : clipItem.clipData.volume)
+                y: Math.max(0, Math.min(waveformHost.height - height,
+                                        waveformHost.height * (1 - level / 2) - height / 2))
+
+                function describe(v) {
+                    if (v <= 0.0005)
+                        return "-∞ dB"
+                    const db = 20 * Math.log(v) / Math.LN10
+                    return (db > 0.05 ? "+" : "") + db.toFixed(1) + " dB"
+                }
+
+                // Light rule over a dark one: the waveform behind it can be either, and a single
+                // colour disappears against half of them.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenterOffset: 1
+                    height: 1
+                    color: Theme.overlayColor
+                    opacity: 0.55
+                }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: volumeMouse.containsMouse || volumeMouse.pressed ? 2 : 1
+                    color: Theme.onMedia
+                    opacity: volumeMouse.containsMouse || volumeMouse.pressed ? 1.0 : 0.85
+                }
+
+                ThemedToolTip {
+                    visible: volumeMouse.pressed || volumeMouse.containsMouse
+                    delay: volumeMouse.pressed ? 0 : Theme.tooltipDelay
+                    text: qsTr("Volume %1").arg(volumeLine.describe(volumeLine.level))
+                }
+
+                MouseArea {
+                    id: volumeMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    preventStealing: true
+                    cursorShape: Qt.SizeVerCursor
+                    property real liveLevel: 1
+
+                    onPressed: (mouse) => {
+                        liveLevel = volumeLine.level
+                        if (!clipItem.selected)
+                            EditorState.selectClip(clipItem.trackIndex, clipItem.clipIndex)
+                        EditorState.beginPreviewDrag(qsTr("Edit volume"))
+                    }
+                    onPositionChanged: (mouse) => {
+                        if (!pressed)
+                            return
+                        const yInHost = mapToItem(waveformHost, mouse.x, mouse.y).y
+                        let v = 2 * (1 - yInHost / Math.max(1, waveformHost.height))
+                        v = Math.max(0, Math.min(2, v))
+                        // Magnet at unity; Shift lets go of it.
+                        if (!(mouse.modifiers & Qt.ShiftModifier) && Math.abs(v - 1) < 0.05)
+                            v = 1
+                        liveLevel = v
+                        EditorState.previewSetClipKeyframe(clipItem.trackIndex, clipItem.clipIndex,
+                                                           "volume", EditorState.playheadSeconds, v)
+                    }
+                    onReleased: EditorState.commitPreviewDrag()
+                    onCanceled: EditorState.cancelPreviewDrag()
+                    // Double-click puts the level back to unity.
+                    onDoubleClicked: EditorState.setClipKeyframe(
+                                         clipItem.trackIndex, clipItem.clipIndex, "volume",
+                                         EditorState.playheadSeconds, 1)
+                }
+            }
+
             Connections {
                 target: EditorState
                 function onWaveformRangeReady(path) {

@@ -10814,6 +10814,14 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Split item at current time</source>
         <translation>Dividir item no tempo atual</translation>
     </message>
+    <message>
+        <source>Volume %1</source>
+        <translation>Volume %1</translation>
+    </message>
+    <message>
+        <source>Edit volume</source>
+        <translation>Editar volume</translation>
+    </message>
 </context>
 <context>
     <name>TimelinePanel</name>
