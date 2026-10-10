@@ -14268,6 +14268,56 @@ void AppController::cancelCombine()
         m_combineCancel.storeRelaxed(1);
 }
 
+QVariantList AppController::timelineTabs() const
+{
+    // Always listed from the main timeline's point of view, whichever level is on screen.
+    const QList<drift::Track> &rootTracks = m_compoundStack.isEmpty() ? m_project.tracks()
+                                                                      : m_compoundStack.first().tracks;
+    const QString openId = m_compoundStack.isEmpty() ? QString() : m_compoundStack.first().clipId;
+
+    QVariantList tabs;
+    tabs.append(QVariantMap{{QStringLiteral("id"), QString()},
+                            {QStringLiteral("label"), tr("Main timeline")},
+                            {QStringLiteral("current"), m_compoundStack.isEmpty()}});
+    for (const drift::Track &track : rootTracks) {
+        for (const drift::Clip &clip : track.clips) {
+            if (clip.compoundId.isEmpty() || !m_project.compounds().contains(clip.compoundId))
+                continue;
+            tabs.append(QVariantMap{{QStringLiteral("id"), clip.id},
+                                    {QStringLiteral("label"), clip.name.isEmpty() ? tr("Compound clip") : clip.name},
+                                    {QStringLiteral("current"), clip.id == openId}});
+        }
+    }
+    return tabs;
+}
+
+void AppController::openTimelineTab(const QString &clipId)
+{
+    if (!m_compoundStack.isEmpty() && m_compoundStack.first().clipId == clipId && m_compoundStack.size() == 1)
+        return;
+    while (!m_compoundStack.isEmpty()) {
+        const int depth = m_compoundStack.size();
+        exitCompound();
+        if (m_compoundStack.size() == depth)
+            return; // refused (a render is running); its own message says why
+    }
+    if (clipId.isEmpty())
+        return;
+    // Leaving an edited compound re-renders it; opening another has to wait for that.
+    if (m_combineInProgress) {
+        setLastMessage(tr("Open the other timeline once this one has finished rendering"), QStringLiteral("info"));
+        return;
+    }
+    for (int t = 0; t < m_project.tracks().size(); ++t) {
+        for (int i = 0; i < m_project.tracks().at(t).clips.size(); ++i) {
+            if (m_project.tracks().at(t).clips.at(i).id == clipId) {
+                enterCompound(t, i);
+                return;
+            }
+        }
+    }
+}
+
 void AppController::enterCompound(int trackIndex, int clipIndex)
 {
     if (!isValidClipIndex(trackIndex, clipIndex))

@@ -3757,6 +3757,18 @@
         <source>Pauses removed</source>
         <translation>Pausas removidas</translation>
     </message>
+    <message>
+        <source>Main timeline</source>
+        <translation>Timeline principal</translation>
+    </message>
+    <message>
+        <source>Compound clip</source>
+        <translation>Clipe composto</translation>
+    </message>
+    <message>
+        <source>Open the other timeline once this one has finished rendering</source>
+        <translation>Abra a outra timeline quando esta terminar de renderizar</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>

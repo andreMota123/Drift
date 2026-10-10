@@ -3583,6 +3583,19 @@ void EditorStateTest::compoundClipEnterEditExitAndDissolve()
     project.tracks()[0].clips.append(stand);
 
     QCOMPARE(state.compoundDepth(), 0);
+    // The timelines as tabs: the main one, then the compound, entered and left without edits.
+    {
+        const QVariantList tabs = state.timelineTabs();
+        QCOMPARE(tabs.size(), 2);
+        QVERIFY(tabs.at(0).toMap().value(QStringLiteral("current")).toBool());
+        QCOMPARE(tabs.at(1).toMap().value(QStringLiteral("id")).toString(), stand.id);
+        state.openTimelineTab(stand.id);
+        QCOMPARE(state.compoundDepth(), 1);
+        QVERIFY(state.timelineTabs().at(1).toMap().value(QStringLiteral("current")).toBool());
+        QCOMPARE(state.timelineTabs().size(), 2);
+        state.openTimelineTab(QString());
+        QCOMPARE(state.compoundDepth(), 0);
+    }
     state.enterCompound(0, 1);
     QCOMPARE(state.compoundDepth(), 1);
     QCOMPARE(state.compoundName(), QStringLiteral("Compound clip 1"));

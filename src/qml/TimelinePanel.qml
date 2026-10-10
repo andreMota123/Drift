@@ -862,6 +862,61 @@ PanelFrame {
             }
         }
 
+        // === timelines as tabs (CapCut 9.5) ==============================================
+        // The main timeline and each compound clip on it. Only shown once there is more
+        // than one, so a simple project keeps its full height.
+        Flickable {
+            id: timelineTabs
+            readonly property var tabs: {
+                void root.tracks
+                void EditorState.compoundDepth
+                return EditorState.timelineTabs()
+            }
+            width: parent.width
+            height: visible ? 24 : 0
+            visible: tabs.length > 1
+            contentWidth: tabRow.width
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            Row {
+                id: tabRow
+                spacing: 2
+                leftPadding: Theme.spacingLg
+
+                Repeater {
+                    model: timelineTabs.tabs
+                    Rectangle {
+                        id: tab
+                        required property var modelData
+                        width: tabLabel.implicitWidth + 24
+                        height: 24
+                        topLeftRadius: 4
+                        topRightRadius: 4
+                        color: tab.modelData.current ? Theme.panelAccent
+                                                     : (tabMouse.containsMouse ? Theme.popoverHover : "transparent")
+
+                        Text {
+                            id: tabLabel
+                            anchors.centerIn: parent
+                            text: tab.modelData.label
+                            color: tab.modelData.current ? Theme.panelForeground : Theme.mutedForeground
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeXs
+                            font.weight: tab.modelData.current ? Font.Medium : Font.Normal
+                        }
+                        MouseArea {
+                            id: tabMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: EditorState.openTimelineTab(tab.modelData.id)
+                        }
+                    }
+                }
+            }
+        }
+
         // === toolbar =================================================================
         TimelineToolbar {
             id: toolbar
@@ -872,7 +927,7 @@ PanelFrame {
         // === ruler + track labels + tracks ================================================
         Column {
             width: parent.width
-            height: parent.height - toolbar.height - compoundBar.height
+            height: parent.height - toolbar.height - compoundBar.height - timelineTabs.height
 
             KeyframeGraph {
                 id: keyframesBar

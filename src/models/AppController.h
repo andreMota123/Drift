@@ -1162,6 +1162,11 @@ public:
     Q_INVOKABLE void createCompoundFromSelection();
     Q_INVOKABLE void enterCompound(int trackIndex, int clipIndex);
     Q_INVOKABLE void exitCompound();
+    // The project's timelines as tabs: the main one, then each compound clip on it.
+    // [{ id, label, current }]; id is the compound clip's id, empty for the main timeline.
+    Q_INVOKABLE QVariantList timelineTabs() const;
+    // Shows that timeline: leaves the compound being edited, then opens the one asked for.
+    Q_INVOKABLE void openTimelineTab(const QString &clipId);
     Q_INVOKABLE bool canDissolveSelection() const;
     Q_INVOKABLE void dissolveSelectedCompound();
     Q_INVOKABLE bool canSeparateAudioSelection() const;
