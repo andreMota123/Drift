@@ -140,19 +140,19 @@ QtObject {
 
     // --- Color palettes: app shell vs. panel surfaces, light and dark ------------
     readonly property var _dark: ({
-        appBackground: "#070709",
-        foreground: "#d4d4d4",
-        border: "#29292d",
-        accent: "#29292d",
+        appBackground: "#000000",
+        foreground: "#e0e0e0",
+        border: "#262626",
+        accent: "#262626",
         accentForeground: "#fafafa",
-        mutedForeground: "#999999",
-        popoverHover: "#252528",
-        panelBackground: "#1b1b1c",
-        panelForeground: "#d4d4d4",
-        panelBorder: "#29292d",
-        panelAccent: "#29292d",
+        mutedForeground: "#949494",
+        popoverHover: "#303030",
+        panelBackground: "#141414",
+        panelForeground: "#e0e0e0",
+        panelBorder: "#262626",
+        panelAccent: "#262626",
         panelAccentForeground: "#fafafa",
-        panelMuted: "#343337",
+        panelMuted: "#3b3b3b",
         panelSecondaryBg: "#213539",
         panelSecondaryBorder: "#004d52",
         panelSecondaryForeground: "#4adfe9"
@@ -194,11 +194,11 @@ QtObject {
     readonly property color panelAccentForeground: _palette.panelAccentForeground
     readonly property color panelMuted: _palette.panelMuted
     // Slider groove — lighter than panelMuted in dark mode so the track reads at rest.
-    readonly property color sliderTrack: darkMode ? "#4c4c4c" : panelMuted
+    readonly property color sliderTrack: darkMode ? "#4f4f4f" : panelMuted
     // Scrollbar track + handle (timeline horizontal bar, panel flickables).
-    readonly property color scrollbarTrack: darkMode ? "#202023" : panelBorder
-    readonly property color scrollbarHandle: darkMode ? "#4c4c4c" : panelMuted
-    readonly property color scrollbarHandleHover: darkMode ? "#6c6c6c" : mutedForeground
+    readonly property color scrollbarTrack: darkMode ? "#1c1c1c" : panelBorder
+    readonly property color scrollbarHandle: darkMode ? "#4f4f4f" : panelMuted
+    readonly property color scrollbarHandleHover: darkMode ? "#636363" : mutedForeground
     readonly property color scrollbarHandlePressed: darkMode ? "#b8b8b8" : foreground
     // Bottom-sheet drag pill. panelBorder put it at 1.28:1 against the sheet in both
     // themes, so the one affordance saying "this sheet moves" was invisible; these
@@ -244,9 +244,11 @@ QtObject {
     readonly property color onMedia: "#ffffff"
     // Timeline snap indicator.
     readonly property color snapGuide: "#f5c542"
+    // Gaps a "close gap" action is about to remove.
+    readonly property color gapHighlight: darkMode ? "#33ffffff" : "#33000000"
     // Async placeholder fill for thumbnails, filmstrips and waveforms.
-    readonly property color skeletonColor: darkMode ? "#252528" : "#e8e8e8"
-    readonly property color skeletonHighlight: darkMode ? "#343337" : "#f5f5f5"
+    readonly property color skeletonColor: darkMode ? "#262626" : "#e8e8e8"
+    readonly property color skeletonHighlight: darkMode ? "#303030" : "#f5f5f5"
 
     // --- Colors: timeline clip types (fixed regardless of app theme) ---------------
     readonly property color clipText: "#5DBAA0"

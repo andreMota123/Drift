@@ -1001,6 +1001,7 @@ public:
     // width of the gap immediately following that position, closing it. Linked partner
     // clips on other tracks (e.g. a companion audio clip) follow along to stay in sync.
     Q_INVOKABLE void closeGap(int trackIndex, double gapStartSeconds);
+    Q_INVOKABLE void closeAllGaps(int trackIndex);
     Q_INVOKABLE void alignSelectedClipLeft();
     Q_INVOKABLE void alignSelectedClipRight();
     Q_INVOKABLE void splitSelectedClipLeft();
@@ -1920,6 +1921,7 @@ protected:
     // Packs the main (bottommost video) track so no clip leaves a gap before it. Linked
     // partners ride along. Returns true when anything moved.
     bool applyMainTrackMagnet();
+    bool compactTrackGaps(int trackIndex, bool fromZero);
     void restoreLockedTracks(const drift::Project &before);
     void restoreFilmstripsAfterLoad();
     void normalizeSelection();

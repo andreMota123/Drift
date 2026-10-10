@@ -1035,6 +1035,11 @@
           objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Left edge of the hole, timeline seconds"))}},
                        {QStringLiteral("track"), QStringLiteral("at")}) },
+        { "close_all_gaps", "timeline", "Close every hole between clips on a track",
+          "Pack the clips of `track` left so each one starts where the previous one ends. The first "
+          "clip keeps its start; overlaps (transitions) are left alone. Linked A/V partners follow.",
+          objectSchema({{QStringLiteral("track"), integerProp(QStringLiteral("Track index"))}},
+                       {QStringLiteral("track")}) },
         { "set_snap", "timeline", "Turn magnetic snapping on or off",
           "Editor snap-to-clips/beats/bookmarks. Not undoable.",
           objectSchema({{QStringLiteral("enabled"), boolProp(QStringLiteral("Snap on"))}},

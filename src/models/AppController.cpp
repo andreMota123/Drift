@@ -4926,7 +4926,11 @@ bool AppController::applyMainTrackMagnet()
     }
     if (mainIndex < 0)
         return false;
+    return compactTrackGaps(mainIndex, true);
+}
 
+bool AppController::compactTrackGaps(int mainIndex, bool fromZero)
+{
     QList<int> order;
     {
         const drift::Track &track = m_project.tracks().at(mainIndex);
@@ -4941,6 +4945,8 @@ bool AppController::applyMainTrackMagnet()
     // Only gaps close. Overlaps are left alone: they are how transitions are expressed.
     bool moved = false;
     drift::TimeUs cursor = 0;
+    if (!fromZero && !order.isEmpty())
+        cursor = m_project.tracks().at(mainIndex).clips.at(order.first()).timelineStart;
     for (int clipIndex : order) {
         const drift::Clip snapshot = m_project.tracks().at(mainIndex).clips.at(clipIndex);
         if (snapshot.timelineStart > cursor) {
@@ -6149,6 +6155,20 @@ void AppController::closeGap(int trackIndex, double gapStartSeconds)
 
     pushProjectEdit(before, tr("Close gap"));
     finishEdit(tr("Close gap"));
+}
+
+void AppController::closeAllGaps(int trackIndex)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return;
+
+    const drift::Project before = m_project;
+    // The first clip keeps its place: only the holes between clips close.
+    if (!compactTrackGaps(trackIndex, false))
+        return;
+
+    pushProjectEdit(before, tr("Close all gaps"));
+    finishEdit(tr("Close all gaps"));
 }
 
 void AppController::splitAtPlayhead()

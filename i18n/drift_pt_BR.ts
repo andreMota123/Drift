@@ -3733,6 +3733,10 @@
         <source>Track unlocked</source>
         <translation>Faixa destravada</translation>
     </message>
+    <message>
+        <source>Close all gaps</source>
+        <translation>Fechar todos os espaços</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -10908,6 +10912,10 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Drop to add at %1</source>
         <translation>Solte para adicionar em %1</translation>
+    </message>
+    <message>
+        <source>Close All Gaps</source>
+        <translation>Fechar todos os espaços</translation>
     </message>
 </context>
 <context>

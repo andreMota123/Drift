@@ -476,6 +476,9 @@ PanelFrame {
     // Empty stretches on a track, sorted left-to-right. Gaps are never stored — they're
     // just whatever time isn't covered by a clip — so this recomputes them from the
     // current clip list on every call rather than caching anything.
+    // Track whose gaps are all highlighted (hovering "Close All Gaps"); -1 for none.
+    property int gapPreviewTrack: -1
+
     function gapsForTrack(trackIndex) {
         if (trackIndex < 0 || trackIndex >= tracks.length)
             return []
@@ -1716,9 +1719,22 @@ PanelFrame {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            visible: gapMouse.containsMouse
+                                            visible: gapMouse.containsMouse && !gapPreview.visible
                                             color: Qt.rgba(Theme.panelAccent.r, Theme.panelAccent.g,
                                                            Theme.panelAccent.b, 0.35)
+                                        }
+
+                                        // Preview of what a menu item would close, shown while
+                                        // the pointer rests on that item.
+                                        Rectangle {
+                                            id: gapPreview
+                                            anchors.fill: parent
+                                            anchors.topMargin: 2
+                                            anchors.bottomMargin: 2
+                                            radius: 4
+                                            color: Theme.gapHighlight
+                                            visible: closeGapItem.hovered
+                                                     || root.gapPreviewTrack === trackRow.trackIndex
                                         }
 
                                         MouseArea {
@@ -1730,11 +1746,20 @@ PanelFrame {
 
                                             ThemedContextMenu {
                                                 id: gapContextMenu
+                                                onClosed: root.gapPreviewTrack = -1
                                                 ThemedMenuItem {
+                                                    id: closeGapItem
                                                     text: qsTr("Close Gap")
                                                     icon.name: Theme.icons.chevronsRightLeft
                                                     onTriggered: EditorState.closeGap(trackRow.trackIndex,
                                                                                       gapItem.modelData.start)
+                                                }
+                                                ThemedMenuItem {
+                                                    text: qsTr("Close All Gaps")
+                                                    icon.name: Theme.icons.chevronsRightLeft
+                                                    onHoveredChanged: root.gapPreviewTrack = hovered
+                                                                      ? trackRow.trackIndex : -1
+                                                    onTriggered: EditorState.closeAllGaps(trackRow.trackIndex)
                                                 }
                                             }
                                         }

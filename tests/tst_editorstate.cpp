@@ -138,6 +138,7 @@ private slots:
     void linkedAudioUnlinkAndMove();
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
+    void closeAllGapsPacksTrack();
     void lockedTrackKeepsItsClips();
     void rollTrimMovesTheSharedCut();
     void combineSelectionRendersOneClip();
@@ -3207,6 +3208,36 @@ void EditorStateTest::mainTrackMagnetClosesGaps()
     state.moveClip(0, 1, drift::usToSeconds(firstLen) + 10.0);
     QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart,
              firstLen + drift::secondsToUs(10.0));
+}
+
+void EditorStateTest::closeAllGapsPacksTrack()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+
+    const drift::TimeUs len = state.project()->tracks().at(0).clips.at(0).timelineDuration;
+    const drift::TimeUs head = drift::secondsToUs(2.0);
+    state.project()->tracks()[0].clips[0].timelineStart = head;
+    state.project()->tracks()[1].clips[0].timelineStart = head;
+    for (int i = 1; i <= 2; ++i) {
+        drift::Clip extra = state.project()->tracks().at(0).clips.at(0);
+        extra.id = QStringLiteral("gap-extra-%1").arg(i);
+        extra.linkId.clear();
+        extra.timelineStart = head + i * (len + drift::secondsToUs(4.0));
+        state.project()->tracks()[0].clips.append(extra);
+    }
+
+    state.closeAllGaps(0);
+    // The head gap stays; the two holes between clips close.
+    QCOMPARE(state.project()->tracks().at(0).clips.at(0).timelineStart, head);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(1).timelineStart, head + len);
+    QCOMPARE(state.project()->tracks().at(0).clips.at(2).timelineStart, head + 2 * len);
+    QCOMPARE(state.project()->tracks().at(1).clips.at(0).timelineStart, head);
+
+    state.undo();
+    QCOMPARE(state.project()->tracks().at(0).clips.at(2).timelineStart,
+             head + 2 * (len + drift::secondsToUs(4.0)));
 }
 
 void EditorStateTest::lockedTrackKeepsItsClips()

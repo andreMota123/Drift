@@ -2111,6 +2111,13 @@ QJsonObject McpDispatcher::applyOneExtended(const QString &tool, const QJsonObje
         return ok({});
     }
 
+    if (tool == QLatin1String("close_all_gaps")) {
+        if (!args.contains(QStringLiteral("track")))
+            return err("bad_args", QStringLiteral("track required"));
+        m_controller->closeAllGaps(jsonInt(args.value(QStringLiteral("track"))));
+        return ok({});
+    }
+
     if (tool == QLatin1String("set_snap")) {
         if (!args.contains(QStringLiteral("enabled")))
             return err("bad_args", QStringLiteral("enabled required"));
