@@ -1579,6 +1579,12 @@ public:
     // audio linked to it counting as one.
     Q_INVOKABLE int exportableSelectionCount() const;
     Q_INVOKABLE void requestBatchExport() { emit batchExportRequested(); }
+    Q_INVOKABLE void requestRemovePauses() { emit removePausesRequested(); }
+    // Silent stretches of a clip at least `minDuration` long: { ok, ranges: [{start, end}] } in
+    // timeline seconds. Blocks while the audio is read.
+    Q_INVOKABLE QVariantMap findPauses(int trackIndex, int clipIndex, double minDuration) const;
+    // Cuts them out and closes the gaps, as one undo step: { ok, removed: [{start, end}] }.
+    Q_INVOKABLE QVariantMap removePauses(int trackIndex, int clipIndex, double minDuration);
     // One file per selected clip, in timeline order, named "<title> 01", "<title> 02"… inside
     // `folderUrl`. With `clipOnly` each file holds that clip (and what is linked to it) alone;
     // without it, everything the timeline shows over that stretch. Progress and cancel go
@@ -1738,6 +1744,7 @@ signals:
     void batchExportFinished(int succeeded, int failed, const QString &folder);
     // Asks the window to open the "Export selected clips" dialog.
     void batchExportRequested();
+    void removePausesRequested();
     void projectMutated();
     void waveformReady(const QString &path);
     // A block of the timeline waveform landed. Separate from waveformReady so the dialogs,

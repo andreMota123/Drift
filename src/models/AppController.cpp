@@ -13812,6 +13812,25 @@ bool AppController::canCombineSelection() const
     return valid >= 2;
 }
 
+namespace {
+// The agent's defaults for detect_silence: the level speech stays above, and the room tone
+// kept either side of it so words are not clipped.
+constexpr double kPauseThreshold = 0.02;
+constexpr double kPausePadding = 0.08;
+} // namespace
+
+QVariantMap AppController::findPauses(int trackIndex, int clipIndex, double minDuration) const
+{
+    return mcpDetectSilence(trackIndex, clipIndex, 0.0, 0.0, kPauseThreshold,
+                            qBound(0.1, minDuration, 100.0), kPausePadding).toVariantMap();
+}
+
+QVariantMap AppController::removePauses(int trackIndex, int clipIndex, double minDuration)
+{
+    return mcpRemoveSilence(trackIndex, clipIndex, kPauseThreshold, qBound(0.1, minDuration, 100.0),
+                            kPausePadding).toVariantMap();
+}
+
 QList<QSet<QString>> AppController::selectionExportUnits() const
 {
     QList<QPair<int, int>> pairs = m_selection;

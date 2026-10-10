@@ -1153,6 +1153,15 @@ Item {
                 onTriggered: EditorState.combineSelectionToClip()
             }
             ThemedMenuItem {
+                text: qsTr("Remove pauses…")
+                icon.name: Theme.icons.scissors
+                visible: clipItem.clipData.kind === "video" || clipItem.clipData.kind === "audio"
+                onTriggered: {
+                    EditorState.selectClip(clipItem.trackIndex, clipItem.clipIndex)
+                    EditorState.requestRemovePauses()
+                }
+            }
+            ThemedMenuItem {
                 text: qsTr("Export selected clips…")
                 icon.name: Theme.icons.upload
                 enabled: !EditorState.exportInProgress

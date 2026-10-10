@@ -1001,6 +1001,7 @@ qt_add_qml_module(drift
         src/qml/components/MissingAddonsDialog.qml
         src/qml/components/RelinkMediaDialog.qml
         src/qml/components/BatchExportDialog.qml
+        src/qml/components/RemovePausesDialog.qml
         src/qml/components/UpdateDialog.qml
         src/qml/components/DebugInfoDialog.qml
         src/qml/components/preview/PlaybackStatsOverlay.qml

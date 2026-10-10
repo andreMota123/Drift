@@ -216,6 +216,7 @@ Rectangle {
             }
         }
         function onBatchExportRequested() { batchExportDialog.openDialog() }
+        function onRemovePausesRequested() { removePausesDialog.openDialog() }
         function onSaveRequested() { root.saveProject() }
         function onSaveAsRequested() { root.saveProjectAs() }
         function onOpenRequested() { root.openProject() }
@@ -228,6 +229,10 @@ Rectangle {
 
     BatchExportDialog {
         id: batchExportDialog
+    }
+
+    RemovePausesDialog {
+        id: removePausesDialog
     }
 
     ExportProgressDialog {

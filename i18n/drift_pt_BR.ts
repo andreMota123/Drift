@@ -10989,6 +10989,10 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Export selected clips…</source>
         <translation>Exportar clipes selecionados…</translation>
     </message>
+    <message>
+        <source>Remove pauses…</source>
+        <translation>Remover pausas…</translation>
+    </message>
 </context>
 <context>
     <name>TimelinePanel</name>
@@ -12300,6 +12304,67 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
         <translation>
             <numerusform>%n clipe será exportado, em arquivo próprio.</numerusform>
             <numerusform>%n clipes serão exportados, cada um em seu arquivo.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>RemovePausesDialog</name>
+    <message>
+        <source>Remove pauses</source>
+        <translation>Remover pausas</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Remover</translation>
+    </message>
+    <message>
+        <source>Select a video or audio clip first.</source>
+        <translation>Selecione primeiro um clipe de vídeo ou de áudio.</translation>
+    </message>
+    <message>
+        <source>Could not analyse this clip&apos;s audio.</source>
+        <translation>Não foi possível analisar o áudio deste clipe.</translation>
+    </message>
+    <message>
+        <source>Could not remove the pauses.</source>
+        <translation>Não foi possível remover as pausas.</translation>
+    </message>
+    <message>
+        <source>Cuts the silent stretches out of “%1” and closes the gaps. One undo brings everything back.</source>
+        <translation>Corta os trechos de silêncio de “%1” e fecha os espaços. Um desfazer traz tudo de volta.</translation>
+    </message>
+    <message>
+        <source>Minimum pause</source>
+        <translation>Duração mínima da pausa</translation>
+    </message>
+    <message>
+        <source>s</source>
+        <translation>s</translation>
+    </message>
+    <message>
+        <source>Find pauses</source>
+        <translation>Localizar pausas</translation>
+    </message>
+    <message>
+        <source>%1 s will be cut</source>
+        <translation>%1 s serão cortados</translation>
+    </message>
+    <message>
+        <source>No pauses this long were found.</source>
+        <translation>Nenhuma pausa com essa duração foi encontrada.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n pause(s) removed.</source>
+        <translation>
+            <numerusform>%n pausa removida.</numerusform>
+            <numerusform>%n pausas removidas.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n pause(s) found</source>
+        <translation>
+            <numerusform>%n pausa encontrada</numerusform>
+            <numerusform>%n pausas encontradas</numerusform>
         </translation>
     </message>
 </context>
