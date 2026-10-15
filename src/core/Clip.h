@@ -116,6 +116,12 @@ struct Clip
     // Keyframe mode writes sparse transformX/Y keys instead of a new video.
     QString stabilizePath;
     bool stabilizing = false;
+    // "Enhance quality": an AI-upscaled render of this clip's source, read instead of the
+    // original for the picture (sound still comes from the original). It covers source times
+    // [enhanceInUs, enhanceOutUs]; its own time 0 is enhanceInUs. Empty when not enhanced.
+    QString enhancePath;
+    TimeUs enhanceInUs = 0;
+    TimeUs enhanceOutUs = 0;
     StabilizeMode stabilizeMode = StabilizeMode::Bake;
     int stabilizeSmoothing = 15;
     bool stabilizeTripod = false;

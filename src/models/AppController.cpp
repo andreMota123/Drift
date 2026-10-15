@@ -3804,6 +3804,7 @@ QVariantMap AppController::clipToMap(const drift::Clip &clip, const drift::Clip 
         {QStringLiteral("speed"), clip.speed},
         {QStringLiteral("hasSpeedCurve"), clip.hasSpeedCurve()},
         {QStringLiteral("reverse"), clip.reverse},
+        {QStringLiteral("enhanced"), !clip.enhancePath.isEmpty()},
         {QStringLiteral("flipH"), clip.flipH},
         {QStringLiteral("flipV"), clip.flipV},
         // Discrete lossless orientation fix, distinct from the free "rotation" keyframe track
@@ -6530,6 +6531,26 @@ double AppController::quietestPointNear(double seconds, double window, bool *fou
             best = i;
     }
     return best >= 0 ? timeOf(best) : seconds;
+}
+
+bool AppController::setClipEnhancement(const QString &clipId, const QString &path, double inSeconds,
+                                       double outSeconds)
+{
+    int trackIndex = -1;
+    int clipIndex = -1;
+    if (!findClipById(m_project, clipId, &trackIndex, &clipIndex))
+        return false;
+    const drift::Project before = m_project;
+    drift::Clip &clip = m_project.tracks()[trackIndex].clips[clipIndex];
+    if (clip.type != drift::ClipType::Video)
+        return false;
+    clip.enhancePath = path;
+    clip.enhanceInUs = path.isEmpty() ? 0 : drift::secondsToUs(inSeconds);
+    clip.enhanceOutUs = path.isEmpty() ? 0 : drift::secondsToUs(outSeconds);
+    const QString label = path.isEmpty() ? tr("Quality enhancement removed") : tr("Quality enhanced");
+    pushProjectEdit(before, label);
+    finishEdit(label);
+    return true;
 }
 
 int AppController::mergeTouchingSubtitleClips()

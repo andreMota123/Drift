@@ -227,5 +227,83 @@ Item {
             onClicked: EditorState.cancelClipStabilization(
                            EditorState.selectedTrack, EditorState.selectedClip)
         }
+
+        // --- Enhance quality (local AI) ---------------------------------------------------
+        Rectangle {
+            visible: root.clipKind === "video"
+            width: parent.width
+            height: Theme.borderWidth
+            color: Theme.panelBorder
+        }
+
+        Column {
+            id: enhanceSection
+            visible: root.clipKind === "video"
+            width: parent.width
+            spacing: Theme.spacingMd
+
+            readonly property bool enhanced: !!(root.clipData && root.clipData.enhanced)
+            readonly property bool working: Enhancer.busy && root.clipData && Enhancer.clipId === root.clipData.id
+
+            Text {
+                text: qsTr("Enhance quality")
+                color: Theme.panelForeground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeSm
+                font.weight: Font.DemiBold
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: enhanceSection.enhanced
+                      ? qsTr("This clip shows an AI-enhanced copy of its video. The original file is unchanged and the sound still comes from it.")
+                      : qsTr("Restores and sharpens low-resolution footage with a local AI model (Real-ESRGAN), up to the project's height. Renders the part of the clip you use; the original file is not changed.")
+                color: Theme.mutedForeground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeXs
+            }
+            ThemedButton {
+                visible: !enhanceSection.working
+                width: parent.width
+                text: enhanceSection.enhanced ? qsTr("Remove enhancement") : qsTr("Enhance quality")
+                glyph: enhanceSection.enhanced ? Theme.icons.undo : Theme.icons.sparkles
+                variant: enhanceSection.enhanced ? "secondary" : "primary"
+                enabled: !Enhancer.busy || enhanceSection.enhanced
+                onClicked: enhanceSection.enhanced
+                           ? Enhancer.remove(EditorState.selectedTrack, EditorState.selectedClip)
+                           : Enhancer.enhance(EditorState.selectedTrack, EditorState.selectedClip)
+            }
+            Text {
+                visible: enhanceSection.working
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: Enhancer.status
+                color: Theme.mutedForeground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeXs
+            }
+            ThemedProgressBar {
+                visible: enhanceSection.working
+                width: parent.width
+                value: Enhancer.progress
+            }
+            ThemedButton {
+                visible: enhanceSection.working
+                width: parent.width
+                text: qsTr("Cancel")
+                variant: "ghost"
+                onClicked: Enhancer.cancel()
+            }
+        }
+    }
+
+    Connections {
+        target: Enhancer
+        function onFinished(ok, message) {
+            if (ok)
+                Toasts.success(message)
+            else
+                Toasts.error(message)
+        }
     }
 }

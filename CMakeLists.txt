@@ -637,6 +637,8 @@ add_library(driftengine STATIC
     src/engine/ReverseProxyCache.cpp
     src/engine/ReverseRenderer.h
     src/engine/ReverseRenderer.cpp
+    src/engine/QualityEnhance.h
+    src/engine/QualityEnhance.cpp
     src/engine/MediaEditor.h
     src/engine/MediaEditor.cpp
     src/engine/AudioFileWriter.h
@@ -737,6 +739,8 @@ qt_add_executable(drift
     src/models/ShortsMaker.cpp
     src/models/FillerRemover.h
     src/models/FillerRemover.cpp
+    src/models/QualityEnhancer.h
+    src/models/QualityEnhancer.cpp
     src/models/EditorState.h
     src/models/LayoutStore.h
     src/models/LayoutStore.cpp
@@ -1191,6 +1195,7 @@ if(Qt6LinguistTools_FOUND)
             src/engine/AudioEffectCatalog.cpp
             src/engine/TransitionCatalog.cpp
             src/engine/FontCatalog.cpp
+            src/engine/QualityEnhance.cpp
             src/engine/ReverseRenderer.cpp
             src/engine/MediaEditor.cpp
             src/engine/ProjectBundle.cpp

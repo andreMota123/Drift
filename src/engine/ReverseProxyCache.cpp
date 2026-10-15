@@ -244,8 +244,15 @@ VideoRead resolveVideoRead(const Clip &clip, TimeUs timelineUs)
 
     // A baked stabilize file is the original source, already transformed. Prefer it over the
     // live path (and over a reverse proxy of the unstabilized file).
-    if (const QString baked = bakePathForDecode(clip); !baked.isEmpty())
+    if (const QString baked = bakePathForDecode(clip); !baked.isEmpty()) {
         read.path = baked;
+        return read;
+    }
+    // An enhanced render replaces the picture where it covers the source; outside its range (a
+    // clip trimmed wider since) the original still shows.
+    if (!clip.reverse && clip.type == ClipType::Video && !clip.enhancePath.isEmpty()
+        && sourceUs >= clip.enhanceInUs && sourceUs <= clip.enhanceOutUs && QFile::exists(clip.enhancePath))
+        read = {clip.enhancePath, sourceUs - clip.enhanceInUs};
     return read;
 }
 
@@ -253,6 +260,10 @@ QString videoReadPath(const Clip &clip)
 {
     if (const QString baked = bakePathForDecode(clip); !baked.isEmpty())
         return baked;
+
+    if (!clip.reverse && clip.type == ClipType::Video && !clip.enhancePath.isEmpty()
+        && QFile::exists(clip.enhancePath))
+        return clip.enhancePath;
 
     if (!clip.reverse || clip.type != ClipType::Video || clip.path.isEmpty())
         return clip.path;

@@ -3789,6 +3789,14 @@
         <source>Captions joined</source>
         <translation>Legendas unidas</translation>
     </message>
+    <message>
+        <source>Quality enhanced</source>
+        <translation>Qualidade aprimorada</translation>
+    </message>
+    <message>
+        <source>Quality enhancement removed</source>
+        <translation>Aprimoramento removido</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -9764,6 +9772,22 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
+    <message>
+        <source>Enhance quality</source>
+        <translation>Aprimorar qualidade</translation>
+    </message>
+    <message>
+        <source>Remove enhancement</source>
+        <translation>Remover aprimoramento</translation>
+    </message>
+    <message>
+        <source>This clip shows an AI-enhanced copy of its video. The original file is unchanged and the sound still comes from it.</source>
+        <translation>Este clipe mostra uma cópia do vídeo aprimorada pela IA. O arquivo original não muda e o som continua vindo dele.</translation>
+    </message>
+    <message>
+        <source>Restores and sharpens low-resolution footage with a local AI model (Real-ESRGAN), up to the project&apos;s height. Renders the part of the clip you use; the original file is not changed.</source>
+        <translation>Recupera e deixa nítido um vídeo de baixa resolução com um modelo de IA local (Real-ESRGAN), até a altura do projeto. Processa só o trecho usado do clipe; o arquivo original não é alterado.</translation>
+    </message>
 </context>
 <context>
     <name>StickersTab</name>
@@ -13094,6 +13118,88 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
             <numerusform>%n trecho cortado. Ctrl+Z traz de volta.</numerusform>
             <numerusform>%n trechos cortados. Ctrl+Z traz de volta.</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>QualityEnhancer</name>
+    <message>
+        <source>Quality enhanced. The original file is unchanged; you can remove it any time.</source>
+        <translation>Qualidade aprimorada. O arquivo original não mudou; dá para remover a qualquer momento.</translation>
+    </message>
+    <message>
+        <source>The clip is gone; the enhanced video was not used.</source>
+        <translation>O clipe não existe mais; o vídeo aprimorado não foi usado.</translation>
+    </message>
+    <message>
+        <source>Select a video clip first.</source>
+        <translation>Selecione primeiro um clipe de vídeo.</translation>
+    </message>
+    <message>
+        <source>Downloading the enhancement model (4.6 MB)…</source>
+        <translation>Baixando o modelo de aprimoramento (4,6 MB)…</translation>
+    </message>
+    <message>
+        <source>Could not download the enhancement model: %1</source>
+        <translation>Não foi possível baixar o modelo de aprimoramento: %1</translation>
+    </message>
+    <message>
+        <source>The downloaded model did not match its checksum and was discarded.</source>
+        <translation>O modelo baixado não bateu com o hash esperado e foi descartado.</translation>
+    </message>
+    <message>
+        <source>Could not save the enhancement model.</source>
+        <translation>Não foi possível salvar o modelo de aprimoramento.</translation>
+    </message>
+    <message>
+        <source>Enhancing… the first frames take a moment</source>
+        <translation>Aprimorando… os primeiros quadros demoram um pouco</translation>
+    </message>
+    <message>
+        <source>Enhancing… %1%</source>
+        <translation>Aprimorando… %1%</translation>
+    </message>
+    <message>
+        <source>The enhancement failed.</source>
+        <translation>O aprimoramento falhou.</translation>
+    </message>
+    <message>
+        <source>Cancelled</source>
+        <translation>Cancelado</translation>
+    </message>
+</context>
+<context>
+    <name>QualityEnhance</name>
+    <message>
+        <source>This clip is already at least as sharp as the project (%1 px tall).</source>
+        <translation>Este clipe já tem resolução igual ou maior que a do projeto (%1 px de altura).</translation>
+    </message>
+    <message>
+        <source>Could not open the clip</source>
+        <translation>Não foi possível abrir o clipe</translation>
+    </message>
+    <message>
+        <source>The clip has no video</source>
+        <translation>O clipe não tem vídeo</translation>
+    </message>
+    <message>
+        <source>Nothing to enhance</source>
+        <translation>Nada para aprimorar</translation>
+    </message>
+    <message>
+        <source>Could not load the enhancement model: %1</source>
+        <translation>Não foi possível carregar o modelo de aprimoramento: %1</translation>
+    </message>
+    <message>
+        <source>The enhancement model failed: %1</source>
+        <translation>O modelo de aprimoramento falhou: %1</translation>
+    </message>
+    <message>
+        <source>Cancelled</source>
+        <translation>Cancelado</translation>
+    </message>
+    <message>
+        <source>Out of memory</source>
+        <translation>Memória insuficiente</translation>
     </message>
 </context>
 </TS>

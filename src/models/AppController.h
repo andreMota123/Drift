@@ -1053,6 +1053,10 @@ public:
     // stretches out of the timeline leaves captions in pieces; this tidies them. One undo step.
     // Returns how many seams were joined.
     int mergeTouchingSubtitleClips();
+    // Points a video clip's picture at an enhanced render covering source [inSeconds, outSeconds],
+    // or back at the original when path is empty. One undo step.
+    Q_INVOKABLE bool setClipEnhancement(const QString &clipId, const QString &path, double inSeconds,
+                                        double outSeconds);
     Q_INVOKABLE void alignSelectedClipLeft();
     Q_INVOKABLE void alignSelectedClipRight();
     Q_INVOKABLE void splitSelectedClipLeft();
