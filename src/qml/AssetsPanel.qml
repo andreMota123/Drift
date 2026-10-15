@@ -567,7 +567,8 @@ PanelFrame {
         if (tabId === "text" || tabId === "subtitles" || tabId === "stickers" || tabId === "shapes"
                 || tabId === "effects" || tabId === "templates" || tabId === "adjustment"
                 || tabId === "sounds" || tabId === "transitions" || tabId === "masks"
-                || tabId === "shortcuts" || tabId === "scenes" || tabId === "market")
+                || tabId === "shortcuts" || tabId === "scenes" || tabId === "market"
+                || tabId === "assistant")
             return false
         const kinds = kindsForTab(tabId)
         return kinds.length === 0 || kinds.indexOf(kind) >= 0
@@ -588,7 +589,8 @@ PanelFrame {
         "templates": qsTr("Templates"),
         "transitions": qsTr("Transitions"),
         "sounds": qsTr("Audio FX"),
-        "shortcuts": qsTr("Shortcuts")
+        "shortcuts": qsTr("Shortcuts"),
+        "assistant": qsTr("Assistant")
     })
 
     // Tab order follows the usual editing flow: media, audio, text, stickers, effects, transitions, captions.
@@ -596,6 +598,7 @@ PanelFrame {
     ListModel {
         id: tabsModel
         ListElement { tabId: "media"; icon: 0 }
+        ListElement { tabId: "assistant"; icon: 13 }
         ListElement { tabId: "sounds"; icon: 8 }
         ListElement { tabId: "text"; icon: 1 }
         ListElement { tabId: "stickers"; icon: 3 }
@@ -622,7 +625,8 @@ PanelFrame {
         Theme.icons.keyboard,
         Theme.icons.listVideo,
         Theme.icons.mask,
-        Theme.icons.store
+        Theme.icons.store,
+        Theme.icons.sparkles
     ]
     property int activeTab: 0
 
@@ -1012,6 +1016,13 @@ PanelFrame {
                 opacity: root.tabOpacity
                 height: parent.height - Theme.panelHeaderHeight
                 onAdded: root.addCompleted()
+            }
+
+            AssistantTab {
+                visible: tabsModel.get(activeTab).tabId === "assistant"
+                width: parent.width
+                opacity: root.tabOpacity
+                height: parent.height - Theme.panelHeaderHeight
             }
 
             ScenesTab {

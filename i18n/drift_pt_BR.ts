@@ -4115,6 +4115,10 @@
             <numerusform>%n itens removidos.</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Assistant</source>
+        <translation>Assistente</translation>
+    </message>
 </context>
 <context>
     <name>AudioEffectBrowser</name>
@@ -12576,6 +12580,124 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Nothing was captured, so no file was kept.</source>
         <translation>Nada foi capturado, então nenhum arquivo foi guardado.</translation>
+    </message>
+</context>
+<context>
+    <name>AssistantTab</name>
+    <message>
+        <source>Model used by the assistant</source>
+        <translation>Modelo usado pelo assistente</translation>
+    </message>
+    <message>
+        <source>Clear the conversation and free the graphics memory</source>
+        <translation>Limpar a conversa e liberar a memória da placa de vídeo</translation>
+    </message>
+    <message>
+        <source>Ask for an edit</source>
+        <translation>Peça uma edição</translation>
+    </message>
+    <message>
+        <source>For example: “cut at 12 seconds and delete up to 15”, “put the title ‘Natal 2026’ at the start for 3 seconds” or “lower the music to 40% and fade it out”. Everything runs on this computer.</source>
+        <translation>Por exemplo: “corte no segundo 12 e apague até o 15”, “coloque o título ‘Natal 2026’ no começo por 3 segundos” ou “abaixe a música para 40% e faça ela sumir no final”. Tudo roda neste computador.</translation>
+    </message>
+    <message>
+        <source>Waiting for your answer…</source>
+        <translation>Esperando sua resposta…</translation>
+    </message>
+    <message>
+        <source>Working…</source>
+        <translation>Trabalhando…</translation>
+    </message>
+    <message>
+        <source>Undo this request</source>
+        <translation>Desfazer este pedido</translation>
+    </message>
+    <message>
+        <source>Undone.</source>
+        <translation>Desfeito.</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Permitir</translation>
+    </message>
+    <message>
+        <source>Decline</source>
+        <translation>Recusar</translation>
+    </message>
+    <message>
+        <source>What should I change?</source>
+        <translation>O que devo mudar?</translation>
+    </message>
+    <message>
+        <source>Open Ollama to use the assistant</source>
+        <translation>Abra o Ollama para usar o assistente</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>Parar</translation>
+    </message>
+    <message>
+        <source>Send (Enter)</source>
+        <translation>Enviar (Enter)</translation>
+    </message>
+    <message>
+        <source>Ready</source>
+        <translation>Pronta</translation>
+    </message>
+    <message>
+        <source>Offline</source>
+        <translation>Desligada</translation>
+    </message>
+</context>
+<context>
+    <name>AssistantController</name>
+    <message>
+        <source>Checking the local AI…</source>
+        <translation>Verificando a IA local…</translation>
+    </message>
+    <message>
+        <source>I stopped: this request needed too many steps. Try asking for one thing at a time.</source>
+        <translation>Parei: este pedido precisou de passos demais. Tente pedir uma coisa de cada vez.</translation>
+    </message>
+    <message>
+        <source>The local AI answered with an error.</source>
+        <translation>A IA local respondeu com um erro.</translation>
+    </message>
+    <message>
+        <source>Ollama is not answering at %1. Open Ollama and try again.</source>
+        <translation>O Ollama não está respondendo em %1. Abra o Ollama e tente de novo.</translation>
+    </message>
+    <message>
+        <source>The local AI failed: %1</source>
+        <translation>A IA local falhou: %1</translation>
+    </message>
+    <message>
+        <source>Done.</source>
+        <translation>Pronto.</translation>
+    </message>
+    <message>
+        <source>The assistant wants to run %1. This touches files, settings or downloads rather than just the timeline. Allow it?</source>
+        <translation>O assistente quer executar %1. Isso mexe em arquivos, configurações ou downloads, e não só na linha do tempo. Permitir?</translation>
+    </message>
+    <message>
+        <source>declined</source>
+        <translation>recusado</translation>
+    </message>
+    <message>
+        <source>Check the result: %1 did not work as asked.</source>
+        <translation>Confira o resultado: %1 não funcionou como pedido.</translation>
+    </message>
+    <message>
+        <source>Stopped.</source>
+        <translation>Interrompido.</translation>
+    </message>
+    <message>
+        <source>Local AI ready: %1</source>
+        <translation>IA local pronta: %1</translation>
+    </message>
+    <message>
+        <source>The model %1 is not installed in Ollama. Pick another one.</source>
+        <translation>O modelo %1 não está instalado no Ollama. Escolha outro.</translation>
     </message>
 </context>
 </TS>

@@ -615,6 +615,7 @@ QtObject {
         smile: "smile",
         wand: "wand-sparkles",
         sparkles: "sparkles",
+        send: "send",
         sliders: "sliders-horizontal",
         settings: "settings",
         upload: "upload",

@@ -16,6 +16,7 @@
 #include "models/LayoutStore.h"
 #include "models/MarketClient.h"
 #include "models/UpdateChecker.h"
+#include "models/AssistantController.h"
 #include "engine/VaapiZeroCopy.h"
 #include "ClipPreviewImageProvider.h"
 #include "DriftImageProvider.h"
@@ -532,6 +533,8 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("Drift", 1, 0, "Updates", &updateChecker);
     qmlRegisterSingletonInstance("Drift", 1, 0, "LayoutMemory", &layoutStore);
     qmlRegisterSingletonInstance("Drift", 1, 0, "Haptics", &haptics);
+    static AssistantController assistant(&editorState);
+    qmlRegisterSingletonInstance("Drift", 1, 0, "Assistant", &assistant);
 
     app.installEventFilter(new FileOpenFilter(&editorState, &marketClient, &app));
     {
