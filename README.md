@@ -37,6 +37,10 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 6. `docs/06-funcao-juntar.md`: a função que transforma a seleção em um só vídeo.
 7. `docs/07-clipe-composto.md`: o clipe composto editável.
 8. `docs/08-estado-e-envio.md`: o que está pronto, onde está no GitHub e como enviar ao projeto oficial.
+9. `docs/09-comparativo-capcut.md`: funções e aparência do Drift comparadas com o CapCut, e a ordem de trabalho para aproximar os dois.
+11. `docs/11-ia-local.md`: a IA que roda neste PC (Ollama e ComfyUI), o que dá para levar ao Drift e em que ordem.
+12. `docs/12-assistente.md`: o assistente dentro do Drift, como funciona, segurança, testes e limites.
+13. `docs/13-ponte-claude.md`: escolher entre a IA local e o Claude, na conversa e dentro do Drift.
 
 ## Como usar a função Link no Drift
 

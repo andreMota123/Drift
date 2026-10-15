@@ -2,6 +2,79 @@
 
 Registro do que foi feito em cada dia. O mais recente fica no topo.
 
+## 2026-10-15
+
+**Concat.** O Andre mostrou o Concat (github.com/jub0t/Concat), editor gratuito "substituto do CapCut". É Rust com Slint, licença AGPL-3.0: o código não se aproveita no Drift, mas os modelos de IA locais que ele usa têm licenças livres e rodam no mesmo ONNX Runtime do Drift. Instalado para o Andre ver e depois removido a pedido dele.
+
+**IA local.** Levantado o que roda neste PC (Ollama com qwen3, gemma4 e bge-m3; ComfyUI com Qwen-Image e Qwen-Image-Edit) e testado o qwen3:14b chamando ferramentas de edição em português: acertou a sequência em 8,6 s. Plano completo em `docs/11-ia-local.md`.
+
+**Memória da placa de vídeo** (commit `b4d06396`). Cada vídeo abria seu próprio contexto na placa e o Drift nunca liberava decodificadores ociosos no PC; com muitos vídeos 4K do iPhone a memória acabava e tudo passava a decodificar no processador. Agora há um contexto compartilhado e só os seis decodificadores ociosos mais recentes ficam abertos. Medido com dez vídeos 4K HEVC: de 7,8 GB e subindo para 3,9 GB estáveis. Era também o pré-requisito para a IA local caber junto com o Drift nos 16 GB da placa.
+
+**Assistente dentro do Drift** (commits `6ddcc700` e `26b97f73`). Nova aba "Assistente" que conversa em português com o qwen3:14b do Ollama e edita o projeto pelas ferramentas do acesso de agente, chamadas dentro do processo. Mostra cada ação com ✓/✗, avisa quando algo não funcionou mesmo que o modelo diga o contrário, desfaz um pedido inteiro num clique e pede confirmação antes de salvar, exportar ou mexer em arquivos. Os testes revelaram duas armadilhas: o modelo inventava sucesso (resolvido com a verificação feita pelo próprio programa) e o ímã da faixa principal o fazia apagar de novo o que já tinha apagado (resolvido avisando o modelo e orientando o uso de "cortar trecho"). Detalhes em `docs/12-assistente.md`.
+
+**IA local ou Claude.** Dois caminhos (`docs/13-ponte-claude.md`): (1) o Drift registrado como MCP no Claude Code e o acesso de agente ligando sozinho, para o Claude editar o Drift a partir da conversa, conferido com `claude mcp list`; (2) a opção "Claude" na aba Assistente (commit `cac8ff72`), que manda o pedido a uma ponte local (`~/.local/bin/drift-claude-ponte`) que roda o Claude Code só com as ferramentas do Drift, com salvar e exportar bloqueados durante o pedido. O modo automático não deixou ativar a ponte como serviço; falta o Andre rodar `claude auth login` e ativar o serviço.
+
+## 2026-10-10
+
+**Engenharia reversa do CapCut.** Instalado o REA (github.com/morluto/rea) com Ghidra 12.1.4 e ferramentas de apoio em `~/.local/opt/rea-tools`. A interface do CapCut 3.9 é Qt 6/QML e estava embutida em texto puro nas DLLs: foram extraídos 1.554 arquivos QML e os ícones para `~/capcut/analise/qrc/`. As cores do tema foram lidas dos binários.
+
+**Documentação.** Nova pasta `docs/capcut-re/` com nove documentos (cores, janela e design, timeline, player e exportação, painel de materiais, propriedades, texto, motor de cor, formato de projeto) e um índice com a ordem de trabalho. Cada um termina com o mapa para o Drift. Nenhum código do Drift foi alterado.
+
+**Aplicação no Drift (ramo `capcut-style`, sem commit).** Paleta e densidade do CapCut no tema; barra de título com Menu, nome no centro e Exportar chapado; painel de propriedades com seções de texto e sub-abas; travar faixa; faixa principal mais alta; cinco modos de mesclagem novos. Detalhes, testes e o novo ciclo rápido de compilação em `docs/10-aplicacao-capcut.md`.
+
+**Ambiente.** Instalada a extensão NVIDIA 615 do Flatpak, que faltava depois da atualização do driver do sistema.
+
+**Mais levas no mesmo dia.** Aba Ajuste, régua por níveis, exportação em duas colunas, catálogo pt-BR completo, corte roll, efeitos HSL, rodas, curvas e LUT (com o motor aceitando textura de arquivo escolhido pelo usuário), linha de volume no clipe e soltar arquivo de fora direto na trilha. Tudo commitado no ramo `capcut-style` (de `da1eb6ea` a `82371b16`) e instalado.
+
+**CapCut 9.5.** Baixado o instalador oficial, aberto sem executar, extraída a interface e analisada em oito frentes. Documentos em `docs/capcut-re/v95/` (índice e prioridades em `v95/README.md`). O instalador e o programa extraído foram apagados depois; ficou só o QML de referência em `~/capcut/v95/`.
+
+**Primeiros itens da 9.5 no Drift.** Paleta em cinzas neutros, "Fechar todos os espaços" com realce dos vãos, altura de faixa por predefinição e por arraste, tamanho da forma de onda (30/60/100%) e menu de curvas no quadro-chave (entrada suave, saída suave, suavização, linear, salto). Três commits no ramo `capcut-style` (`7620597f`, `547660f9`, `d41fd3b9`). Detalhes na "Sétima leva" de `docs/10-aplicacao-capcut.md`. 
+
+**Mais dois itens da 9.5.** Pesquisa nas legendas com contador e anterior/próximo, dividir (Enter) e mesclar (Backspace no início, Delete no fim) pelo teclado, prévia de mídia social no preview (TikTok, Shorts, Reels) com seletor de guia na barra, e margens seguras em 5% e 10%. Commits `8c8c0957` e `eea3cebb`; "Oitava leva" do doc 10. Próximos: formas (linha e seta, tracejado, raio por canto), depois os médios (guias arrastáveis, exportação em lote).
+
+**Formas e mídia perdida.** Forma "Linha" com pontas configuráveis e raio por canto nos retângulos (`d1430c39`). Diálogo "Vincular mídia" que se oferece ao abrir projeto com arquivos sumidos, vincula os clipes ao arquivo novo e traz junto as outras mídias da mesma pasta (`da79c49d`). Corrigido de passagem: clipes ficavam sem miniatura quando ela era gerada depois. "Nona leva" do doc 10. Oito dos vinte itens da 9.5 feitos (1 a 7 e 12).
+
+**Itens médios.** Réguas e guias arrastáveis no preview com encaixe, exportar clipes selecionados em lote, vinculação à faixa principal configurável, remover pausas com revisão, e canto arredondado e expansão nas máscaras. "Décima leva" do doc 10. Feitos 13 dos 20 (faltam o painel de sugestões e os seis grandes). Atenção à mudança de comportamento do ímã da faixa principal, descrita lá.
+
+**Sugestões e itens grandes.** Sugestões inteligentes (volume e pausas, com correção em lote), timelines em abas, cortar trecho de tempo em todas as faixas (com a tesoura no editor de legendas) e gravação de microfone, tela e câmera. "Décima primeira leva" do doc 10, que também lista o que ficou de fora: proxy, painel de chat do agente, ferramenta caneta. A gravação de tela não funcionou no ambiente de teste e precisa ser conferida na sessão real.
+
+**Ramo `capcut-style` ao fim do dia:** 16 commits novos, de `7620597f` a `347fc797`, só locais.
+
+**Pendências.** Muitas faixas de slider, a ordem das abas e as listas da exportação ficam no C++ do CapCut e precisam ser conferidas com o aplicativo aberto. O formato de projeto só foi conferido para clipe de vídeo.
+
+## 2026-10-07
+
+**Pedido.** Deixar o Drift o mais parecido possível com o CapCut, em funções e aparência, olhando também a versão atual do CapCut.
+
+**CapCut no Linux.** A versão atual (9.5) não roda em Wine; a 3.9.0.1459 roda e ficou instalada em `~/capcut/prefix39` (atalho "CapCut (Linux)"), com a atualização automática bloqueada. Serve de referência ao vivo.
+
+**Comparativo.** Levantadas as funções das duas versões do CapCut pelos catálogos de textos da interface e conferidas uma a uma no código do Drift. Resultado e ordem sugerida de trabalho em `docs/09-comparativo-capcut.md`.
+
+**Aparência, primeira etapa** (ramo `capcut-style`, sobre `compound-clips`, sem commit):
+- Cor de destaque passou de âmbar para o ciano do CapCut (`#00C1CD`), com painéis `#1B1B1C` e bordas `#29292D`. Tudo em `src/qml/Theme.qml`.
+- Painel de recursos: o trilho vertical só de ícones virou barra de abas no topo, com ícone e nome, rolável na horizontal. Em `src/qml/AssetsPanel.qml`.
+- Ordem das abas igual à do CapCut: Mídia, Áudio, Texto, Adesivos, Efeitos, Transições, Legendas, Modelos; depois Formas, Máscaras, Cenas, Market e Atalhos.
+
+**Ímã da faixa principal.** Pedido do Andre depois de ver a primeira etapa: no CapCut, um vídeo solto na faixa principal fica rente ao anterior. Implementado como opção `magneticMainTrack` no `AppController` (preferência `timeline/magneticMainTrack`, desligada por padrão no código e ligada na configuração do Andre). A rotina `applyMainTrackMagnet` roda dentro de `pushProjectEdit`, então vale para soltar, mover, aparar e apagar, num único passo de desfazer: ordena os clipes da última faixa de vídeo e fecha os espaços, levando junto os clipes vinculados. Sobreposições ficam como estão, porque é assim que as transições são representadas. Botão "Ímã da faixa principal" na barra da timeline. Teste `mainTrackMagnetClosesGaps`; suíte do editor com 138 testes passando. Diferença para o CapCut: soltar um clipe em cima de outro ainda não o insere no meio.
+
+**Botão do ímã não aparecia.** Depois de instalar, a barra da timeline seguia sem o botão. Causa: o Qt guarda as telas QML já compiladas em `~/.var/app/org.cutwire.Drift/cache/CutWire Drift/CutWire Drift/qmlcache` e valida esse cache pela data do executável. No Flatpak o executável tem sempre a mesma data, então o cache nunca era renovado e o Drift mostrava a interface de uma build anterior. Corrigido apagando a pasta e desativando o cache para o app: `flatpak override --user --env=QML_DISABLE_DISK_CACHE=1 org.cutwire.Drift`. O botão ganhou ícones próprios (`main-track-magnet.svg` e `main-track-magnet-off.svg`), um para cada estado.
+
+**Como ver a tela do Drift sem print.** Abrir em modo X11 (`flatpak run --socket=x11 --share=ipc --nosocket=wayland --env=QT_QPA_PLATFORM=xcb org.cutwire.Drift//stable`) e capturar a janela pelo GDK. Em Wayland não há como capturar.
+
+**Disco.** A exportação para o repositório local do Flatpak falha com menos de 3% de disco livre. Cada compilação deixa cerca de 3,9 GB em `~/.cache/drift-build/state/build/drift-N`.
+
+**A fazer na aparência.** Abas de texto no painel de propriedades, cabeçalho com Menu à esquerda e nome do projeto no centro, revisão da barra da timeline e dos cabeçalhos de faixa.
+
+## 2026-09-23
+
+**Travamentos na timeline.** O Drift travava a cada clique com a gravação `video1962351589.mp4` (2h12min, 1920×1040, 25 fps, 0,56 Mbps) aberta. Em 13h30 aberto, o Drift gastou 14 horas de CPU, 12,6 delas em 32 threads de decodificação H.264 por software. Causa: o vídeo tem um quadro-chave a cada 36 segundos (900 quadros), e cada busca na timeline decodifica desde o quadro-chave anterior. O modo "Auto" mandava esse vídeo para a CPU porque ele é leve pelos critérios antigos (só 4K, pixels por segundo ou bitrate por quadro). A RTX 5070 Ti e o NVDEC estavam carregados e sem uso.
+
+**Correção no código.** `ClipReader::hardwareDecodeIsWorthIt` agora também mede o espaçamento médio entre quadros-chave pelo índice do contêiner (tabela stss do MP4/MOV, até 20 000 entradas) e manda para a GPU qualquer vídeo com quadro-chave a cada 5 segundos ou mais. Branch `compound-clips`, sem commit ainda. Compilada e instalada nos ramos master e stable no mesmo dia. Ainda não verificado no uso real.
+
+**Cópia para edição.** Gerada `video1962351589_edicao.mp4` na mesma pasta do SSD, recodificada pela NVENC com um quadro-chave por segundo (cq 23, áudio copiado). O original não foi alterado.
+
+**Contorno imediato.** No seletor de decodificação da barra do preview, escolher "Hardware (NVDEC)".
+
 ## 2026-09-13
 
 **Pull request #200.** Verificado: está com conflito, porque o main do projeto avançou 137 commits desde a 0.5.1. O main já traz a correção do manifesto de tradução, então ela sai do PR. A função Link foi reaplicada limpa sobre o main no branch `link-clips-v2`, com as frases novas nos 10 catálogos de tradução na ordem que o `lupdate` gera. Lidas as regras de contribuição: uma mudança por PR, Conventional Commits, catálogos atualizados, e mensagem de commit e descrição do PR escritas por pessoa, sem rodapé de coautoria de IA. Pendente: Andre escrever a mensagem do commit.
