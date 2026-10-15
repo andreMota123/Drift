@@ -733,6 +733,8 @@ qt_add_executable(drift
     src/models/AssistantController.cpp
     src/models/CaptionAi.h
     src/models/CaptionAi.cpp
+    src/models/ShortsMaker.h
+    src/models/ShortsMaker.cpp
     src/models/EditorState.h
     src/models/LayoutStore.h
     src/models/LayoutStore.cpp
@@ -960,6 +962,7 @@ qt_add_qml_module(drift
         src/qml/components/assets/MediaAssetsTab.qml
         src/qml/components/assets/AssistantTab.qml
         src/qml/components/CaptionReviewDialog.qml
+        src/qml/components/ShortsDialog.qml
         src/qml/components/assets/MarketConsentPanel.qml
         src/qml/components/assets/MarketTab.qml
         src/qml/components/assets/BinBreadcrumb.qml

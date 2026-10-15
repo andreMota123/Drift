@@ -239,6 +239,10 @@ Rectangle {
         id: suggestionsDialog
     }
 
+    ShortsDialog {
+        id: shortsDialog
+    }
+
     RecordDialog {
         id: recordDialog
     }
@@ -505,6 +509,12 @@ Rectangle {
                         text: qsTr("Smart suggestions…")
                         icon.name: Theme.icons.sparkles
                         onTriggered: suggestionsDialog.openDialog()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Shorts from this video…")
+                        icon.name: Theme.icons.scissors
+                        onTriggered: shortsDialog.openDialog()
                     }
 
                     ThemedMenuItem {

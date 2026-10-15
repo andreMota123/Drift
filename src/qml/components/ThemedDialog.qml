@@ -12,6 +12,7 @@ Dialog {
     property string rejectText: qsTr("Cancel")
     property bool showFooter: true
     property bool showAccept: true
+    property bool acceptEnabled: true
     property bool showReject: true
     property string acceptVariant: "primary"
     property string rejectVariant: "secondary"
@@ -229,6 +230,7 @@ Dialog {
             ThemedButton {
                 id: acceptButton
                 visible: root.showAccept
+                enabled: root.acceptEnabled
                 text: root.acceptText
                 variant: root.acceptVariant
                 onClicked: root.accept()

@@ -5085,6 +5085,10 @@
         <source>Record…</source>
         <translation>Gravar…</translation>
     </message>
+    <message>
+        <source>Shorts from this video…</source>
+        <translation>Cortes curtos deste vídeo…</translation>
+    </message>
 </context>
 <context>
     <name>EffectBrowser</name>
@@ -12861,6 +12865,122 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
         <translation>
             <numerusform>%n legenda corrigida. Ctrl+Z desfaz.</numerusform>
             <numerusform>%n legendas corrigidas. Ctrl+Z desfaz.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>ShortsDialog</name>
+    <message>
+        <source>Shorts from this video</source>
+        <translation>Cortes curtos deste vídeo</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>Parar</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>The local AI reads the captions and picks moments that work on their own. Each one you keep becomes a vertical (9:16) project in a folder next to this one; this project is not changed.</source>
+        <translation>A IA local lê as legendas e escolhe momentos que funcionam sozinhos. Cada um que você mantiver vira um projeto vertical (9:16) numa pasta ao lado deste; este projeto não é alterado.</translation>
+    </message>
+    <message>
+        <source>This project has no captions yet. Generate them first in the Captions tab: the AI picks the moments from what is said.</source>
+        <translation>Este projeto ainda não tem legendas. Gere-as primeiro na aba Legendas: a IA escolhe os momentos pelo que é falado.</translation>
+    </message>
+    <message>
+        <source>How many</source>
+        <translation>Quantos</translation>
+    </message>
+    <message>
+        <source>Length</source>
+        <translation>Duração</translation>
+    </message>
+    <message>
+        <source>%1 s</source>
+        <translation>%1 s</translation>
+    </message>
+    <message>
+        <source>Search again</source>
+        <translation>Buscar de novo</translation>
+    </message>
+    <message>
+        <source>Find moments</source>
+        <translation>Encontrar momentos</translation>
+    </message>
+    <message>
+        <source>Go to this moment</source>
+        <translation>Ir para este momento</translation>
+    </message>
+    <message>
+        <source>Open the shorts folder</source>
+        <translation>Abrir a pasta dos cortes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Make %n short(s)</source>
+        <translation>
+            <numerusform>Criar %n corte</numerusform>
+            <numerusform>Criar %n cortes</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>ShortsMaker</name>
+    <message>
+        <source>Choosing the best moments…</source>
+        <translation>Escolhendo os melhores momentos…</translation>
+    </message>
+    <message>
+        <source>This project has no captions yet. Generate them first (Captions tab).</source>
+        <translation>Este projeto ainda não tem legendas. Gere-as primeiro (aba Legendas).</translation>
+    </message>
+    <message>
+        <source>The video is too short to cut into shorts of this length.</source>
+        <translation>O vídeo é curto demais para cortes desta duração.</translation>
+    </message>
+    <message>
+        <source>Ollama is not answering. Open Ollama and try again.</source>
+        <translation>O Ollama não está respondendo. Abra o Ollama e tente de novo.</translation>
+    </message>
+    <message>
+        <source>The local AI failed: %1</source>
+        <translation>A IA local falhou: %1</translation>
+    </message>
+    <message>
+        <source>The local AI did not find usable moments. Try another length.</source>
+        <translation>A IA local não encontrou momentos aproveitáveis. Tente outra duração.</translation>
+    </message>
+    <message>
+        <source>Could not write a copy of the project.</source>
+        <translation>Não foi possível gravar uma cópia do projeto.</translation>
+    </message>
+    <message>
+        <source>Project</source>
+        <translation>Projeto</translation>
+    </message>
+    <message>
+        <source>%1 - shorts</source>
+        <translation>%1 - cortes</translation>
+    </message>
+    <message>
+        <source>Making short %1 of %2…</source>
+        <translation>Criando o corte %1 de %2…</translation>
+    </message>
+    <message>
+        <source>No short could be made.</source>
+        <translation>Nenhum corte pôde ser criado.</translation>
+    </message>
+    <message>
+        <source>%1 of %2 shorts made, in %3</source>
+        <translation>%1 de %2 cortes criados, em %3</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n short(s) made, in %1</source>
+        <translation>
+            <numerusform>%n corte criado, em %1</numerusform>
+            <numerusform>%n cortes criados, em %1</numerusform>
         </translation>
     </message>
 </context>
