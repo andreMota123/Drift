@@ -18,6 +18,8 @@ Registro do que foi feito em cada dia. O mais recente fica no topo.
 
 **Cortes curtos** (commit `85f1d228`). Menu › Cortes curtos deste vídeo: a IA local lê as legendas, propõe momentos que funcionam sozinhos (título, tempo, primeira frase, motivo) e cada um aprovado vira um projeto vertical 9:16 numa pasta ao lado, feito por um Drift sem janela sobre uma cópia do projeto, sem tocar no original. Testado com um vídeo de 8 min 40 s: três cortes criados e o primeiro conferido na tela (36 s, começando exatamente no ponto escolhido, legendas no lugar). Detalhes em `docs/15-cortes-curtos.md`.
 
+**Enchimento e repetições** (commit `4a6efd25`). Menu › Remover enchimento e repetições: tomadas repetidas e falsos começos achados por regra (comparação de palavras entre frases; os modelos locais marcavam tudo como repetição), enchimento e comentários pela IA local, cortes com as pontas na pausa mais próxima e as legendas juntadas de volta num clipe. Numa gravação bruta real de 1:48 achou as 9 tomadas repetidas mantendo a última de cada, 31 de 34 pontas de corte caíram em silêncio, e o resultado ficou com 1:22. Detalhes em `docs/16-enchimento-e-repeticoes.md`.
+
 ## 2026-10-10
 
 **Engenharia reversa do CapCut.** Instalado o REA (github.com/morluto/rea) com Ghidra 12.1.4 e ferramentas de apoio em `~/.local/opt/rea-tools`. A interface do CapCut 3.9 é Qt 6/QML e estava embutida em texto puro nas DLLs: foram extraídos 1.554 arquivos QML e os ícones para `~/capcut/analise/qrc/`. As cores do tema foram lidas dos binários.

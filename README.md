@@ -43,6 +43,7 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 13. `docs/13-ponte-claude.md`: escolher entre a IA local e o Claude, na conversa e dentro do Drift.
 14. `docs/14-legendas-ia.md`: corrigir e traduzir legendas com a IA local.
 15. `docs/15-cortes-curtos.md`: transformar um vídeo longo em cortes verticais com a IA local.
+16. `docs/16-enchimento-e-repeticoes.md`: tirar tomadas repetidas, falsos começos, enchimento e comentários.
 
 ## Como usar a função Link no Drift
 
