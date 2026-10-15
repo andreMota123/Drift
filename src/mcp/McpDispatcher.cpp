@@ -1327,11 +1327,27 @@ QJsonObject McpDispatcher::opAddText(const QJsonObject &args)
     const QString newId = findNewClipId(before, clipIdSet(m_controller));
     if (newId.isEmpty())
         return err("bad_args", QStringLiteral("Text clip not added"));
-    const QPair<int, int> loc = m_controller->mcpLocateClip(newId);
-    const ClipRef ref{loc.first, loc.second, newId};
-    moveClipToRequested(ref, at);
+    QPair<int, int> loc = m_controller->mcpLocateClip(newId);
+    const double duration = jsonNumber(args.value(QStringLiteral("duration")), -1);
+    if (duration > 0)
+        m_controller->setClipDuration(loc.first, loc.second, duration);
+    loc = m_controller->mcpLocateClip(newId);
+    moveClipToRequested(ClipRef{loc.first, loc.second, newId}, at);
+    loc = m_controller->mcpLocateClip(newId);
+    const double start = m_controller->mcpCompactClip(loc.first, loc.second).value(QStringLiteral("start")).toDouble();
+    if (jsonBool(args.value(QStringLiteral("new_track"))) && qAbs(start - at) > 0.001) {
+        // The spot on the existing text lane is taken and the caller asked for that exact time:
+        // put the title on a fresh text lane on top, the way dropping one onto a busy lane does.
+        m_controller->addTrack(QStringLiteral("text"));
+        loc = m_controller->mcpLocateClip(newId);
+        m_controller->moveClipToTrack(loc.first, loc.second, 0, at);
+    }
     const ClipRef after = resolveClip(QJsonObject{{QStringLiteral("clip"), newId}});
-    return ok(clipFeedback(after));
+    if (!args.contains(QStringLiteral("at")))
+        return ok(clipFeedback(after));
+    // Same requested/placed pair as place_clip, so a caller sees when overlap-off moved it.
+    const double placed = m_controller->mcpCompactClip(after.track, after.clip).value(QStringLiteral("start")).toDouble();
+    return ok(clipFeedback(after, QJsonObject{{QStringLiteral("requested"), at}, {QStringLiteral("placed"), placed}}));
 }
 
 QJsonObject McpDispatcher::opSetText(const QJsonObject &args)

@@ -89,6 +89,7 @@ private slots:
     void inspectJobsCollapsed();
     void inspectIncludesProjectFields();
     void placeHonorsOverlapToggle();
+    void addTextNewTrackKeepsRequestedTime();
     void workAreaRoundTrip();
     void exportOptionsAndSettings();
     void exportVideoRequiresPath();
@@ -795,6 +796,35 @@ void McpTest::inspectIncludesProjectFields()
     const QJsonObject exportState = inspect.value(QStringLiteral("export")).toObject();
     QVERIFY(exportState.contains(QStringLiteral("active")));
     QVERIFY(exportState.contains(QStringLiteral("progress")));
+}
+
+void McpTest::addTextNewTrackKeepsRequestedTime()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    drift::mcp::McpDispatcher dispatcher(&state);
+
+    QVERIFY(dispatcher.applyOne(QStringLiteral("add_text"),
+                                {{QStringLiteral("text"), QStringLiteral("A")}, {QStringLiteral("at"), 0.0}})
+                .value(QStringLiteral("ok"))
+                .toBool());
+    // Same time, overlap off: pushed later by default, and the reply says so.
+    const QJsonObject pushed = dispatcher.applyOne(
+        QStringLiteral("add_text"), {{QStringLiteral("text"), QStringLiteral("B")}, {QStringLiteral("at"), 0.0}});
+    QCOMPARE(pushed.value(QStringLiteral("requested")).toDouble(), 0.0);
+    QVERIFY(pushed.value(QStringLiteral("placed")).toDouble() > 4.0);
+
+    // new_track:true keeps the time on a new text lane, and duration sets the length.
+    const int tracksBefore = state.tracks().size();
+    const QJsonObject kept = dispatcher.applyOne(
+        QStringLiteral("add_text"), {{QStringLiteral("text"), QStringLiteral("C")},
+                                     {QStringLiteral("at"), 0.0},
+                                     {QStringLiteral("duration"), 3.0},
+                                     {QStringLiteral("new_track"), true}});
+    QVERIFY(kept.value(QStringLiteral("ok")).toBool());
+    QCOMPARE(kept.value(QStringLiteral("placed")).toDouble(), 0.0);
+    QCOMPARE(kept.value(QStringLiteral("dur")).toDouble(), 3.0);
+    QCOMPARE(state.tracks().size(), tracksBefore + 1);
 }
 
 void McpTest::placeHonorsOverlapToggle()

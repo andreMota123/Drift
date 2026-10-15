@@ -657,9 +657,12 @@ const QList<Op> &ops()
 
         { "add_text", "text", "Put a title or caption on the timeline",
           "Add a text clip on a text track, creating one if needed, and return the new clip's id. "
-          "Empty text becomes \"Text\".",
+          "Empty text becomes \"Text\". With overlap off a taken spot pushes the clip later "
+          "(the reply's requested vs placed); new_track:true puts it on a new text lane at exactly `at` instead.",
           objectSchema({{QStringLiteral("text"), stringProp(QStringLiteral("Caption"))},
                         {QStringLiteral("at"), numberProp(QStringLiteral("Start seconds (default: playhead)"))},
+                        {QStringLiteral("duration"), numberProp(QStringLiteral("Length in seconds (default 5)"))},
+                        {QStringLiteral("new_track"), boolProp(QStringLiteral("If `at` is taken, use a new text lane at exactly `at`"))},
                         {QStringLiteral("preset"), stringProp(QStringLiteral("Optional text style pack id from list_text_presets"))}}) },
         { "set_text", "text", "Change caption copy or style",
           "Set text content and/or a partial style patch. Only supplied style keys change; omitted "
