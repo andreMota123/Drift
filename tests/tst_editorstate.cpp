@@ -23,6 +23,7 @@
 
 #include "engine/HwAccel.h"
 #include "engine/FrameCompositor.h"
+#include "models/FillerRemover.h"
 #include "models/AppController.h"
 #include "models/AssetLibrary.h"
 #include "MulticamImageProvider.h"
@@ -139,6 +140,8 @@ private slots:
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
     void subtitleTranslationAddsLaneAbove();
+    void fillerSpansAreFoundAndRemoved();
+    void cutCaptionsJoinBackIntoOneClip();
     void closeAllGapsPacksTrack();
     void relinkMediaRepointsAssetsAndClips();
     void referenceLinesPersistWithProject();
@@ -3177,6 +3180,70 @@ void EditorStateTest::transitionCurveSessionApplyAndCancel()
 
 // Link joins clips that did not come from the same media. They move and split together, but the
 // audio keeps its own duration and trim instead of being overwritten by the video's.
+void EditorStateTest::cutCaptionsJoinBackIntoOneClip()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    state.addSubtitleClip(0.0);
+    const QPair<int, int> loc{state.selectedTrack(), state.selectedClip()};
+    state.setSubtitleCues(loc.first, loc.second,
+                          {QVariantMap{{QStringLiteral("start"), 0.0}, {QStringLiteral("end"), 2.0}, {QStringLiteral("text"), QStringLiteral("um")}},
+                           QVariantMap{{QStringLiteral("start"), 2.0}, {QStringLiteral("end"), 4.0}, {QStringLiteral("text"), QStringLiteral("dois")}}});
+    // A stretch inside the second caption: the clip splits and "dois" ends up on both sides.
+    QVERIFY(state.cutTimeRange(2.5, 3.0));
+    int subtitleClips = 0;
+    for (const drift::Clip &clip : state.project()->tracks().at(loc.first).clips)
+        subtitleClips += clip.type == drift::ClipType::Subtitle;
+    QCOMPARE(subtitleClips, 2);
+
+    QCOMPARE(state.mergeTouchingSubtitleClips(), 1);
+    const auto &clips = state.project()->tracks().at(loc.first).clips;
+    QCOMPARE(clips.size(), 1);
+    QCOMPARE(clips.at(0).subtitleCues.size(), 2);
+    QCOMPARE(clips.at(0).subtitleCues.at(1).text, QStringLiteral("dois"));
+    QCOMPARE(clips.at(0).subtitleCues.at(1).endUs, drift::secondsToUs(3.5));
+}
+
+void EditorStateTest::fillerSpansAreFoundAndRemoved()
+{
+    // Whole words only, any case, edge punctuation ignored.
+    QCOMPARE(FillerRemover::locate(QStringLiteral("Esse é o você é"), QStringLiteral("é,")).first, 5);
+    QCOMPARE(FillerRemover::locate(QStringLiteral("Primeiro você, primeiro você corta"),
+                                   QStringLiteral("primeiro você,")).first, 0);
+    QCOMPARE(FillerRemover::locate(QStringLiteral("Que tipo de papel"), QStringLiteral("tipos")).first, -1);
+
+    const auto cut = [](const QString &line, const QString &words) {
+        const QPair<int, int> at = FillerRemover::locate(line, words);
+        return FillerRemover::removeSpan(line, at.first, at.second);
+    };
+    QCOMPARE(cut(QStringLiteral("Então, é, hoje a gente vai"), QStringLiteral("é,")),
+             QStringLiteral("Então, hoje a gente vai"));
+    QCOMPARE(cut(QStringLiteral("A a cola quente"), QStringLiteral("A")), QStringLiteral("A cola quente"));
+    QCOMPARE(cut(QStringLiteral("vai fazer, tipo, uma caixa"), QStringLiteral("tipo")),
+             QStringLiteral("vai fazer, uma caixa"));
+    QCOMPARE(cut(QStringLiteral("uma caixa de Natal, né?"), QStringLiteral("né")),
+             QStringLiteral("uma caixa de Natal?"));
+    QCOMPARE(cut(QStringLiteral("Eu acho que... não, deixa eu explicar"), QStringLiteral("Eu acho que...")),
+             QStringLiteral("Não, deixa eu explicar"));
+
+    // Retakes from a real raw recording: the earlier takes go, the last stays, and a sentence
+    // said once is left alone.
+    const QStringList kinds = FillerRemover::retakes({
+        QStringLiteral("Dessa vez eu quero ver a sua versão."),
+        QStringLiteral("Vamos testar um pouco da sua criatividade?"),
+        QStringLiteral("Eu vou lançar um mega desafio."),
+        QStringLiteral("Vamos testar um pouco da sua criatividade?"),
+        QStringLiteral("Eu vou lançar um mega desafio."),
+        QStringLiteral("Depois é só postar…"),
+        QStringLiteral("Depois é só postar a sua…"),
+        QStringLiteral("Depois é só postar a sua caixinha até o dia 7 de outubro."),
+        QStringLiteral("Os critérios são criatividade e combinação de elementos."),
+        QStringLiteral("Os critérios são criatividade e combinação de elementos.")});
+    QCOMPARE(kinds, (QStringList{QString(), QStringLiteral("retake"), QStringLiteral("retake"), QString(), QString(),
+                                 QStringLiteral("retake"), QStringLiteral("false_start"), QString(),
+                                 QStringLiteral("retake"), QString()}));
+}
+
 void EditorStateTest::subtitleTranslationAddsLaneAbove()
 {
     AssetLibrary library;

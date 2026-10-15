@@ -19,6 +19,7 @@
 #include "models/AssistantController.h"
 #include "models/CaptionAi.h"
 #include "models/ShortsMaker.h"
+#include "models/FillerRemover.h"
 #include "engine/VaapiZeroCopy.h"
 #include "ClipPreviewImageProvider.h"
 #include "DriftImageProvider.h"
@@ -541,6 +542,8 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("Drift", 1, 0, "CaptionAi", &captionAi);
     static ShortsMaker shortsMaker(&editorState);
     qmlRegisterSingletonInstance("Drift", 1, 0, "Shorts", &shortsMaker);
+    static FillerRemover fillerRemover(&editorState);
+    qmlRegisterSingletonInstance("Drift", 1, 0, "Fillers", &fillerRemover);
 
     app.installEventFilter(new FileOpenFilter(&editorState, &marketClient, &app));
     {

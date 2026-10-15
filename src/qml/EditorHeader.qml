@@ -243,6 +243,10 @@ Rectangle {
         id: shortsDialog
     }
 
+    FillerDialog {
+        id: fillerDialog
+    }
+
     RecordDialog {
         id: recordDialog
     }
@@ -515,6 +519,12 @@ Rectangle {
                         text: qsTr("Shorts from this video…")
                         icon.name: Theme.icons.scissors
                         onTriggered: shortsDialog.openDialog()
+                    }
+
+                    ThemedMenuItem {
+                        text: qsTr("Remove filler words…")
+                        icon.name: Theme.icons.wand
+                        onTriggered: fillerDialog.openDialog()
                     }
 
                     ThemedMenuItem {

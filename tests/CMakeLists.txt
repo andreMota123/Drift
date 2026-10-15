@@ -17,6 +17,7 @@ qt_add_executable(tst_editorstate
     # store test cannot see that half. Costs a Qt6::Quick link, but needs no QML engine —
     # requestImage is called directly.
     ../src/MulticamImageProvider.cpp
+    ../src/models/FillerRemover.cpp
     ../src/models/AppController.cpp
     ../src/models/AddonManager.cpp
     ../src/models/AssetLibrary.cpp

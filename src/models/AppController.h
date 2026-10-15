@@ -1042,6 +1042,17 @@ public:
     // between goes, and everything after closes up by the same amount. One undo step. Refuses
     // while any track is locked, since a track left behind would fall out of sync.
     Q_INVOKABLE bool cutTimeRange(double startSeconds, double endSeconds);
+    // Where a cut near `seconds` can go without clipping a word: the closest point, within
+    // `window` seconds either side, that is clearly quieter than the speech around it (a pause),
+    // else the quietest point within a short reach. 10 ms resolution, on the mix.
+    Q_INVOKABLE double quietestPointNear(double seconds, double window = 0.15) const;
+    // Same, telling whether a real pause was found (false: only the quietest point nearby).
+    double quietestPointNear(double seconds, double window, bool *foundPause) const;
+    // Joins subtitle clips that touch end to end on the same lane back into one, and a caption
+    // a cut split in two (same text either side of the seam) back into one caption. Cutting
+    // stretches out of the timeline leaves captions in pieces; this tidies them. One undo step.
+    // Returns how many seams were joined.
+    int mergeTouchingSubtitleClips();
     Q_INVOKABLE void alignSelectedClipLeft();
     Q_INVOKABLE void alignSelectedClipRight();
     Q_INVOKABLE void splitSelectedClipLeft();

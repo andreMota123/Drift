@@ -3785,6 +3785,10 @@
         <source>Subtitles translated</source>
         <translation>Legendas traduzidas</translation>
     </message>
+    <message>
+        <source>Captions joined</source>
+        <translation>Legendas unidas</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -5088,6 +5092,10 @@
     <message>
         <source>Shorts from this video…</source>
         <translation>Cortes curtos deste vídeo…</translation>
+    </message>
+    <message>
+        <source>Remove filler words…</source>
+        <translation>Remover enchimento e repetições…</translation>
     </message>
 </context>
 <context>
@@ -12981,6 +12989,110 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
         <translation>
             <numerusform>%n corte criado, em %1</numerusform>
             <numerusform>%n cortes criados, em %1</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>FillerDialog</name>
+    <message>
+        <source>Remove filler words</source>
+        <translation>Remover enchimento e repetições</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>Parar</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>repeated take</source>
+        <translation>tomada repetida</translation>
+    </message>
+    <message>
+        <source>false start</source>
+        <translation>falso começo</translation>
+    </message>
+    <message>
+        <source>aside</source>
+        <translation>comentário</translation>
+    </message>
+    <message>
+        <source>filler</source>
+        <translation>enchimento</translation>
+    </message>
+    <message>
+        <source>Finds repeated takes (the last one stays) and abandoned starts, and the local AI marks filler words (“é…”, “tipo”, “né”) and asides to the crew (those start unticked). What you keep ticked is cut from the video, the sound and the captions together. Listen with ▶ before cutting: word times are estimated.</source>
+        <translation>Encontra tomadas repetidas (fica a última) e frases começadas e abandonadas, e a IA local marca enchimento (“é…”, “tipo”, “né”) e comentários fora do conteúdo (esses vêm desmarcados). O que ficar marcado é cortado do vídeo, do som e das legendas juntos. Ouça com ▶ antes de cortar: o tempo das palavras é estimado.</translation>
+    </message>
+    <message>
+        <source>This project has no captions yet. Generate them first in the Captions tab: the AI finds the fillers in what is said.</source>
+        <translation>Este projeto ainda não tem legendas. Gere-as primeiro na aba Legendas: a busca usa o que é falado.</translation>
+    </message>
+    <message>
+        <source>Search again</source>
+        <translation>Buscar de novo</translation>
+    </message>
+    <message>
+        <source>Find filler words</source>
+        <translation>Encontrar</translation>
+    </message>
+    <message>
+        <source>%1 s</source>
+        <translation>%1 s</translation>
+    </message>
+    <message>
+        <source>listen first: no pause at an edge</source>
+        <translation>ouça antes: sem pausa numa das pontas</translation>
+    </message>
+    <message>
+        <source>Listen from just before</source>
+        <translation>Ouvir a partir de um pouco antes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Cut %n stretch(es)</source>
+        <translation>
+            <numerusform>Cortar %n trecho</numerusform>
+            <numerusform>Cortar %n trechos</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>FillerRemover</name>
+    <message>
+        <source>This project has no captions yet. Generate them first (Captions tab).</source>
+        <translation>Este projeto ainda não tem legendas. Gere-as primeiro (aba Legendas).</translation>
+    </message>
+    <message>
+        <source>The local AI did not answer, so only repeated takes are listed.</source>
+        <translation>A IA local não respondeu; só as tomadas repetidas foram listadas.</translation>
+    </message>
+    <message>
+        <source>Ollama is not answering. Open Ollama and try again.</source>
+        <translation>O Ollama não está respondendo. Abra o Ollama e tente de novo.</translation>
+    </message>
+    <message>
+        <source>The local AI failed: %1</source>
+        <translation>A IA local falhou: %1</translation>
+    </message>
+    <message>
+        <source>No filler words or repeated takes found.</source>
+        <translation>Nenhum enchimento ou tomada repetida encontrado.</translation>
+    </message>
+    <message>
+        <source>Filler words removed</source>
+        <translation>Enchimento removido</translation>
+    </message>
+    <message>
+        <source>Nothing could be cut. Is a track locked?</source>
+        <translation>Nada pôde ser cortado. Alguma faixa está travada?</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n stretch(es) cut. Ctrl+Z brings them back.</source>
+        <translation>
+            <numerusform>%n trecho cortado. Ctrl+Z traz de volta.</numerusform>
+            <numerusform>%n trechos cortados. Ctrl+Z traz de volta.</numerusform>
         </translation>
     </message>
 </context>

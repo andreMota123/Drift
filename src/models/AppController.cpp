@@ -6477,6 +6477,105 @@ bool AppController::cutTimeRange(double startSeconds, double endSeconds)
     return true;
 }
 
+namespace {
+// Defined with the other audio analysis helpers further down.
+QVector<float> blockingSpeechPeaks(const drift::Project &snap, double startSeconds, double durSeconds, int buckets);
+} // namespace
+
+double AppController::quietestPointNear(double seconds, double window) const
+{
+    return quietestPointNear(seconds, window, nullptr);
+}
+
+double AppController::quietestPointNear(double seconds, double window, bool *foundPause) const
+{
+    if (foundPause)
+        *foundPause = false;
+    window = qBound(0.02, window, 1.0);
+    // Look a little wider than the reach so the speech level around the point is known.
+    const double context = window + 0.6;
+    const double start = qMax(0.0, seconds - context);
+    const double dur = seconds + context - start;
+    const int buckets = qMax(4, int(qRound(dur * 100.0)));
+    const QVector<float> peaks = blockingSpeechPeaks(m_project.detachedCopy(), start, dur, buckets);
+    if (peaks.size() != buckets)
+        return seconds;
+    const auto timeOf = [&](int i) { return start + (i + 0.5) * dur / buckets; };
+    QVector<float> sorted = peaks;
+    std::sort(sorted.begin(), sorted.end());
+    const float speech = sorted.at(int(sorted.size() * 0.7));
+    if (speech <= 0.0f)
+        return seconds;
+    // A pause: well under the speech level here. The nearest one wins.
+    const float pause = speech * 0.25f;
+    int best = -1;
+    for (int i = 0; i < buckets; ++i) {
+        const double t = timeOf(i);
+        if (qAbs(t - seconds) > window || peaks.at(i) > pause)
+            continue;
+        if (best < 0 || qAbs(t - seconds) < qAbs(timeOf(best) - seconds))
+            best = i;
+    }
+    if (best >= 0) {
+        if (foundPause)
+            *foundPause = true;
+        return timeOf(best);
+    }
+    // No pause in reach: the quietest point close by.
+    const double reach = qMin(window, 0.12);
+    for (int i = 0; i < buckets; ++i) {
+        if (qAbs(timeOf(i) - seconds) > reach)
+            continue;
+        if (best < 0 || peaks.at(i) < peaks.at(best))
+            best = i;
+    }
+    return best >= 0 ? timeOf(best) : seconds;
+}
+
+int AppController::mergeTouchingSubtitleClips()
+{
+    const drift::Project before = m_project;
+    // A cut may leave a sliver of a few milliseconds between the pieces (minimum clip length).
+    constexpr drift::TimeUs touch = 100000; // 100 ms
+    int joined = 0;
+    for (drift::Track &track : m_project.tracks()) {
+        if (track.locked)
+            continue;
+        std::sort(track.clips.begin(), track.clips.end(),
+                  [](const drift::Clip &a, const drift::Clip &b) { return a.timelineStart < b.timelineStart; });
+        for (int i = 0; i + 1 < track.clips.size();) {
+            drift::Clip &left = track.clips[i];
+            const drift::Clip &right = track.clips.at(i + 1);
+            if (left.type != drift::ClipType::Subtitle || right.type != drift::ClipType::Subtitle
+                || qAbs(right.timelineStart - left.timelineEnd()) > touch) {
+                ++i;
+                continue;
+            }
+            const drift::TimeUs offset = right.timelineStart - left.timelineStart;
+            for (drift::SubtitleCue cue : right.subtitleCues) {
+                cue.startUs += offset;
+                cue.endUs += offset;
+                if (!left.subtitleCues.isEmpty() && left.subtitleCues.last().text == cue.text
+                    && qAbs(cue.startUs - left.subtitleCues.last().endUs) <= touch) {
+                    left.subtitleCues.last().endUs = cue.endUs;
+                    continue;
+                }
+                left.subtitleCues.append(cue);
+            }
+            left.timelineDuration = right.timelineEnd() - left.timelineStart;
+            left.srcOut = left.srcIn + left.timelineDuration;
+            left.name = drift::subtitleClipName(left.subtitleCues);
+            track.clips.removeAt(i + 1);
+            ++joined;
+        }
+    }
+    if (joined == 0)
+        return 0;
+    pushProjectEdit(before, tr("Captions joined"));
+    finishEdit(tr("Captions joined"));
+    return joined;
+}
+
 void AppController::splitAtPlayhead()
 {
     const drift::Project before = m_project;
