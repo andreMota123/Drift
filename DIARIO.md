@@ -20,6 +20,10 @@ Registro do que foi feito em cada dia. O mais recente fica no topo.
 
 **Enchimento e repetições** (commit `4a6efd25`). Menu › Remover enchimento e repetições: tomadas repetidas e falsos começos achados por regra (comparação de palavras entre frases; os modelos locais marcavam tudo como repetição), enchimento e comentários pela IA local, cortes com as pontas na pausa mais próxima e as legendas juntadas de volta num clipe. Numa gravação bruta real de 1:48 achou as 9 tomadas repetidas mantendo a última de cada, 31 de 34 pontas de corte caíram em silêncio, e o resultado ficou com 1:22. Detalhes em `docs/16-enchimento-e-repeticoes.md`.
 
+**Aprimorar qualidade** (commit `48b61e51`). Na aba Estabilização do clipe de vídeo: o trecho usado passa pelo Real-ESRGAN (baixado na primeira vez e conferido por hash) até a altura do projeto e vira um arquivo que substitui só a imagem do clipe; o som continua do original. Testado: 360p → 1080p, nitidez bem maior. Lento ainda (cerca de 0,5 s por quadro); conferir o uso do CUDA. Detalhes em `docs/17-aprimorar-qualidade.md`. Estado geral e como retomar: `docs/18-estado-2026-10-15.md`.
+
+**Instalação final do dia.** A build do aprimorar qualidade terminou às 18:40. Suítes conferidas nela (editor 147, agente 113, motor 138, núcleo 129; motor, agente e núcleo só passam dentro do sandbox de compilação, que monta o fonte em `/run/build/drift`). Exportada para os ramos master e stable do repositório local e instalada com `flatpak update`, sem precisar fechar o Drift: a versão nova vale a partir da próxima abertura. Ramo `capcut-style` enviado ao fork (`4a6efd25..48b61e51`).
+
 ## 2026-10-10
 
 **Engenharia reversa do CapCut.** Instalado o REA (github.com/morluto/rea) com Ghidra 12.1.4 e ferramentas de apoio em `~/.local/opt/rea-tools`. A interface do CapCut 3.9 é Qt 6/QML e estava embutida em texto puro nas DLLs: foram extraídos 1.554 arquivos QML e os ícones para `~/capcut/analise/qrc/`. As cores do tema foram lidas dos binários.

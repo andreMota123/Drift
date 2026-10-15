@@ -44,6 +44,8 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 14. `docs/14-legendas-ia.md`: corrigir e traduzir legendas com a IA local.
 15. `docs/15-cortes-curtos.md`: transformar um vídeo longo em cortes verticais com a IA local.
 16. `docs/16-enchimento-e-repeticoes.md`: tirar tomadas repetidas, falsos começos, enchimento e comentários.
+17. `docs/17-aprimorar-qualidade.md`: aprimorar vídeo de baixa resolução com IA local.
+18. `docs/18-estado-2026-10-15.md`: **estado geral e como retomar** (comece por aqui numa conversa nova).
 
 ## Como usar a função Link no Drift
 
