@@ -8,7 +8,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QFile>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QSet>
 #include <QTimer>
 
@@ -21,6 +23,26 @@ constexpr int kRequestTimeoutMs = 300000;
 
 const QString kDefaultUrl = QStringLiteral("http://127.0.0.1:11434");
 const QString kDefaultModel = QStringLiteral("qwen3:14b");
+const QUrl kPonteUrl(QStringLiteral("http://127.0.0.1:11500"));
+
+// Ops the bridged Claude may not run: there is no way to ask the user mid-request, so they are
+// refused and Claude is told to leave them to the user.
+QSet<QString> claudeBlockedOps()
+{
+    static const QStringList ops = {
+        QStringLiteral("remove_asset"), QStringLiteral("replace_asset"), QStringLiteral("relink_media"),
+        QStringLiteral("export_asset_image"), QStringLiteral("save_project"), QStringLiteral("load_project"),
+        QStringLiteral("new_project"), QStringLiteral("package_project"), QStringLiteral("export_video"),
+        QStringLiteral("export_with_preset"), QStringLiteral("export_selected_clips"),
+        QStringLiteral("restore_snapshot"), QStringLiteral("market_download"), QStringLiteral("install_addon"),
+        QStringLiteral("set_theme"), QStringLiteral("set_shortcut"), QStringLiteral("reset_shortcuts"),
+        QStringLiteral("set_beat_layers"), QStringLiteral("delete_user_text_preset"),
+        QStringLiteral("delete_text_animation_preset"), QStringLiteral("export_user_text_preset"),
+        QStringLiteral("export_text_animation_preset"), QStringLiteral("import_user_text_preset"),
+        QStringLiteral("import_text_animation_preset"), QStringLiteral("take_snapshot"),
+    };
+    return QSet<QString>(ops.begin(), ops.end());
+}
 
 // The homepage tools the model gets. capture/frames return images, which a text model cannot
 // read, and catalog is a large dump that search answers better.
@@ -71,7 +93,9 @@ void AssistantController::setModel(const QString &model)
 {
     if (model.isEmpty() || model == m_model)
         return;
-    unloadModel();
+    if (!usingClaude())
+        unloadModel();
+    m_claudeSession.clear();
     m_model = model;
     QSettings settings;
     settings.setValue(QStringLiteral("assistant/model"), m_model);
@@ -288,6 +312,10 @@ void AssistantController::send(const QString &text)
         return;
     if (!m_available)
         refreshAvailability();
+    if (usingClaude()) {
+        sendViaClaude(request);
+        return;
+    }
     appendMessage(QStringLiteral("user"), request);
     m_turnMessageIndex = m_messages.size() - 1;
     m_turnHistoryIndex = historyIndex();
@@ -494,6 +522,8 @@ void AssistantController::finishTurn(const QString &reply, bool failed)
                                      {QStringLiteral("content"), reply}});
     }
     m_turn = {};
+    if (m_controller && m_controller->mcpServer())
+        m_controller->mcpServer()->setBlockedOps({});
     setBusy(false);
 }
 
@@ -501,6 +531,13 @@ void AssistantController::stop()
 {
     if (!m_busy)
         return;
+    if (usingClaude()) {
+        QNetworkRequest request(kPonteUrl.resolved(QUrl(QStringLiteral("/stop"))));
+        request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+        request.setRawHeader("X-Ponte-Token", ponteToken());
+        QNetworkReply *stopReply = m_net->post(request, QByteArrayLiteral("{}"));
+        connect(stopReply, &QNetworkReply::finished, stopReply, &QObject::deleteLater);
+    }
     if (m_reply) {
         QNetworkReply *reply = m_reply;
         m_reply = nullptr;
@@ -514,8 +551,10 @@ void AssistantController::clear()
     stop();
     m_messages.clear();
     m_history = {};
+    m_claudeSession.clear();
     emit messagesChanged();
-    unloadModel();
+    if (!usingClaude())
+        unloadModel();
 }
 
 void AssistantController::undoRequest(int messageIndex)
@@ -544,6 +583,11 @@ void AssistantController::refreshAvailability()
         reply->deleteLater();
         m_installedModels.clear();
         if (reply->error() != QNetworkReply::NoError) {
+            m_installedModels.append(claudeModelName());
+            if (usingClaude()) {
+                checkPonte();
+                return;
+            }
             m_available = false;
             m_status = tr("Ollama is not answering at %1. Open Ollama and try again.").arg(m_baseUrl.toString());
             emit availabilityChanged();
@@ -556,6 +600,11 @@ void AssistantController::refreshAvailability()
             if (family == QLatin1String("bert") || family.contains(QLatin1String("embed")))
                 continue; // embedding models cannot chat
             m_installedModels.append(info.value(QStringLiteral("name")).toString());
+        }
+        m_installedModels.append(claudeModelName());
+        if (usingClaude()) {
+            checkPonte();
+            return;
         }
         m_available = m_installedModels.contains(m_model);
         m_status = m_available ? tr("Local AI ready: %1").arg(m_model)
@@ -590,4 +639,216 @@ void AssistantController::setBusy(bool busy)
         return;
     m_busy = busy;
     emit busyChanged();
+}
+
+// --- Claude through the bridge -----------------------------------------------------------
+
+QByteArray AssistantController::ponteToken() const
+{
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+               + QStringLiteral("/drift-claude-ponte.token"));
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    return file.readAll().trimmed();
+}
+
+void AssistantController::checkPonte()
+{
+    const QByteArray token = ponteToken();
+    if (token.isEmpty()) {
+        m_available = false;
+        m_status = tr("The Claude bridge is not installed. See docs/13-ponte-claude.md in the project folder.");
+        emit availabilityChanged();
+        return;
+    }
+    QNetworkRequest request(kPonteUrl.resolved(QUrl(QStringLiteral("/status"))));
+    request.setRawHeader("X-Ponte-Token", token);
+    request.setTransferTimeout(30000);
+    QNetworkReply *reply = m_net->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) {
+            m_available = false;
+            m_status = tr("The Claude bridge is not running. Start it with: systemctl --user start drift-claude-ponte");
+        } else if (!QJsonDocument::fromJson(reply->readAll()).object().value(QStringLiteral("loggedIn")).toBool()) {
+            m_available = false;
+            m_status = tr("Claude Code is not signed in. Run in a terminal: claude auth login");
+        } else {
+            m_available = true;
+            m_status = tr("Claude ready, through your Claude account");
+        }
+        emit availabilityChanged();
+    });
+}
+
+void AssistantController::sendViaClaude(const QString &text)
+{
+    drift::mcp::McpServer *server = m_controller ? m_controller->mcpServer() : nullptr;
+    if (!server) {
+        appendMessage(QStringLiteral("assistant"), tr("Agent access is not available in this build."),
+                      QVariantMap{{QStringLiteral("failed"), true}});
+        return;
+    }
+    // Claude reaches the project through Drift's own agent access, so it has to be on.
+    if (!server->running() && !server->start()) {
+        appendMessage(QStringLiteral("assistant"), tr("Could not turn on agent access: %1").arg(server->error()),
+                      QVariantMap{{QStringLiteral("failed"), true}});
+        return;
+    }
+    server->setBlockedOps(claudeBlockedOps());
+
+    appendMessage(QStringLiteral("user"), text);
+    m_turnMessageIndex = m_messages.size() - 1;
+    m_turnHistoryIndex = historyIndex();
+    m_turn = QJsonArray{QJsonObject{{QStringLiteral("role"), QStringLiteral("user")},
+                                    {QStringLiteral("content"), text}}};
+    m_outcomes.clear();
+    m_outcomeOrder.clear();
+    m_claudeBuffer.clear();
+    m_claudeCallArgs.clear();
+    m_claudeCallMessage.clear();
+    m_claudeAnswered = false;
+    setBusy(true);
+
+    QJsonObject body{{QStringLiteral("prompt"), text},
+                     {QStringLiteral("mcpUrl"), server->url()},
+                     {QStringLiteral("mcpToken"), server->token()}};
+    if (!m_claudeSession.isEmpty())
+        body.insert(QStringLiteral("sessionId"), m_claudeSession);
+    QNetworkRequest request(kPonteUrl.resolved(QUrl(QStringLiteral("/run"))));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    request.setRawHeader("X-Ponte-Token", ponteToken());
+    request.setTransferTimeout(0);
+    m_reply = m_net->post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    QNetworkReply *reply = m_reply;
+    connect(reply, &QNetworkReply::readyRead, this, &AssistantController::readClaudeStream);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] { finishClaude(reply); });
+}
+
+void AssistantController::readClaudeStream()
+{
+    if (!m_reply)
+        return;
+    m_claudeBuffer += m_reply->readAll();
+    int newline;
+    while ((newline = m_claudeBuffer.indexOf('\n')) >= 0) {
+        const QByteArray line = m_claudeBuffer.left(newline).trimmed();
+        m_claudeBuffer.remove(0, newline + 1);
+        if (!line.isEmpty())
+            handleClaudeEvent(QJsonDocument::fromJson(line).object());
+    }
+}
+
+void AssistantController::handleClaudeEvent(const QJsonObject &event)
+{
+    const QString type = event.value(QStringLiteral("type")).toString();
+    if (event.contains(QStringLiteral("session_id")))
+        m_claudeSession = event.value(QStringLiteral("session_id")).toString();
+
+    if (type == QLatin1String("assistant")) {
+        for (const QJsonValue &value :
+             event.value(QStringLiteral("message")).toObject().value(QStringLiteral("content")).toArray()) {
+            const QJsonObject block = value.toObject();
+            if (block.value(QStringLiteral("type")).toString() != QLatin1String("tool_use"))
+                continue;
+            QString name = block.value(QStringLiteral("name")).toString();
+            name.remove(QStringLiteral("mcp__drift__"));
+            const QJsonObject input = block.value(QStringLiteral("input")).toObject();
+            // Reading tools are the model looking around; only edits get a line in the panel.
+            if (kModelTools.contains(name) && name != QLatin1String("apply"))
+                continue;
+            if (QSet<QString>{QStringLiteral("catalog"), QStringLiteral("capture"), QStringLiteral("frames"),
+                              QStringLiteral("activity")}
+                    .contains(name))
+                continue;
+            const QJsonObject asApply = name == QLatin1String("apply")
+                                            ? input
+                                            : QJsonObject{{QStringLiteral("ops"),
+                                                           QJsonArray{QJsonObject{{QStringLiteral("tool"), name},
+                                                                                  {QStringLiteral("args"), input}}}}};
+            const QString id = block.value(QStringLiteral("id")).toString();
+            m_claudeCallArgs.insert(id, asApply);
+            appendMessage(QStringLiteral("action"), describeCall(QStringLiteral("apply"), asApply),
+                          QVariantMap{{QStringLiteral("failed"), false}});
+            m_claudeCallMessage.insert(id, m_messages.size() - 1);
+        }
+        return;
+    }
+
+    if (type == QLatin1String("user")) {
+        for (const QJsonValue &value :
+             event.value(QStringLiteral("message")).toObject().value(QStringLiteral("content")).toArray()) {
+            const QJsonObject block = value.toObject();
+            const QString id = block.value(QStringLiteral("tool_use_id")).toString();
+            if (block.value(QStringLiteral("type")).toString() != QLatin1String("tool_result")
+                || !m_claudeCallArgs.contains(id))
+                continue;
+            QString text;
+            const QJsonValue content = block.value(QStringLiteral("content"));
+            if (content.isString()) {
+                text = content.toString();
+            } else {
+                for (const QJsonValue &part : content.toArray())
+                    text += part.toObject().value(QStringLiteral("text")).toString();
+            }
+            const QJsonObject args = m_claudeCallArgs.value(id);
+            QJsonObject reply = QJsonDocument::fromJson(text.toUtf8()).object();
+            if (!reply.contains(QStringLiteral("done"))) {
+                // A toolbox op called directly answers with its own result; shape it like apply.
+                const QString op = args.value(QStringLiteral("ops")).toArray().first().toObject()
+                                       .value(QStringLiteral("tool")).toString();
+                reply = QJsonObject{{QStringLiteral("ok"), reply.value(QStringLiteral("ok")).toBool(true)},
+                                    {QStringLiteral("tool"), op},
+                                    {QStringLiteral("done"), reply.value(QStringLiteral("ok")).toBool(true)
+                                                                 ? QJsonArray{QJsonObject{{QStringLiteral("tool"), op},
+                                                                                          {QStringLiteral("result"), reply}}}
+                                                                 : QJsonArray{}}};
+            }
+            const QString shaped = QString::fromUtf8(QJsonDocument(reply).toJson(QJsonDocument::Compact));
+            recordOutcome(args, shaped);
+            const bool failed = block.value(QStringLiteral("is_error")).toBool()
+                                || shaped.contains(QLatin1String("\"ok\":false"));
+            const int index = m_claudeCallMessage.value(id, -1);
+            if (failed && index >= 0 && index < m_messages.size()) {
+                QVariantMap message = m_messages.at(index).toMap();
+                message.insert(QStringLiteral("failed"), true);
+                m_messages[index] = message;
+                emit messagesChanged();
+            }
+        }
+        return;
+    }
+
+    if (type == QLatin1String("result")) {
+        m_claudeAnswered = true;
+        QString text = event.value(QStringLiteral("result")).toString().trimmed();
+        const bool failed = event.value(QStringLiteral("is_error")).toBool();
+        if (text.isEmpty())
+            text = failed ? tr("Claude could not finish this request.") : tr("Done.");
+        finishTurn(text, failed);
+        return;
+    }
+
+    if (type == QLatin1String("ponte_error")) {
+        m_claudeAnswered = true;
+        finishTurn(tr("Claude Code stopped with an error: %1")
+                       .arg(event.value(QStringLiteral("stderr")).toString().trimmed().right(300)),
+                   true);
+    }
+}
+
+void AssistantController::finishClaude(QNetworkReply *reply)
+{
+    reply->deleteLater();
+    if (reply != m_reply)
+        return;
+    readClaudeStream();
+    m_reply = nullptr;
+    if (!m_busy || m_claudeAnswered)
+        return;
+    if (reply->error() == QNetworkReply::OperationCanceledError)
+        return;
+    const QString detail = reply->error() == QNetworkReply::NoError ? tr("the bridge closed without an answer")
+                                                                    : reply->errorString();
+    finishTurn(tr("Could not reach Claude: %1").arg(detail), true);
 }

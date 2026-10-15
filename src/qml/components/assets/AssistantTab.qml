@@ -304,7 +304,7 @@ Item {
                     ThemedTextArea {
                         id: input
                         placeholderText: Assistant.available ? qsTr("What should I change?")
-                                                             : qsTr("Open Ollama to use the assistant")
+                                                             : qsTr("Not available right now: see the note above")
                         placeholderTextColor: Theme.mutedForeground
                         enabled: !Assistant.busy
                         Keys.onPressed: function(event) {

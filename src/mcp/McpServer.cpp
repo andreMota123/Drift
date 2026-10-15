@@ -175,8 +175,32 @@ QJsonValue McpServer::handleRpc(const QString &toolbox, const QJsonValue &body)
     });
 }
 
+QString McpServer::blockedOpIn(const QString &name, const QJsonObject &args) const
+{
+    if (m_blockedOps.isEmpty())
+        return {};
+    if (m_blockedOps.contains(name))
+        return name;
+    if (name != QLatin1String("apply"))
+        return {};
+    for (const QJsonValue &op : args.value(QStringLiteral("ops")).toArray()) {
+        const QString tool = op.toObject().value(QStringLiteral("tool")).toString();
+        if (m_blockedOps.contains(tool))
+            return tool;
+    }
+    return {};
+}
+
 QJsonObject McpServer::dispatchTool(const QString &name, const QJsonObject &args)
 {
+    if (const QString blocked = blockedOpIn(name, args); !blocked.isEmpty()) {
+        return textResult(QJsonObject{
+            {QStringLiteral("ok"), false},
+            {QStringLiteral("error"), QStringLiteral("blocked")},
+            {QStringLiteral("detail"), QStringLiteral("%1 is blocked for this session: it touches files, settings "
+                                                      "or downloads. Nothing was applied. Ask the user to do it "
+                                                      "in Drift.").arg(blocked)}});
+    }
     if (name == QLatin1String("catalog"))
         return textResult(catalogPayload(args));
     if (name == QLatin1String("toolbox")) {

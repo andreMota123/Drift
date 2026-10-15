@@ -12699,5 +12699,45 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
         <source>The model %1 is not installed in Ollama. Pick another one.</source>
         <translation>O modelo %1 não está instalado no Ollama. Escolha outro.</translation>
     </message>
+    <message>
+        <source>The Claude bridge is not installed. See docs/13-ponte-claude.md in the project folder.</source>
+        <translation>A ponte do Claude não está instalada. Veja docs/13-ponte-claude.md na pasta do projeto.</translation>
+    </message>
+    <message>
+        <source>The Claude bridge is not running. Start it with: systemctl --user start drift-claude-ponte</source>
+        <translation>A ponte do Claude não está ligada. Ligue com: systemctl --user start drift-claude-ponte</translation>
+    </message>
+    <message>
+        <source>Claude Code is not signed in. Run in a terminal: claude auth login</source>
+        <translation>O Claude Code não está logado. Rode num terminal: claude auth login</translation>
+    </message>
+    <message>
+        <source>Claude ready, through your Claude account</source>
+        <translation>Claude pronto, pela sua conta do Claude</translation>
+    </message>
+    <message>
+        <source>Agent access is not available in this build.</source>
+        <translation>O acesso de agente não está disponível nesta versão.</translation>
+    </message>
+    <message>
+        <source>Could not turn on agent access: %1</source>
+        <translation>Não foi possível ligar o acesso de agente: %1</translation>
+    </message>
+    <message>
+        <source>Claude could not finish this request.</source>
+        <translation>O Claude não conseguiu terminar este pedido.</translation>
+    </message>
+    <message>
+        <source>Claude Code stopped with an error: %1</source>
+        <translation>O Claude Code parou com um erro: %1</translation>
+    </message>
+    <message>
+        <source>the bridge closed without an answer</source>
+        <translation>a ponte fechou sem resposta</translation>
+    </message>
+    <message>
+        <source>Could not reach Claude: %1</source>
+        <translation>Não foi possível falar com o Claude: %1</translation>
+    </message>
 </context>
 </TS>

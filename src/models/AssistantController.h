@@ -54,6 +54,9 @@ public:
     // Ops that touch files, settings or quota rather than the timeline. The assistant may still
     // run them, but only after the user says yes in the panel.
     static bool needsConfirmation(const QString &op);
+    // The entry in the model list that hands the request to Claude through the local bridge
+    // (~/.local/bin/drift-claude-ponte) instead of a local Ollama model.
+    static QString claudeModelName() { return QStringLiteral("Claude"); }
 
 signals:
     void messagesChanged();
@@ -78,6 +81,13 @@ private:
     QString cheatSheet();
     void recordOutcome(const QJsonObject &args, const QString &result);
     void unloadModel();
+    bool usingClaude() const { return m_model == claudeModelName(); }
+    QByteArray ponteToken() const;
+    void checkPonte();
+    void sendViaClaude(const QString &text);
+    void readClaudeStream();
+    void handleClaudeEvent(const QJsonObject &event);
+    void finishClaude(QNetworkReply *reply);
 
     AppController *m_controller = nullptr;
     QNetworkAccessManager *m_net = nullptr;
@@ -106,6 +116,14 @@ private:
     int m_steps = 0;
     int m_turnHistoryIndex = -1;
     int m_turnMessageIndex = -1;
+
+    // Claude through the bridge: the session to resume, the line buffer of the event stream,
+    // and per tool call the args (shaped like apply) and the panel line that shows it.
+    QString m_claudeSession;
+    QByteArray m_claudeBuffer;
+    QHash<QString, QJsonObject> m_claudeCallArgs;
+    QHash<QString, int> m_claudeCallMessage;
+    bool m_claudeAnswered = false;
 
     QJsonArray m_pendingCalls;
     int m_pendingFrom = 0;

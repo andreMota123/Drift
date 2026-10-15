@@ -1,5 +1,7 @@
 #include <QtTest>
 
+#include "mcp/McpServer.h"
+
 #include <QAbstractSocket>
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -90,6 +92,7 @@ private slots:
     void inspectIncludesProjectFields();
     void placeHonorsOverlapToggle();
     void addTextNewTrackKeepsRequestedTime();
+    void blockedOpsAreRefused();
     void workAreaRoundTrip();
     void exportOptionsAndSettings();
     void exportVideoRequiresPath();
@@ -796,6 +799,36 @@ void McpTest::inspectIncludesProjectFields()
     const QJsonObject exportState = inspect.value(QStringLiteral("export")).toObject();
     QVERIFY(exportState.contains(QStringLiteral("active")));
     QVERIFY(exportState.contains(QStringLiteral("progress")));
+}
+
+void McpTest::blockedOpsAreRefused()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    drift::mcp::McpServer *server = state.mcpServer();
+    QVERIFY(server);
+    const auto call = [server](const QString &name, const QJsonObject &args) {
+        const QJsonObject request{{QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
+                                  {QStringLiteral("id"), 1},
+                                  {QStringLiteral("method"), QStringLiteral("tools/call")},
+                                  {QStringLiteral("params"), QJsonObject{{QStringLiteral("name"), name},
+                                                                         {QStringLiteral("arguments"), args}}}};
+        const QJsonObject result = server->handleRpc(QString(), request).toObject().value(QStringLiteral("result")).toObject();
+        return result.value(QStringLiteral("content")).toArray().first().toObject().value(QStringLiteral("text")).toString();
+    };
+    const QJsonObject saveBatch{{QStringLiteral("ops"),
+                                 QJsonArray{QJsonObject{{QStringLiteral("tool"), QStringLiteral("save_project")},
+                                                        {QStringLiteral("args"), QJsonObject{}}}}}};
+
+    server->setBlockedOps({QStringLiteral("save_project")});
+    QVERIFY(call(QStringLiteral("apply"), saveBatch).contains(QStringLiteral("\"error\":\"blocked\"")));
+    QVERIFY(call(QStringLiteral("save_project"), {}).contains(QStringLiteral("\"error\":\"blocked\"")));
+    // Anything else still runs.
+    QVERIFY(call(QStringLiteral("add_text"), {{QStringLiteral("text"), QStringLiteral("A")}})
+                .contains(QStringLiteral("\"ok\":true")));
+
+    server->setBlockedOps({});
+    QVERIFY(!call(QStringLiteral("apply"), saveBatch).contains(QStringLiteral("\"error\":\"blocked\"")));
 }
 
 void McpTest::addTextNewTrackKeepsRequestedTime()

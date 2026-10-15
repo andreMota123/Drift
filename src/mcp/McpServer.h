@@ -3,6 +3,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <memory>
 
@@ -34,6 +35,9 @@ public:
     // the defaults: a freshly generated token on port 4731.
     void setToken(const QString &token) { m_fixedToken = token; }
     void setPort(quint16 port) { m_requestedPort = port; }
+    // Ops refused with "blocked" until cleared, for callers the user cannot be asked from
+    // mid-request (the in-editor assistant driving an external agent). Empty = nothing blocked.
+    void setBlockedOps(const QSet<QString> &ops) { m_blockedOps = ops; }
 
 public slots:
     bool start();
@@ -47,9 +51,11 @@ signals:
 private:
     QString makeToken() const;
     QJsonObject dispatchTool(const QString &name, const QJsonObject &args);
+    QString blockedOpIn(const QString &name, const QJsonObject &args) const;
 
     AppController *m_controller = nullptr;
     std::unique_ptr<McpDispatcher> m_dispatcher;
+    QSet<QString> m_blockedOps;
     QThread *m_thread = nullptr;
     McpHttp *m_http = nullptr;
     QString m_token;
