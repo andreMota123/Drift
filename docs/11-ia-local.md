@@ -61,7 +61,7 @@ Medido com dez vídeos 4K HEVC: 7,8 GB e subindo antes, 3,9 GB estáveis depois.
 ## Ordem sugerida
 
 1. ~~Assistente dentro do Drift (1)~~: feito em 2026-10-15, ver `docs/12-assistente.md`.
-2. Legendas: correção e tradução (2, 3).
+2. ~~Legendas: correção e tradução (2, 3)~~: feito em 2026-10-15, ver `docs/14-legendas-ia.md`.
 3. Cortes curtos a partir de vídeo longo (5) e palavras de preenchimento (6).
 4. Aprimorar qualidade e Whisper menor (11, 12).
 5. Busca de mídia pelo conteúdo (7) e capa (8, 10).

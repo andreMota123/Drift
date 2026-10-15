@@ -41,6 +41,7 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 11. `docs/11-ia-local.md`: a IA que roda neste PC (Ollama e ComfyUI), o que dá para levar ao Drift e em que ordem.
 12. `docs/12-assistente.md`: o assistente dentro do Drift, como funciona, segurança, testes e limites.
 13. `docs/13-ponte-claude.md`: escolher entre a IA local e o Claude, na conversa e dentro do Drift.
+14. `docs/14-legendas-ia.md`: corrigir e traduzir legendas com a IA local.
 
 ## Como usar a função Link no Drift
 
