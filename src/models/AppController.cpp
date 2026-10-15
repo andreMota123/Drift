@@ -12542,6 +12542,34 @@ void AppController::setSubtitleCues(int trackIndex, int clipIndex, const QVarian
     finishEdit(tr("Subtitles updated"));
 }
 
+QString AppController::addSubtitleTranslation(int trackIndex, int clipIndex, const QVariantList &cues)
+{
+    if (!isValidClipIndex(trackIndex, clipIndex))
+        return {};
+    const drift::Clip source = m_project.tracks().at(trackIndex).clips.at(clipIndex);
+    if (source.type != drift::ClipType::Subtitle)
+        return {};
+
+    const drift::Project before = m_project;
+    const int lane = drift::insertTrackAboveForClipType(m_project, trackIndex, drift::ClipType::Subtitle);
+    if (lane < 0)
+        return {};
+    drift::Clip clip = source;
+    clip.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    clip.linkId.clear();
+    clip.subtitleCues = subtitleCuesFromMap(cues);
+    clip.name = drift::subtitleClipName(clip.subtitleCues);
+    const double x = source.transformX.evaluateAt(0);
+    const double y = source.transformY.evaluateAt(0);
+    const double w = source.transformW.evaluateAt(0);
+    const double h = source.transformH.evaluateAt(0);
+    setClipLayoutPixels(clip, x, qMax(0.0, y - h * 0.55), w, h);
+    m_project.tracks()[lane].clips.append(clip);
+    pushProjectEdit(before, tr("Subtitles translated"));
+    finishEdit(tr("Subtitles translated"));
+    return clip.id;
+}
+
 void AppController::previewSetSubtitleCues(int trackIndex, int clipIndex, const QVariantList &cues)
 {
     if (trackIndex < 0 || trackIndex >= m_project.tracks().size())

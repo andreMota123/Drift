@@ -1072,6 +1072,9 @@ public:
     Q_INVOKABLE void endTextEdit();
     bool inlineTextEditing() const { return m_inlineTextEditing; }
     Q_INVOKABLE void setSubtitleCues(int trackIndex, int clipIndex, const QVariantList &cues);
+    // A copy of the subtitle clip with these cues, on a new subtitle lane right above it and
+    // nudged up so both read at once (bilingual captions). Returns the new clip's id.
+    Q_INVOKABLE QString addSubtitleTranslation(int trackIndex, int clipIndex, const QVariantList &cues);
     Q_INVOKABLE void previewSetSubtitleCues(int trackIndex, int clipIndex, const QVariantList &cues);
     Q_INVOKABLE double subtitleLocalPlayheadSeconds(int trackIndex, int clipIndex) const;
     Q_INVOKABLE void upsertSubtitleCueAtPlayhead(int trackIndex, int clipIndex, const QString &text);

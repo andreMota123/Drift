@@ -138,6 +138,7 @@ private slots:
     void linkedAudioUnlinkAndMove();
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
+    void subtitleTranslationAddsLaneAbove();
     void closeAllGapsPacksTrack();
     void relinkMediaRepointsAssetsAndClips();
     void referenceLinesPersistWithProject();
@@ -3176,6 +3177,42 @@ void EditorStateTest::transitionCurveSessionApplyAndCancel()
 
 // Link joins clips that did not come from the same media. They move and split together, but the
 // audio keeps its own duration and trim instead of being overwritten by the video's.
+void EditorStateTest::subtitleTranslationAddsLaneAbove()
+{
+    AssetLibrary library;
+    AppController state(&library);
+    state.addSubtitleClip(0.0);
+    const QPair<int, int> loc{state.selectedTrack(), state.selectedClip()};
+    QVERIFY(loc.first >= 0 && loc.second >= 0);
+    const QVariantList original{
+        QVariantMap{{QStringLiteral("start"), 0.0}, {QStringLiteral("end"), 1.5}, {QStringLiteral("text"), QStringLiteral("Olá")}},
+        QVariantMap{{QStringLiteral("start"), 1.5}, {QStringLiteral("end"), 3.0}, {QStringLiteral("text"), QStringLiteral("tudo bem")}}};
+    state.setSubtitleCues(loc.first, loc.second, original);
+    const int tracksBefore = state.project()->tracks().size();
+    const drift::Clip source = state.project()->tracks().at(loc.first).clips.at(loc.second);
+
+    const QVariantList translated{
+        QVariantMap{{QStringLiteral("start"), 0.0}, {QStringLiteral("end"), 1.5}, {QStringLiteral("text"), QStringLiteral("Hello")}},
+        QVariantMap{{QStringLiteral("start"), 1.5}, {QStringLiteral("end"), 3.0}, {QStringLiteral("text"), QStringLiteral("all good")}}};
+    const QString id = state.addSubtitleTranslation(loc.first, loc.second, translated);
+    QVERIFY(!id.isEmpty());
+    QCOMPARE(state.project()->tracks().size(), tracksBefore + 1);
+
+    const QPair<int, int> added = state.mcpLocateClip(id);
+    // The new lane sits directly above the source (track 0 is the top).
+    QCOMPARE(added.first, loc.first);
+    const drift::Clip &copy = state.project()->tracks().at(added.first).clips.at(added.second);
+    QCOMPARE(copy.subtitleCues.size(), 2);
+    QCOMPARE(copy.subtitleCues.at(1).text, QStringLiteral("all good"));
+    QCOMPARE(copy.subtitleCues.at(1).startUs, source.subtitleCues.at(1).startUs);
+    QCOMPARE(copy.timelineStart, source.timelineStart);
+    QVERIFY(copy.transformY.evaluateAt(0) < source.transformY.evaluateAt(0));
+    // The original is untouched.
+    const QPair<int, int> moved = state.mcpLocateClip(source.id);
+    QCOMPARE(state.project()->tracks().at(moved.first).clips.at(moved.second).subtitleCues.at(0).text,
+             QStringLiteral("Olá"));
+}
+
 void EditorStateTest::mainTrackMagnetClosesGaps()
 {
     AssetLibrary library;

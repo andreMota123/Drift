@@ -3781,6 +3781,10 @@
         <source>A clip under that stretch could not be cut</source>
         <translation>Um clipe sob esse trecho não pôde ser cortado</translation>
     </message>
+    <message>
+        <source>Subtitles translated</source>
+        <translation>Legendas traduzidas</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -9947,6 +9951,62 @@ Se a reprodução travar, experimente outro.</translation>
         <source>%1 s cut out. Ctrl+Z brings it back.</source>
         <translation>%1 s cortados. Ctrl+Z traz de volta.</translation>
     </message>
+    <message>
+        <source>Fix with AI</source>
+        <translation>Corrigir com IA</translation>
+    </message>
+    <message>
+        <source>Fix spelling, punctuation and misheard words with the local AI. You review every change.</source>
+        <translation>Corrige ortografia, pontuação e palavras mal ouvidas com a IA local. Você revisa cada mudança.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>Traduzir</translation>
+    </message>
+    <message>
+        <source>Add a translated copy on a new lane, above these captions</source>
+        <translation>Adiciona uma cópia traduzida numa faixa nova, acima destas legendas</translation>
+    </message>
+    <message>
+        <source>Translating… Cancel</source>
+        <translation>Traduzindo… Cancelar</translation>
+    </message>
+    <message>
+        <source>Fixing… Cancel</source>
+        <translation>Corrigindo… Cancelar</translation>
+    </message>
+    <message>
+        <source>Portuguese (Brazil)</source>
+        <translation>Português (Brasil)</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>Inglês</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>Espanhol</translation>
+    </message>
+    <message>
+        <source>French</source>
+        <translation>Francês</translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation>Italiano</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation>Alemão</translation>
+    </message>
+    <message>
+        <source>Japanese</source>
+        <translation>Japonês</translation>
+    </message>
+    <message>
+        <source>Chinese (Simplified)</source>
+        <translation>Chinês (simplificado)</translation>
+    </message>
 </context>
 <context>
     <name>SubtitleProgressDialog</name>
@@ -12738,6 +12798,70 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Could not reach Claude: %1</source>
         <translation>Não foi possível falar com o Claude: %1</translation>
+    </message>
+</context>
+<context>
+    <name>CaptionReviewDialog</name>
+    <message>
+        <source>Review caption corrections</source>
+        <translation>Revisar correções das legendas</translation>
+    </message>
+    <message numerus="yes">
+        <source>Apply %n correction(s)</source>
+        <translation>
+            <numerusform>Aplicar %n correção</numerusform>
+            <numerusform>Aplicar %n correções</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The local AI suggests these fixes. Times stay as they are; untick any line you want to keep.</source>
+        <translation>A IA local sugere estas correções. Os tempos não mudam; desmarque as linhas que quiser manter como estão.</translation>
+    </message>
+</context>
+<context>
+    <name>CaptionAi</name>
+    <message>
+        <source>Select a subtitle clip with captions first.</source>
+        <translation>Selecione primeiro um clipe de legenda que tenha legendas.</translation>
+    </message>
+    <message>
+        <source>Ollama is not answering. Open Ollama and try again.</source>
+        <translation>O Ollama não está respondendo. Abra o Ollama e tente de novo.</translation>
+    </message>
+    <message>
+        <source>The local AI failed: %1</source>
+        <translation>A IA local falhou: %1</translation>
+    </message>
+    <message>
+        <source>The subtitle clip is gone; nothing was changed.</source>
+        <translation>O clipe de legenda não existe mais; nada foi alterado.</translation>
+    </message>
+    <message>
+        <source>No corrections needed.</source>
+        <translation>Nenhuma correção necessária.</translation>
+    </message>
+    <message>
+        <source>The captions changed while translating; nothing was added.</source>
+        <translation>As legendas mudaram durante a tradução; nada foi adicionado.</translation>
+    </message>
+    <message>
+        <source>Could not add the translated captions.</source>
+        <translation>Não foi possível adicionar as legendas traduzidas.</translation>
+    </message>
+    <message>
+        <source>Translation added on a new subtitle lane, above the original.</source>
+        <translation>Tradução adicionada numa faixa de legenda nova, acima da original.</translation>
+    </message>
+    <message>
+        <source>The captions changed meanwhile; nothing was applied.</source>
+        <translation>As legendas mudaram nesse meio-tempo; nada foi aplicado.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n caption(s) corrected. Ctrl+Z undoes it.</source>
+        <translation>
+            <numerusform>%n legenda corrigida. Ctrl+Z desfaz.</numerusform>
+            <numerusform>%n legendas corrigidas. Ctrl+Z desfaz.</numerusform>
+        </translation>
     </message>
 </context>
 </TS>

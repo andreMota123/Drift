@@ -517,6 +517,91 @@ Item {
                 }
             }
         }
+
+        // Local AI: fix what the transcription misheard, or add a translated lane.
+        Row {
+            width: parent.width
+            spacing: 6
+            visible: !CaptionAi.busy
+
+            ThemedButton {
+                width: (parent.width - parent.spacing) / 2
+                text: qsTr("Fix with AI")
+                variant: "secondary"
+                glyph: Theme.icons.wand
+                tooltip: qsTr("Fix spelling, punctuation and misheard words with the local AI. You review every change.")
+                enabled: root.cues.length > 0
+                onClicked: CaptionAi.correct(root.trackIndex, root.clipIndex)
+            }
+
+            ThemedButton {
+                id: translateButton
+                width: (parent.width - parent.spacing) / 2
+                text: qsTr("Translate")
+                variant: "secondary"
+                glyph: Theme.icons.languages
+                tooltip: qsTr("Add a translated copy on a new lane, above these captions")
+                enabled: root.cues.length > 0
+                onClicked: languageMenu.popup(translateButton, 0, translateButton.height)
+            }
+        }
+
+        Item {
+            width: parent.width
+            height: Theme.controlHeight
+            visible: CaptionAi.busy
+
+            ThemedProgressBar {
+                anchors.left: parent.left
+                anchors.right: cancelAi.left
+                anchors.rightMargin: Theme.spacingMd
+                anchors.verticalCenter: parent.verticalCenter
+                value: CaptionAi.progress
+            }
+            ThemedButton {
+                id: cancelAi
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: CaptionAi.task === "translate" ? qsTr("Translating… Cancel") : qsTr("Fixing… Cancel")
+                variant: "ghost"
+                onClicked: CaptionAi.cancel()
+            }
+        }
+
+        ThemedContextMenu {
+            id: languageMenu
+            Instantiator {
+                onObjectAdded: function(index, object) { languageMenu.insertItem(index, object) }
+                onObjectRemoved: function(index, object) { languageMenu.removeItem(object) }
+                model: [
+                    { label: qsTr("Portuguese (Brazil)"), name: "Brazilian Portuguese" },
+                    { label: qsTr("English"), name: "English" },
+                    { label: qsTr("Spanish"), name: "Spanish" },
+                    { label: qsTr("French"), name: "French" },
+                    { label: qsTr("Italian"), name: "Italian" },
+                    { label: qsTr("German"), name: "German" },
+                    { label: qsTr("Japanese"), name: "Japanese" },
+                    { label: qsTr("Chinese (Simplified)"), name: "Simplified Chinese" }
+                ]
+                delegate: ThemedMenuItem {
+                    required property var modelData
+                    text: modelData.label
+                    onTriggered: CaptionAi.translate(root.trackIndex, root.clipIndex, modelData.name)
+                }
+            }
+        }
+
+        CaptionReviewDialog { }
+
+        Connections {
+            target: CaptionAi
+            function onFinished(ok, message) {
+                if (ok)
+                    Toasts.success(message)
+                else
+                    Toasts.error(message)
+            }
+        }
     }
 
     // ---- Lyrics list (compact, keeps neighbours in view) -----------------------
