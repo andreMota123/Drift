@@ -16,6 +16,8 @@ Registro do que foi feito em cada dia. O mais recente fica no topo.
 
 **Legendas com IA local** (commit `ac67ebc2`). No editor de legendas, "Corrigir com IA" (ortografia, acentos, palavras mal ouvidas, maiúsculas, nomes e pontuação, sem mexer nos tempos, com janela de revisão linha a linha) e "Traduzir" (cópia traduzida numa faixa nova acima da original, a legenda bilíngue). Comparados os modelos da máquina com legendas reais: o gemma4:12b corrigiu e traduziu melhor que o qwen3:14b e virou o padrão das legendas. Detalhes em `docs/14-legendas-ia.md`.
 
+**Cortes curtos** (commit `85f1d228`). Menu › Cortes curtos deste vídeo: a IA local lê as legendas, propõe momentos que funcionam sozinhos (título, tempo, primeira frase, motivo) e cada um aprovado vira um projeto vertical 9:16 numa pasta ao lado, feito por um Drift sem janela sobre uma cópia do projeto, sem tocar no original. Testado com um vídeo de 8 min 40 s: três cortes criados e o primeiro conferido na tela (36 s, começando exatamente no ponto escolhido, legendas no lugar). Detalhes em `docs/15-cortes-curtos.md`.
+
 ## 2026-10-10
 
 **Engenharia reversa do CapCut.** Instalado o REA (github.com/morluto/rea) com Ghidra 12.1.4 e ferramentas de apoio em `~/.local/opt/rea-tools`. A interface do CapCut 3.9 é Qt 6/QML e estava embutida em texto puro nas DLLs: foram extraídos 1.554 arquivos QML e os ícones para `~/capcut/analise/qrc/`. As cores do tema foram lidas dos binários.
