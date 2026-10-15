@@ -133,6 +133,13 @@ private:
         qint64 minIdleMs);
 
     static constexpr qint64 kIdleReleaseMs = 10'000;
+    // Desktop keeps idle video decoders around for scrubbing back, but not without bound: each
+    // holds a hardware surface pool, and a long project used to keep one per clip ever shown.
+    static constexpr qint64 kDesktopIdleReleaseMs = 120'000;
+    static constexpr int kDesktopMaxIdleVideoWorkers = 6;
+    std::vector<std::unique_ptr<WorkerEntry>> detachExcessIdleLocked(
+        std::map<QString, std::unique_ptr<WorkerEntry>> &workers, const QSet<QString> &keep,
+        int maxIdle);
 
     QMutex m_mutex;
     std::atomic<drift::TimeUs> m_readAheadUs{0};

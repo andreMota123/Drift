@@ -224,6 +224,24 @@ bool deviceAvailable(AVHWDeviceType type)
     return ok;
 }
 
+AVBufferRef *sharedDevice(AVHWDeviceType type)
+{
+    if (type == AV_HWDEVICE_TYPE_NONE)
+        return nullptr;
+    static QMutex mutex;
+    // Never released: the devices live as long as the process, like the decoders using them.
+    static QHash<int, AVBufferRef *> devices;
+    QMutexLocker lock(&mutex);
+    AVBufferRef *&device = devices[static_cast<int>(type)];
+    if (!device && av_hwdevice_ctx_create(&device, type, nullptr, nullptr, 0) < 0) {
+        if (device)
+            av_buffer_unref(&device);
+        device = nullptr;
+        return nullptr;
+    }
+    return av_buffer_ref(device);
+}
+
 bool disabledByEnv()
 {
     return qEnvironmentVariableIsSet("DRIFT_NO_HWACCEL");

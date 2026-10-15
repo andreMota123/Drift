@@ -56,6 +56,12 @@ const char *scaleFilter(Backend backend);
 // process runs.
 bool deviceAvailable(AVHWDeviceType type);
 
+// A new reference to the process-wide device context of `type`, created on first use. Decoders
+// share it instead of each opening their own: a CUDA context costs hundreds of MB of VRAM, and
+// with one per open clip a long 4K project ran the card out of memory and dropped every new
+// reader to software decoding. Null when the device cannot be created; a later call retries.
+struct AVBufferRef *sharedDevice(AVHWDeviceType type);
+
 // DRIFT_NO_HWACCEL is the escape hatch for a driver that decodes garbage or crashes.
 bool disabledByEnv();
 

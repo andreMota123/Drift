@@ -5,6 +5,7 @@
 #include <QMetaObject>
 #include <QMetaType>
 
+#include <algorithm>
 #include <iterator>
 
 ClipReaderPool &ClipReaderPool::instance()
@@ -88,6 +89,28 @@ std::vector<std::unique_ptr<ClipReaderPool::WorkerEntry>> ClipReaderPool::detach
         }
         evicted.push_back(std::move(it->second));
         it = workers.erase(it);
+    }
+    return evicted;
+}
+
+std::vector<std::unique_ptr<ClipReaderPool::WorkerEntry>> ClipReaderPool::detachExcessIdleLocked(
+    std::map<QString, std::unique_ptr<WorkerEntry>> &workers, const QSet<QString> &keep, int maxIdle)
+{
+    std::vector<std::pair<qint64, QString>> idle; // (ms idle, path)
+    for (const auto &[path, entry] : workers) {
+        if (!keep.contains(path) && entry->inFlight == 0)
+            idle.emplace_back(entry->lastUse.elapsed(), path);
+    }
+    std::vector<std::unique_ptr<WorkerEntry>> evicted;
+    if (static_cast<int>(idle.size()) <= maxIdle)
+        return evicted;
+    // Longest idle first.
+    std::sort(idle.begin(), idle.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
+    const int excess = static_cast<int>(idle.size()) - maxIdle;
+    for (int i = 0; i < excess; ++i) {
+        auto it = workers.find(idle[i].second);
+        evicted.push_back(std::move(it->second));
+        workers.erase(it);
     }
     return evicted;
 }
@@ -284,15 +307,21 @@ void ClipReaderPool::retainActivePaths(const QSet<QString> &videoPaths, const QS
         for (const QString &path : audioPaths)
             ensureWorker(m_audioWorkers, path);
 #ifdef Q_OS_ANDROID
-        // Android only. This runs from FrameCompositor::prepare, i.e. once per composited frame,
-        // and on desktop a decoder that has been off the playhead for ten seconds is one the user
-        // is about to scrub back onto — keeping it open there is the whole point of the pool.
-        // A phone cannot afford the thread and the open AVCodecContext per path that costs.
+        // This runs from FrameCompositor::prepare, i.e. once per composited frame. A phone cannot
+        // afford the thread and the open AVCodecContext per path, so it drops a decoder after ten
+        // idle seconds. On desktop one that left the playhead is often about to be scrubbed back
+        // onto, so it stays longer, but only the most recent few: each holds a hardware surface pool.
         evicted = detachIdleLocked(m_videoWorkers, videoPaths, kIdleReleaseMs);
         std::vector<std::unique_ptr<WorkerEntry>> audio =
             detachIdleLocked(m_audioWorkers, audioPaths, kIdleReleaseMs);
         evicted.insert(evicted.end(), std::make_move_iterator(audio.begin()),
                        std::make_move_iterator(audio.end()));
+#else
+        evicted = detachIdleLocked(m_videoWorkers, videoPaths, kDesktopIdleReleaseMs);
+        std::vector<std::unique_ptr<WorkerEntry>> excess =
+            detachExcessIdleLocked(m_videoWorkers, videoPaths, kDesktopMaxIdleVideoWorkers);
+        evicted.insert(evicted.end(), std::make_move_iterator(excess.begin()),
+                       std::make_move_iterator(excess.end()));
 #endif
     }
     for (const std::unique_ptr<WorkerEntry> &entry : evicted)

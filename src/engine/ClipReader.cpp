@@ -850,11 +850,9 @@ bool ClipReader::openHardwareDecoderWith(drift::hwaccel::Backend backend)
     if (!codec)
         return false;
 
-    if (av_hwdevice_ctx_create(&m_hwDeviceCtx, type, nullptr, nullptr, 0) < 0) {
-        if (m_hwDeviceCtx)
-            av_buffer_unref(&m_hwDeviceCtx);
+    m_hwDeviceCtx = drift::hwaccel::sharedDevice(type);
+    if (!m_hwDeviceCtx)
         return false;
-    }
 
     m_videoCtx = avcodec_alloc_context3(codec);
     if (!m_videoCtx) {
