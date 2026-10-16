@@ -272,12 +272,15 @@ bool Upscaler::load(const QString &modelPath, QString *errorOut)
     if (!ort::variantExplicit()
         && std::find(providers.begin(), providers.end(), "CUDAExecutionProvider") != providers.end()) {
         try {
+            // The CUDA provider logs through the environment's default logger while it is being
+            // appended, so the environment has to exist first.
+            Ort::Env &env = ort::env();
             Ort::SessionOptions opts;
             opts.SetIntraOpNumThreads(std::max(1, QThread::idealThreadCount()));
             OrtCUDAProviderOptions cuda;
             cuda.arena_extend_strategy = 1;
             opts.AppendExecutionProvider_CUDA(cuda);
-            m_session = std::make_unique<Ort::Session>(ort::env(), ort::ortPath(modelPath).c_str(), opts);
+            m_session = std::make_unique<Ort::Session>(env, ort::ortPath(modelPath).c_str(), opts);
             return true;
         } catch (const Ort::Exception &e) {
             qInfo("[upscale] CUDA could not be used (%s); trying the default provider.", e.what());

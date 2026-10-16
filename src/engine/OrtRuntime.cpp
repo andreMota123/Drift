@@ -220,6 +220,17 @@ bool ensureLoaded(QString *error)
             }
         }
     }
+    // On auto, a CUDA core installed next to the CPU one was installed on purpose: take it, unless
+    // DRIFT_ONNXRUNTIME_DIR points somewhere, which always wins. Models still prefer a registered
+    // plugin EP on auto (providerToTry), so this only adds CUDA where a model asks for it.
+    if (!chosen && !variantExplicit() && qEnvironmentVariableIsEmpty("DRIFT_ONNXRUNTIME_DIR")) {
+        for (const Candidate &candidate : found) {
+            if (candidate.variant == QLatin1String("cuda")) {
+                chosen = &candidate;
+                break;
+            }
+        }
+    }
     // A preference naming a plugin EP ("webgpu") matches no core, and a preference naming a core
     // that is not installed is not worth refusing to start over — the search order already ranks
     // an installed addon above the development copy.
