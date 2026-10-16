@@ -2,6 +2,10 @@
 
 Registro do que foi feito em cada dia. O mais recente fica no topo.
 
+## 2026-10-16
+
+**Atualização para o Drift oficial 0.8.0** (ramo novo `capcut-080`, mesclagem `7f2b2a60`). O Andre perguntou o que mudaria e o que ganhávamos; depois de uma mesclagem de teste (44 arquivos em conflito) e de testar trazer as funções uma a uma (cada uma conflitava sozinha, por depender de outras e de 118 correções), escolheu a mesclagem completa mantendo o visual CapCut e as nossas funções. O oficial tinha reorganizado o controlador em ~15 partes, o painel de propriedades, o preview, a barra da timeline e o desenho dos clipes (agora em C++); tudo foi costurado mantendo a aparência CapCut. Funções repetidas ficaram com a versão do oficial (Link, soltar arquivos, guias, decodificador); nosso clipe composto ficou escondido em favor do oficial. Resultado na tela: o look Batom vermelho finalmente pinta os lábios. Suítes: núcleo 171, editor 235, agente 152/153 (a falha é do fluxo de complementos do oficial), motor 235. Detalhes, pendências e como voltar em `docs/20-atualizacao-080.md`.
+
 ## 2026-10-15
 
 **Concat.** O Andre mostrou o Concat (github.com/jub0t/Concat), editor gratuito "substituto do CapCut". É Rust com Slint, licença AGPL-3.0: o código não se aproveita no Drift, mas os modelos de IA locais que ele usa têm licenças livres e rodam no mesmo ONNX Runtime do Drift. Instalado para o Andre ver e depois removido a pedido dele.

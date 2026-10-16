@@ -47,6 +47,7 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 17. `docs/17-aprimorar-qualidade.md`: aprimorar vídeo de baixa resolução com IA local.
 18. `docs/18-estado-2026-10-15.md`: **estado geral e como retomar** (comece por aqui numa conversa nova).
 19. `docs/19-maquiagem.md`: filtro de maquiagem ao estilo do Instagram: o que o Drift já tem, o que existe no GitHub e o plano.
+20. `docs/20-atualizacao-080.md`: a atualização para o Drift oficial 0.8.0 (ramo `capcut-080`): o que entrou, o que ficou nosso, decisões, pendências e como voltar.
 
 ## Como usar a função Link no Drift
 
