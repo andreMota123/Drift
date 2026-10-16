@@ -63,7 +63,8 @@ inline int64_t elementCount(const std::vector<int64_t> &shape)
 //
 // On "auto", a registered plugin EP wins over a provider baked into the core: the plugin is only
 // present because someone installed the addon on purpose, whereas CUDA comes along inside every
-// GPU build whether or not the machine has a usable card.
+// GPU build whether or not the machine has a usable card. The exception is a CUDA core, which auto
+// only loads when the CUDA addon itself was installed: then CUDA comes first.
 inline QString providerToTry()
 {
     const QString requested = preferredVariant();
@@ -71,6 +72,15 @@ inline QString providerToTry()
         return {};
     if (variantExplicit())
         return requested;
+
+    // A CUDA core is only loaded on auto when its addon was installed on purpose (ensureLoaded),
+    // so on auto it outranks a plugin EP: WebGPU on NVIDIA failed the face detector's convolutions
+    // ("Invalid ShaderModule Conv2dMM") and left every face effect without landmarks.
+    const std::vector<std::string> available = Ort::GetAvailableProviders();
+    const bool cudaCore = activeVariant() == QLatin1String("cuda");
+    if (cudaCore
+        && std::find(available.begin(), available.end(), "CUDAExecutionProvider") != available.end())
+        return QStringLiteral("cuda");
 
     const QList<PluginEp> eps = registeredPluginEps();
     if (!eps.isEmpty())

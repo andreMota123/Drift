@@ -221,8 +221,8 @@ bool ensureLoaded(QString *error)
         }
     }
     // On auto, a CUDA core installed next to the CPU one was installed on purpose: take it, unless
-    // DRIFT_ONNXRUNTIME_DIR points somewhere, which always wins. Models still prefer a registered
-    // plugin EP on auto (providerToTry), so this only adds CUDA where a model asks for it.
+    // DRIFT_ONNXRUNTIME_DIR points somewhere, which always wins. Models then run on CUDA ahead of a
+    // registered plugin EP (providerToTry).
     if (!chosen && !variantExplicit() && qEnvironmentVariableIsEmpty("DRIFT_ONNXRUNTIME_DIR")) {
         for (const Candidate &candidate : found) {
             if (candidate.variant == QLatin1String("cuda")) {
