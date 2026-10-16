@@ -5,6 +5,7 @@
 #include "MarketClient.h"
 #include "FileDialogs.h"
 #include "core/Clip.h"
+#include "core/MakeupLooks.h"
 #include "core/Mask.h"
 #include "core/SpeedCurve.h"
 #include "core/Stabilize.h"
@@ -17209,6 +17210,184 @@ void AppController::applyEffectTemplate(int trackIndex, int clipIndex, const QSt
 
     m_pendingEffectTemplate.reset();
     applyEffectTemplateInternal(trackIndex, clipIndex, *entry);
+}
+
+namespace {
+
+// Translated card names; the JSON carries an English fallback for looks added without one here.
+QString makeupLookLabel(const drift::MakeupLook &look)
+{
+    if (look.id == QLatin1String("natural"))
+        return AppController::tr("Natural");
+    if (look.id == QLatin1String("flawless"))
+        return AppController::tr("Flawless skin");
+    if (look.id == QLatin1String("glam"))
+        return AppController::tr("Glam");
+    if (look.id == QLatin1String("night"))
+        return AppController::tr("Night out");
+    if (look.id == QLatin1String("bronze"))
+        return AppController::tr("Bronze");
+    if (look.id == QLatin1String("rosy"))
+        return AppController::tr("Rosy");
+    if (look.id == QLatin1String("red_lips"))
+        return AppController::tr("Red lips");
+    return look.label;
+}
+
+// A look owns the effects it tagged, and also any untagged beauty effect of a kind it writes:
+// stacking a second Face Retouch under the look's would smooth the skin twice.
+bool makeupEffectToReplace(const drift::Effect &effect, const QSet<QString> &incomingIds)
+{
+    if (effect.parameters.contains(QLatin1String(drift::kMakeupLookParam)))
+        return true;
+    return incomingIds.contains(effect.catalogId);
+}
+
+} // namespace
+
+QVariantList AppController::makeupLooks() const
+{
+    QVariantList out;
+    for (const drift::MakeupLook &look : drift::makeupLookCatalog().looks) {
+        bool available = true;
+        for (const drift::MakeupLookLayer &layer : look.layers) {
+            if (!effectDefForId(layer.effectId))
+                available = false;
+        }
+        out.append(QVariantMap{{QStringLiteral("id"), look.id},
+                               {QStringLiteral("label"), makeupLookLabel(look)},
+                               {QStringLiteral("swatch"), look.swatch},
+                               {QStringLiteral("available"), available}});
+    }
+    return out;
+}
+
+QVariantMap AppController::clipMakeupLook(int trackIndex, int clipIndex) const
+{
+    const drift::Clip *host =
+        effectHostClip(trackIndex, clipIndex, drift::AdjustmentKind::VideoEffects);
+    if (!host)
+        return {};
+    for (const drift::Effect &effect : host->effects) {
+        const QVariant look = effect.parameters.value(QLatin1String(drift::kMakeupLookParam));
+        if (!look.isValid())
+            continue;
+        return {{QStringLiteral("look"), look.toString()},
+                {QStringLiteral("intensity"),
+                 effect.parameters.value(QLatin1String(drift::kMakeupIntensityParam), 1.0).toDouble()}};
+    }
+    return {};
+}
+
+bool AppController::applyMakeupLook(int trackIndex, int clipIndex, const QString &lookId,
+                                    double intensity)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return false;
+    if (clipIndex < 0 || clipIndex >= m_project.tracks().at(trackIndex).clips.size())
+        return false;
+    const drift::MakeupLookCatalog &catalog = drift::makeupLookCatalog();
+    const drift::MakeupLook *look = catalog.find(lookId);
+    if (!look)
+        return false;
+    intensity = qBound(0.0, intensity, 1.0);
+
+    QList<drift::Effect> incoming;
+    QSet<QString> incomingIds;
+    for (const drift::MakeupLookLayer &layer : look->layers) {
+        const EffectPresetEntry *def = effectDefForId(layer.effectId);
+        if (!def)
+            continue;
+        drift::Effect effect =
+            effectFromCatalogEntry(*def, drift::scaledMakeupParams(catalog, layer, intensity));
+        effect.parameters.insert(QLatin1String(drift::kMakeupLookParam), look->id);
+        effect.parameters.insert(QLatin1String(drift::kMakeupIntensityParam), intensity);
+        incoming.append(effect);
+        incomingIds.insert(def->meta.id);
+    }
+    if (incoming.isEmpty()) {
+        setLastMessage(tr("The beauty effects are not installed — add them from Extras"),
+                       QStringLiteral("warning"));
+        return false;
+    }
+
+    const QString targetClipId = m_project.tracks().at(trackIndex).clips.at(clipIndex).id;
+    m_project.ensureTrackIds();
+
+    // Same as addEffect: the look follows baked landmarks, so a clip never scanned starts its scan.
+    QString faceSourceId;
+    const drift::ClipRef source = sourceClipRef(trackIndex, clipIndex);
+    if (source.trackIndex >= 0) {
+        const drift::Clip &sourceClip =
+            m_project.tracks().at(source.trackIndex).clips.at(source.clipIndex);
+        if (sourceClip.faceTrackPath.isEmpty())
+            faceSourceId = sourceClip.id;
+    }
+
+    const drift::Project before = m_project;
+    int hostTrack = trackIndex;
+    int hostClip = clipIndex;
+    if (!redirectToEffectHost(&hostTrack, &hostClip, drift::AdjustmentKind::VideoEffects,
+                              /*create=*/true)) {
+        return false;
+    }
+
+    QList<drift::Effect> &effects = m_project.tracks()[hostTrack].clips[hostClip].effects;
+    for (int i = effects.size() - 1; i >= 0; --i) {
+        if (makeupEffectToReplace(effects.at(i), incomingIds)) {
+            effects.removeAt(i);
+            dropKeyframeGraphPropertiesForEffect(i);
+        }
+    }
+    effects.append(incoming);
+
+    // The Makeup tab belongs to the clip, so the selection stays there.
+    int keepTrack = -1;
+    int keepClip = -1;
+    if (findClipById(m_project, targetClipId, &keepTrack, &keepClip)) {
+        m_selectedTrack = keepTrack;
+        m_selectedClip = keepClip;
+        m_selection = {qMakePair(keepTrack, keepClip)};
+    }
+
+    pushProjectEdit(before, tr("Apply makeup look"));
+    finishEdit(tr("Makeup look applied"));
+
+    if (!faceSourceId.isEmpty() && !m_faceDetecting && faceDetectionAvailable()) {
+        int faceTrack = -1;
+        int faceClip = -1;
+        if (findClipById(m_project, faceSourceId, &faceTrack, &faceClip))
+            detectFacesForClip(faceTrack, faceClip);
+    }
+    return true;
+}
+
+bool AppController::removeMakeupLook(int trackIndex, int clipIndex)
+{
+    if (trackIndex < 0 || trackIndex >= m_project.tracks().size())
+        return false;
+    int hostTrack = trackIndex;
+    int hostClip = clipIndex;
+    if (!redirectToEffectHost(&hostTrack, &hostClip, drift::AdjustmentKind::VideoEffects,
+                              /*create=*/false)) {
+        return false;
+    }
+
+    const drift::Project before = m_project;
+    QList<drift::Effect> &effects = m_project.tracks()[hostTrack].clips[hostClip].effects;
+    bool removed = false;
+    for (int i = effects.size() - 1; i >= 0; --i) {
+        if (effects.at(i).parameters.contains(QLatin1String(drift::kMakeupLookParam))) {
+            effects.removeAt(i);
+            dropKeyframeGraphPropertiesForEffect(i);
+            removed = true;
+        }
+    }
+    if (!removed)
+        return false;
+    pushProjectEdit(before, tr("Remove makeup look"));
+    finishEdit(tr("Makeup look removed"));
+    return true;
 }
 
 void AppController::removeEffect(int trackIndex, int clipIndex, int effectIndex)

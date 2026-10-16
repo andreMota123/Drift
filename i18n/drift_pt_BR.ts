@@ -3797,6 +3797,54 @@
         <source>Quality enhancement removed</source>
         <translation>Aprimoramento removido</translation>
     </message>
+    <message>
+        <source>Natural</source>
+        <translation>Natural</translation>
+    </message>
+    <message>
+        <source>Flawless skin</source>
+        <translation>Pele perfeita</translation>
+    </message>
+    <message>
+        <source>Glam</source>
+        <translation>Glam</translation>
+    </message>
+    <message>
+        <source>Night out</source>
+        <translation>Noite</translation>
+    </message>
+    <message>
+        <source>Bronze</source>
+        <translation>Bronze</translation>
+    </message>
+    <message>
+        <source>Rosy</source>
+        <translation>Rosado</translation>
+    </message>
+    <message>
+        <source>Red lips</source>
+        <translation>Batom vermelho</translation>
+    </message>
+    <message>
+        <source>The beauty effects are not installed — add them from Extras</source>
+        <translation>Os efeitos de beleza não estão instalados; adicione em Extras</translation>
+    </message>
+    <message>
+        <source>Apply makeup look</source>
+        <translation>Aplicar maquiagem</translation>
+    </message>
+    <message>
+        <source>Makeup look applied</source>
+        <translation>Maquiagem aplicada</translation>
+    </message>
+    <message>
+        <source>Remove makeup look</source>
+        <translation>Remover maquiagem</translation>
+    </message>
+    <message>
+        <source>Makeup look removed</source>
+        <translation>Maquiagem removida</translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -8109,6 +8157,10 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Adjust</source>
         <translation>Ajuste</translation>
+    </message>
+    <message>
+        <source>Makeup</source>
+        <translation>Maquiagem</translation>
     </message>
 </context>
 <context>
@@ -13200,6 +13252,25 @@ A pré-visualização do vídeo não pode ser renderizada, e o Drift talvez nem 
     <message>
         <source>Out of memory</source>
         <translation>Memória insuficiente</translation>
+    </message>
+</context>
+<context>
+    <name>MakeupInspector</name>
+    <message>
+        <source>Pick a look to apply makeup to the face in this clip. The intensity slider turns the whole look up or down together. Faces are detected the first time.</source>
+        <translation>Escolha um look para maquiar o rosto deste clipe. A intensidade aumenta ou diminui o look inteiro de uma vez. Na primeira vez, o Drift detecta os rostos.</translation>
+    </message>
+    <message>
+        <source>Intensity</source>
+        <translation>Intensidade</translation>
+    </message>
+    <message>
+        <source>Remove makeup</source>
+        <translation>Remover maquiagem</translation>
+    </message>
+    <message>
+        <source>To fine-tune lipstick colour, eyeliner or skin smoothing, select the clip&apos;s effect lane: the look is made of those effects.</source>
+        <translation>Para ajustar a cor do batom, o delineado ou a pele, selecione a faixa de efeitos do clipe: o look é feito desses efeitos.</translation>
     </message>
 </context>
 </TS>

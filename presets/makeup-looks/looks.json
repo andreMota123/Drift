@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "amountKeys": {
+    "face_retouch": ["smoothing", "sharpen", "whitening", "skinTone", "slimFace", "bigEyes", "lipstick", "blush"],
+    "face_eyeliner": ["opacity"],
+    "face_eyeshadow": ["intensity"],
+    "face_brow_tint": ["strength"],
+    "face_teeth_whiten": ["whiten", "brighten"],
+    "face_eye_color": ["strength", "brighten"]
+  },
+  "looks": [
+    {
+      "id": "natural",
+      "label": "Natural",
+      "swatch": ["#e9968f", "#c27a7a", "#5a3d2b"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.35, "sharpen": 0.15, "whitening": 0.1, "skinTone": 0.0,
+          "slimFace": 0.0, "bigEyes": 0.0,
+          "lipstick": 0.3, "lipCustom": true, "lipColor": "#c27a7a",
+          "blush": 0.25, "blushCustom": true, "blushColor": "#e9968f" } },
+        { "effectId": "face_brow_tint", "params": {
+          "shade": "#5a3d2b", "strength": 0.3, "density": 0.4, "feather": 0.5 } }
+      ]
+    },
+    {
+      "id": "flawless",
+      "label": "Flawless skin",
+      "swatch": ["#e0b090", "#f3d9c4", "#ffffff"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.7, "sharpen": 0.3, "whitening": 0.25, "skinTone": 0.15, "toneColor": "#e0b090",
+          "slimFace": 0.0, "bigEyes": 0.0, "lipstick": 0.0, "blush": 0.0 } },
+        { "effectId": "face_teeth_whiten", "params": {
+          "whiten": 0.4, "brighten": 0.08, "threshold": 0.35 } }
+      ]
+    },
+    {
+      "id": "glam",
+      "label": "Glam",
+      "swatch": ["#a8323f", "#8a5a4a", "#0d0d10"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.6, "sharpen": 0.3, "whitening": 0.2, "skinTone": 0.0,
+          "slimFace": 0.15, "bigEyes": 0.1,
+          "lipstick": 0.65, "lipCustom": true, "lipColor": "#a8323f",
+          "blush": 0.35, "blushCustom": true, "blushColor": "#d9707a" } },
+        { "effectId": "face_eyeshadow", "params": {
+          "shade": "#8a5a4a", "intensity": 0.55, "spread": 0.5, "feather": 0.6 } },
+        { "effectId": "face_eyeliner", "params": {
+          "shade": "#0d0d10", "thickness": 0.45, "wing": 0.6, "opacity": 0.9 } },
+        { "effectId": "face_brow_tint", "params": {
+          "shade": "#3e2a1d", "strength": 0.45, "density": 0.5, "feather": 0.4 } }
+      ]
+    },
+    {
+      "id": "night",
+      "label": "Night out",
+      "swatch": ["#6e1a2c", "#3b2f45", "#0d0d10"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.55, "sharpen": 0.3, "whitening": 0.15, "skinTone": 0.0,
+          "slimFace": 0.1, "bigEyes": 0.0,
+          "lipstick": 0.75, "lipCustom": true, "lipColor": "#6e1a2c",
+          "blush": 0.2, "blushCustom": true, "blushColor": "#b8606a" } },
+        { "effectId": "face_eyeshadow", "params": {
+          "shade": "#3b2f45", "intensity": 0.7, "spread": 0.55, "feather": 0.55 } },
+        { "effectId": "face_eyeliner", "params": {
+          "shade": "#0a0a0c", "thickness": 0.55, "wing": 0.75, "opacity": 0.95 } },
+        { "effectId": "face_brow_tint", "params": {
+          "shade": "#2e2018", "strength": 0.5, "density": 0.55, "feather": 0.4 } },
+        { "effectId": "face_teeth_whiten", "params": {
+          "whiten": 0.5, "brighten": 0.1, "threshold": 0.35 } }
+      ]
+    },
+    {
+      "id": "bronze",
+      "label": "Bronze",
+      "swatch": ["#c98f5e", "#a5604a", "#9a6a3a"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.5, "sharpen": 0.2, "whitening": 0.05, "skinTone": 0.25, "toneColor": "#c98f5e",
+          "slimFace": 0.0, "bigEyes": 0.0,
+          "lipstick": 0.45, "lipCustom": true, "lipColor": "#a5604a",
+          "blush": 0.3, "blushCustom": true, "blushColor": "#c97b5a" } },
+        { "effectId": "face_eyeshadow", "params": {
+          "shade": "#9a6a3a", "intensity": 0.5, "spread": 0.5, "feather": 0.6 } },
+        { "effectId": "face_eyeliner", "params": {
+          "shade": "#2a1a12", "thickness": 0.3, "wing": 0.3, "opacity": 0.7 } }
+      ]
+    },
+    {
+      "id": "rosy",
+      "label": "Rosy",
+      "swatch": ["#f08aa0", "#d9637e", "#d38aa0"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.5, "sharpen": 0.2, "whitening": 0.2, "skinTone": 0.0,
+          "slimFace": 0.0, "bigEyes": 0.0,
+          "lipstick": 0.5, "lipCustom": true, "lipColor": "#d9637e",
+          "blush": 0.5, "blushCustom": true, "blushColor": "#f08aa0" } },
+        { "effectId": "face_eyeshadow", "params": {
+          "shade": "#d38aa0", "intensity": 0.4, "spread": 0.45, "feather": 0.7 } }
+      ]
+    },
+    {
+      "id": "red_lips",
+      "label": "Red lips",
+      "swatch": ["#b0172a", "#0d0d10", "#ffffff"],
+      "layers": [
+        { "effectId": "face_retouch", "params": {
+          "smoothing": 0.45, "sharpen": 0.2, "whitening": 0.15, "skinTone": 0.0,
+          "slimFace": 0.0, "bigEyes": 0.0,
+          "lipstick": 0.8, "lipCustom": true, "lipColor": "#b0172a",
+          "blush": 0.0 } },
+        { "effectId": "face_eyeliner", "params": {
+          "shade": "#0d0d10", "thickness": 0.35, "wing": 0.45, "opacity": 0.85 } },
+        { "effectId": "face_teeth_whiten", "params": {
+          "whiten": 0.5, "brighten": 0.1, "threshold": 0.35 } }
+      ]
+    }
+  ]
+}

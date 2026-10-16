@@ -102,6 +102,7 @@ PanelFrame {
         "subtitles": qsTr("Subtitles"),
         "transform": qsTr("Transform"),
         "stabilize": qsTr("Stabilization"),
+        "makeup": qsTr("Makeup"),
         "animation": qsTr("Animation"),
         "audio": qsTr("Audio"),
         "speed": qsTr("Speed"),
@@ -126,6 +127,7 @@ PanelFrame {
         ListElement { tabId: "subtitles"; icon: 3; group: 0; section: "main" }
         ListElement { tabId: "transform"; icon: 4; group: 1; section: "main" }
         ListElement { tabId: "stabilize"; icon: 5; group: 1; section: "main" }
+        ListElement { tabId: "makeup"; icon: 15; group: 1; section: "main" }
         ListElement { tabId: "animation"; icon: 6; group: 1; section: "animation" }
         ListElement { tabId: "audio"; icon: 7; group: 1; section: "audio" }
         ListElement { tabId: "speed"; icon: 8; group: 1; section: "speed" }
@@ -151,7 +153,8 @@ PanelFrame {
         Theme.icons.wand,
         Theme.icons.audioLines,
         Theme.icons.chevronsRight,
-        Theme.icons.layers
+        Theme.icons.layers,
+        Theme.icons.smile
     ]
 
     function tabVisible(tabId) {
@@ -186,6 +189,8 @@ PanelFrame {
                    || root.clipKind === "vector" || root.clipKind === "audio"
         if (tabId === "stabilize")
             return root.clipKind === "video"
+        if (tabId === "makeup")
+            return root.clipKind === "video" || root.clipKind === "image"
         // Masks and effect stacks live on the adjustments pinned to a clip, and those adjustments
         // are what you select to edit them. The clip is where you *aim* one from — the assets
         // panel does that — but not where it is configured: a clip can carry several mask
@@ -872,6 +877,11 @@ PanelFrame {
                 StabilizeInspector {
                     width: tabColumn.width
                     visible: root.currentTabId === "stabilize"
+                }
+
+                MakeupInspector {
+                    width: tabColumn.width
+                    visible: root.currentTabId === "makeup"
                 }
 
                 AnimationInspector {

@@ -762,6 +762,8 @@ QJsonObject McpDispatcher::applyOneUnchecked(const QString &tool, const QJsonObj
         return opListTransitions(args);
     if (tool == QLatin1String("add_effect"))
         return opAddEffect(args);
+    if (tool == QLatin1String("apply_makeup_look"))
+        return opApplyMakeupLook(args);
     if (tool == QLatin1String("remove_effect"))
         return opRemoveEffect(args);
     if (tool == QLatin1String("set_effect_param"))
@@ -1408,6 +1410,29 @@ QJsonObject McpDispatcher::opAddEffect(const QJsonObject &args)
         return err("not_found", QStringLiteral("Unknown effect id"));
     return ok(clipFeedback(ref, effectHost(ref, {{QStringLiteral("index"), after.size() - 1},
                                                  {QStringLiteral("effect"), effect}})));
+}
+
+QJsonObject McpDispatcher::opApplyMakeupLook(const QJsonObject &args)
+{
+    const ClipRef ref = resolveClip(args);
+    if (!ref.valid())
+        return clipRefError(args);
+    const QString look = args.value(QStringLiteral("look")).toString().trimmed().toLower();
+    if (look == QLatin1String("none")) {
+        m_controller->removeMakeupLook(ref.track, ref.clip);
+        return ok(clipFeedback(ref, {{QStringLiteral("look"), QStringLiteral("none")}}));
+    }
+    const double intensity = jsonNumber(args.value(QStringLiteral("intensity")), 1.0);
+    if (!m_controller->applyMakeupLook(ref.track, ref.clip, look, intensity)) {
+        QStringList ids;
+        for (const QVariant &entry : m_controller->makeupLooks())
+            ids.append(entry.toMap().value(QStringLiteral("id")).toString());
+        return err("not_found", QStringLiteral("Unknown look or beauty effects not installed; looks: %1")
+                                    .arg(ids.join(QStringLiteral(", "))));
+    }
+    const QVariantMap applied = m_controller->clipMakeupLook(ref.track, ref.clip);
+    return ok(clipFeedback(ref, effectHost(ref, {{QStringLiteral("look"), applied.value(QStringLiteral("look")).toString()},
+                                                 {QStringLiteral("intensity"), applied.value(QStringLiteral("intensity")).toDouble()}})));
 }
 
 QJsonObject McpDispatcher::opRemoveEffect(const QJsonObject &args)

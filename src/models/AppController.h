@@ -1319,6 +1319,14 @@ public:
     Q_INVOKABLE void previewClipColorAdjust(int trackIndex, int clipIndex, const QString &key, double value);
     Q_INVOKABLE void resetClipColorAdjust(int trackIndex, int clipIndex);
     Q_INVOKABLE void applyEffectTemplate(int trackIndex, int clipIndex, const QString &templateId);
+    // One-tap makeup looks (presets/makeup-looks): a look writes the beauty effects onto the
+    // clip's effect stack at one intensity, replacing the makeup that was there, as one undo step.
+    Q_INVOKABLE QVariantList makeupLooks() const;
+    // {look, intensity} for the look on the clip, or an empty map.
+    Q_INVOKABLE QVariantMap clipMakeupLook(int trackIndex, int clipIndex) const;
+    Q_INVOKABLE bool applyMakeupLook(int trackIndex, int clipIndex, const QString &lookId,
+                                     double intensity);
+    Q_INVOKABLE bool removeMakeupLook(int trackIndex, int clipIndex);
     Q_INVOKABLE void removeEffect(int trackIndex, int clipIndex, int effectIndex);
     Q_INVOKABLE void setEffectEnabled(int trackIndex, int clipIndex, int effectIndex, bool enabled);
     Q_INVOKABLE void moveEffect(int trackIndex, int clipIndex, int fromIndex, int toIndex);

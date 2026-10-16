@@ -423,6 +423,8 @@ add_library(driftcore STATIC
     src/core/TextPresetStore.cpp
     src/core/EffectStackStore.h
     src/core/EffectStackStore.cpp
+    src/core/MakeupLooks.h
+    src/core/MakeupLooks.cpp
     src/core/ShapeStyle.h
     src/core/ShapeStyle.cpp
     src/core/ShapePath.h
@@ -462,6 +464,13 @@ qt_add_resources(driftcore "drift_text_animations"
     PREFIX "/text-animations"
     BASE "${CMAKE_SOURCE_DIR}/presets/text-animations"
     FILES ${DRIFT_TEXT_ANIMATION_FILES}
+)
+
+# One-tap makeup looks: values for the beauty effects, scaled by one intensity (MakeupLooks.h).
+qt_add_resources(driftcore "drift_makeup_looks"
+    PREFIX "/makeup-looks"
+    BASE "${CMAKE_SOURCE_DIR}/presets/makeup-looks"
+    FILES "${CMAKE_SOURCE_DIR}/presets/makeup-looks/looks.json"
 )
 
 # Audio effect DSP. JUCE modules compile into whatever target links them, so keeping them in a
@@ -946,6 +955,7 @@ qt_add_qml_module(drift
         src/qml/components/properties/TextLookPicker.qml
         src/qml/components/properties/TransformInspector.qml
         src/qml/components/properties/StabilizeInspector.qml
+        src/qml/components/properties/MakeupInspector.qml
         src/qml/components/properties/AudioInspector.qml
         src/qml/components/properties/AudioEffectsInspector.qml
         src/qml/components/properties/SpeedFadeInspector.qml

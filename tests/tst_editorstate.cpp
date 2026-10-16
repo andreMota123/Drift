@@ -21,6 +21,7 @@
 #include <QJsonDocument>
 #include <zlib.h>
 
+#include "engine/EffectCatalog.h"
 #include "engine/HwAccel.h"
 #include "engine/FrameCompositor.h"
 #include "models/FillerRemover.h"
@@ -139,6 +140,7 @@ private slots:
     void linkedAudioUnlinkAndMove();
     void linkUnrelatedClipsMoveTogetherKeepTiming();
     void mainTrackMagnetClosesGaps();
+    void makeupLookReplacesScalesAndUndoes();
     void subtitleTranslationAddsLaneAbove();
     void fillerSpansAreFoundAndRemoved();
     void cutCaptionsJoinBackIntoOneClip();
@@ -3278,6 +3280,110 @@ void EditorStateTest::subtitleTranslationAddsLaneAbove()
     const QPair<int, int> moved = state.mcpLocateClip(source.id);
     QCOMPARE(state.project()->tracks().at(moved.first).clips.at(moved.second).subtitleCues.at(0).text,
              QStringLiteral("Olá"));
+}
+
+namespace {
+
+// Writes a minimal GPU effect package so the looks have beauty effects to build from; the real
+// ones ship in the effects.core addon, which the test machine may not have.
+void writeBeautyPackage(const QString &root, const QString &id, const QByteArray &params)
+{
+    const QString pkg = QDir(root).filePath(id);
+    QVERIFY(QDir().mkpath(pkg));
+    QFile json(QDir(pkg).filePath(QStringLiteral("effect.json")));
+    QVERIFY(json.open(QIODevice::WriteOnly | QIODevice::Text));
+    json.write("{\"id\": \"" + id.toUtf8() + "\", \"displayName\": \"" + id.toUtf8()
+               + "\", \"category\": \"beauty\", \"requires\": \"face\", \"backend\": \"gpu\", "
+                 "\"parameters\": [" + params + "], \"pipeline\": {\"intermediateBuffers\": [], "
+                 "\"passes\": [{\"passIndex\": 0, \"fragmentShader\": \"main.frag\", "
+                 "\"inputs\": [{\"type\": \"source_texture\"}], \"output\": {\"type\": \"canvas\"}}]}}");
+    json.close();
+    QFile frag(QDir(pkg).filePath(QStringLiteral("main.frag")));
+    QVERIFY(frag.open(QIODevice::WriteOnly | QIODevice::Text));
+    frag.write("#version 330 core\nin vec2 v_texCoord; out vec4 fragColor;\n"
+               "uniform sampler2D u_currentTexture;\n"
+               "void main() { fragColor = texture(u_currentTexture, v_texCoord); }\n");
+}
+
+const drift::Clip *effectStackHost(const drift::Project &project)
+{
+    for (const drift::Track &track : project.tracks()) {
+        for (const drift::Clip &clip : track.clips) {
+            if (!clip.effects.isEmpty())
+                return &clip;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void EditorStateTest::makeupLookReplacesScalesAndUndoes()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    writeBeautyPackage(dir.path(), QStringLiteral("face_retouch"),
+                       R"({"identifier": "smoothing", "type": "float", "minValue": 0, "maxValue": 1, "defaultValue": 0.6},
+                          {"identifier": "lipstick", "type": "float", "minValue": 0, "maxValue": 1, "defaultValue": 0},
+                          {"identifier": "lipColor", "type": "color", "defaultValue": "#c8324a"})");
+    writeBeautyPackage(dir.path(), QStringLiteral("face_eyeliner"),
+                       R"({"identifier": "opacity", "type": "float", "minValue": 0, "maxValue": 1, "defaultValue": 0.85},
+                          {"identifier": "thickness", "type": "float", "minValue": 0.05, "maxValue": 1, "defaultValue": 0.35})");
+    reloadEffectCatalog({dir.path()});
+    const auto restore = qScopeGuard([] { reloadEffectCatalog(); });
+    QVERIFY(effectDefForId(QStringLiteral("face_retouch")));
+
+    AssetLibrary library;
+    AppController state(&library);
+    appendLinkedVideoAudioPair(*state.project());
+    // Already scanned, so applying a look does not start face detection on a file that is not there.
+    state.project()->tracks()[0].clips[0].faceTrackPath = QStringLiteral("/nonexistent/face.json");
+
+    QVERIFY(!state.makeupLooks().isEmpty());
+    QVERIFY(!state.applyMakeupLook(0, 0, QStringLiteral("no_such_look"), 1.0));
+    QVERIFY(state.clipMakeupLook(0, 0).isEmpty());
+
+    // A Face Retouch added by hand is replaced, not stacked under the look's.
+    state.addEffect(0, 0, QStringLiteral("face_retouch"));
+    QVERIFY(state.applyMakeupLook(0, 0, QStringLiteral("glam"), 0.5));
+    const drift::Clip *host = effectStackHost(*state.project());
+    QVERIFY(host);
+    // Glam also asks for eyeshadow and brow tint, which this catalog does not have.
+    QCOMPARE(host->effects.size(), 2);
+    QCOMPARE(host->effects.at(0).catalogId, QStringLiteral("face_retouch"));
+    QCOMPARE(host->effects.at(0).parameters.value(QStringLiteral("lipstick")).toDouble(), 0.325);
+    QCOMPARE(host->effects.at(0).parameters.value(QStringLiteral("lipColor")).toString(),
+             QStringLiteral("#a8323f"));
+    QCOMPARE(host->effects.at(1).catalogId, QStringLiteral("face_eyeliner"));
+    QCOMPARE(host->effects.at(1).parameters.value(QStringLiteral("opacity")).toDouble(), 0.45);
+    QCOMPARE(host->effects.at(1).parameters.value(QStringLiteral("thickness")).toDouble(), 0.45);
+    // The selection stays on the clip, where the Makeup tab is.
+    QCOMPARE(state.selectedTrack(), 0);
+    QCOMPARE(state.selectedClip(), 0);
+    QVariantMap current = state.clipMakeupLook(0, 0);
+    QCOMPARE(current.value(QStringLiteral("look")).toString(), QStringLiteral("glam"));
+    QCOMPARE(current.value(QStringLiteral("intensity")).toDouble(), 0.5);
+
+    // Switching looks takes the old look's eyeliner away with it.
+    QVERIFY(state.applyMakeupLook(0, 0, QStringLiteral("natural"), 1.0));
+    host = effectStackHost(*state.project());
+    QVERIFY(host);
+    QCOMPARE(host->effects.size(), 1);
+    QCOMPARE(state.clipMakeupLook(0, 0).value(QStringLiteral("look")).toString(),
+             QStringLiteral("natural"));
+
+    // One undo step brings the previous look back whole.
+    state.undo();
+    host = effectStackHost(*state.project());
+    QVERIFY(host);
+    QCOMPARE(host->effects.size(), 2);
+    QCOMPARE(state.clipMakeupLook(0, 0).value(QStringLiteral("look")).toString(),
+             QStringLiteral("glam"));
+
+    QVERIFY(state.removeMakeupLook(0, 0));
+    QVERIFY(state.clipMakeupLook(0, 0).isEmpty());
+    QVERIFY(!effectStackHost(*state.project()));
+    QVERIFY(!state.removeMakeupLook(0, 0));
 }
 
 void EditorStateTest::mainTrackMagnetClosesGaps()

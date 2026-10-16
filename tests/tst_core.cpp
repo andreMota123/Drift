@@ -10,6 +10,7 @@
 #include <QStandardPaths>
 
 #include "core/ClipAnimation.h"
+#include "core/MakeupLooks.h"
 #include "core/Keyframe.h"
 #include "core/Project.h"
 #include "core/Stabilize.h"
@@ -150,6 +151,7 @@ private slots:
     void sliceClipToTimelineRangeKeepsSourceInSync();
     void restrictProjectToClipsKeepsOnlySelection();
     void compoundTracksRoundTripAndShift();
+    void makeupLooksParseAndScale();
 };
 
 void CoreTest::timeConversion()
@@ -4957,6 +4959,48 @@ void CoreTest::lineShapeAndPerCornerRadius()
     QCOMPARE(rectLoaded.cornerRadii[0], 30.0);
     QCOMPARE(rectLoaded.cornerRadii[1], -1.0);
     QVERIFY(drift::shapeStyleHash(rectLoaded) == drift::shapeStyleHash(rect));
+}
+
+void CoreTest::makeupLooksParseAndScale()
+{
+    const QByteArray json = R"({
+      "amountKeys": {"face_retouch": ["smoothing", "lipstick"], "face_eyeliner": ["opacity"]},
+      "looks": [
+        {"id": "a", "label": "A", "swatch": ["#ff0000"], "layers": [
+          {"effectId": "face_retouch", "params": {"smoothing": 0.6, "lipstick": 0.8, "lipColor": "#b0172a"}},
+          {"effectId": "face_eyeliner", "params": {"opacity": 0.9, "thickness": 0.45}},
+          {"effectId": "not_makeup", "params": {"x": 1}}
+        ]},
+        {"id": "empty", "layers": []}
+      ]
+    })";
+    const drift::MakeupLookCatalog catalog = drift::parseMakeupLooks(json);
+    // A look with no usable layer is dropped, and so is a layer the looks cannot scale.
+    QCOMPARE(catalog.looks.size(), 1);
+    const drift::MakeupLook *look = catalog.find(QStringLiteral("a"));
+    QVERIFY(look);
+    QCOMPARE(look->layers.size(), 2);
+    QCOMPARE(look->swatch, QStringList{QStringLiteral("#ff0000")});
+    QVERIFY(!catalog.find(QStringLiteral("empty")));
+
+    // Amounts follow the intensity; colours and shapes stay as the look sets them.
+    const QMap<QString, QVariant> half = drift::scaledMakeupParams(catalog, look->layers.at(0), 0.5);
+    QCOMPARE(half.value(QStringLiteral("smoothing")).toDouble(), 0.3);
+    QCOMPARE(half.value(QStringLiteral("lipstick")).toDouble(), 0.4);
+    QCOMPARE(half.value(QStringLiteral("lipColor")).toString(), QStringLiteral("#b0172a"));
+    const QMap<QString, QVariant> liner = drift::scaledMakeupParams(catalog, look->layers.at(1), 2.0);
+    QCOMPARE(liner.value(QStringLiteral("opacity")).toDouble(), 0.9); // clamped to 1
+    QCOMPARE(liner.value(QStringLiteral("thickness")).toDouble(), 0.45);
+    QCOMPARE(drift::scaledMakeupParams(catalog, look->layers.at(1), 0.0)
+                 .value(QStringLiteral("opacity")).toDouble(), 0.0);
+
+    // The bundled looks load and every layer is one the slider can scale.
+    const drift::MakeupLookCatalog &bundled = drift::makeupLookCatalog();
+    QCOMPARE(bundled.looks.size(), 7);
+    for (const drift::MakeupLook &bundledLook : bundled.looks) {
+        QVERIFY2(!bundledLook.layers.isEmpty(), qPrintable(bundledLook.id));
+        QVERIFY2(!bundledLook.swatch.isEmpty(), qPrintable(bundledLook.id));
+    }
 }
 
 QTEST_MAIN(CoreTest)

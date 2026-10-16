@@ -708,6 +708,21 @@ const QList<Op> &ops()
           objectSchema(mergeProps({{QStringLiteral("effect"), stringProp(QStringLiteral("Effect catalog id from list_effects"))}},
                                   clipRefProps()),
                        {QStringLiteral("effect")}) },
+        { "apply_makeup_look", "effects", "Apply a one-tap makeup look to a face",
+          "Write a makeup look onto the clip's effect stack: natural, flawless, glam, night, bronze, "
+          "rosy or red_lips, built from the beauty effects (face_retouch, face_eyeliner, "
+          "face_eyeshadow, face_brow_tint, face_teeth_whiten). intensity 0..1 scales every amount in "
+          "the look together (default 1). Replaces the clip's previous look and any beauty effect of "
+          "the same kind, as one undo step. look \"none\" removes the look. Starts face detection "
+          "when the clip was never scanned. Returns the look, intensity and the stack host.",
+          objectSchema(mergeProps({{QStringLiteral("look"), enumProp(QStringLiteral("Look id"),
+                                        {QStringLiteral("natural"), QStringLiteral("flawless"),
+                                         QStringLiteral("glam"), QStringLiteral("night"),
+                                         QStringLiteral("bronze"), QStringLiteral("rosy"),
+                                         QStringLiteral("red_lips"), QStringLiteral("none")})},
+                                   {QStringLiteral("intensity"), numberProp(QStringLiteral("0..1, default 1"), 0, 1)}},
+                                  clipRefProps()),
+                       {QStringLiteral("look")}) },
         { "remove_effect", "effects", "Remove a video effect",
           "Remove a video effect by stack index. Later effects shift down one position.",
           objectSchema(mergeProps({{QStringLiteral("index"), effectIndexProp()}},
