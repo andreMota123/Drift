@@ -46,6 +46,7 @@ A documentação também está no GitHub, na ramificação `notas-projeto` do fo
 16. `docs/16-enchimento-e-repeticoes.md`: tirar tomadas repetidas, falsos começos, enchimento e comentários.
 17. `docs/17-aprimorar-qualidade.md`: aprimorar vídeo de baixa resolução com IA local.
 18. `docs/18-estado-2026-10-15.md`: **estado geral e como retomar** (comece por aqui numa conversa nova).
+19. `docs/19-maquiagem.md`: filtro de maquiagem ao estilo do Instagram: o que o Drift já tem, o que existe no GitHub e o plano.
 
 ## Como usar a função Link no Drift
 
