@@ -24,6 +24,8 @@ Registro do que foi feito em cada dia. O mais recente fica no topo.
 
 **Instalação final do dia.** A build do aprimorar qualidade terminou às 18:40. Suítes conferidas nela (editor 147, agente 113, motor 138, núcleo 129; motor, agente e núcleo só passam dentro do sandbox de compilação, que monta o fonte em `/run/build/drift`). Exportada para os ramos master e stable do repositório local e instalada com `flatpak update`, sem precisar fechar o Drift: a versão nova vale a partir da próxima abertura. Ramo `capcut-style` enviado ao fork (`4a6efd25..48b61e51`).
 
+**Aprimorar qualidade na NVIDIA** (commit `a7b13fde`). O Andre não achou o botão e pediu para eu ver. O botão está em Vídeo › Estabilização, no fim do painel (conferido por captura, com um timer temporário, porque o Wayland bloqueia cliques sintéticos). Ao rodar, o aprimoramento ia para o processador: o Drift carregava o motor de IA do processador mesmo com o da NVIDIA instalado, e, com o da NVIDIA, o CUDA falhava por o registro do motor ainda não existir. Corrigidos os dois; o clipe de teste caiu de 100 s para cerca de 6 s, com a mesma imagem. Suítes conferidas, build instalada nos ramos master e stable e enviada ao fork. Detalhes em `docs/17-aprimorar-qualidade.md`.
+
 ## 2026-10-10
 
 **Engenharia reversa do CapCut.** Instalado o REA (github.com/morluto/rea) com Ghidra 12.1.4 e ferramentas de apoio em `~/.local/opt/rea-tools`. A interface do CapCut 3.9 é Qt 6/QML e estava embutida em texto puro nas DLLs: foram extraídos 1.554 arquivos QML e os ícones para `~/capcut/analise/qrc/`. As cores do tema foram lidas dos binários.

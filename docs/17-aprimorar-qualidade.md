@@ -1,11 +1,11 @@
 # Aprimorar qualidade (IA local)
 
-Feito em 2026-10-15, ramo `capcut-style`, commit `48b61e51`.
+Feito em 2026-10-15, ramo `capcut-style`, commit `48b61e51`; CUDA corrigido no mesmo dia, commit `a7b13fde`.
 
 ## Como usar
 
 1. Selecione um clipe de vídeo.
-2. No painel de propriedades, aba **Estabilização**, logo abaixo da estabilização: **Aprimorar qualidade**.
+2. No painel de propriedades, aba **Vídeo** › sub-aba **Estabilização**, no fim, abaixo do botão "Estabilizar vídeo": **Aprimorar qualidade**. Se o painel for baixo, role até o fim.
 3. Acompanhe a barra de progresso; dá para cancelar.
 4. Ao terminar, o clipe passa a mostrar a versão aprimorada. **Remover aprimoramento** volta ao original; Ctrl+Z também.
 
@@ -32,9 +32,19 @@ O vídeo só é aprimorado se for menor que a altura do projeto (por exemplo, 36
 - **Comparação de um quadro:** bem mais nítido que o mesmo 360p ampliado do jeito comum, no cabelo, no rosto e nos contornos. A imagem está em `~/.cache/drift-build/dev/qualidade/comparacao.png`.
 - **Suítes:** editor 147 e núcleo 129, passando.
 
+## CUDA: o que estava errado e como ficou (15/10, à noite)
+
+Na primeira versão o aprimoramento rodava no processador (cerca de 100 s para o clipe de 6 s, 16 núcleos a 100%). Eram dois defeitos somados:
+
+1. **Motor errado no automático.** Com os pacotes de IA do processador (`onnxruntime.cpu`) e da NVIDIA (`onnxruntime.cuda`, 3,1 GB) instalados, o Drift carregava o primeiro que achava, o do processador. Agora, no automático, ele prefere o da NVIDIA quando está instalado (`OrtRuntime.cpp`). Os outros recursos de IA não mudam: no automático eles continuam preferindo o WebGPU registrado. A variável `DRIFT_ONNXRUNTIME_DIR` continua mandando.
+2. **Registro do motor criado tarde.** Mesmo com o motor da NVIDIA, ligar o CUDA falhava com "Attempt to use DefaultLogger but none has been registered": o provedor era montado antes do ambiente do ONNX Runtime existir. Agora o ambiente é criado antes (`QualityEnhance.cpp`).
+
+**Medido** com o mesmo clipe (360p, 6 s, 144 quadros): processador 100 s, NVIDIA cerca de 6 s, placa com pico de 67% e 4 GB. A saída é a mesma (PSNR 51 dB entre as duas). Para conferir qual motor carregou, o Drift escreve `[ort] loaded cuda runtime` no registro.
+
+**Como foi testado sem mouse:** o Wayland do GNOME 50 bloqueia cliques sintéticos, então um `Timer` temporário (`// TEMP-SHOT`) no `PropertiesPanel.qml` selecionou o clipe, abriu a aba e chamou a mesma função do botão. A captura da aba mostrou o botão no lugar certo.
+
 ## Limites e pendências
 
-- **Velocidade:** cerca de 0,5 s por quadro no teste. A placa ficou a 1% de uso no fim, então não está confirmado que o CUDA esteja de fato em uso dentro do ambiente de teste. Investigar com o registro `[upscale]` e o `nvidia-smi` durante um aprimoramento longo no Drift instalado.
 - **Só vídeo.** Fotos (clipes de imagem) ainda não.
 - **Arquivos aprimorados** ficam na pasta de dados do Drift e não vão junto ao salvar uma cópia compartilhável do projeto; noutro computador o clipe volta a mostrar o original.
 - **Não há limpeza automática** dos arquivos aprimorados que deixaram de ser usados.
