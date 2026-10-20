@@ -2,6 +2,26 @@
 
 Registro do que foi feito em cada dia. O mais recente fica no topo.
 
+## 2026-10-20
+
+**Áudio no estilo CapCut, etapa 1** (commit `8f317ec0`, ramo novo `capcut-audio`). Com o OK do Andre, a seção Áudio ganhou duas abas.
+
+- **Básico**: volume, fade-in e fade-out só do som (a imagem não escurece), e caixas liga/desliga para:
+  - Normalizar nível de volume (−14, −16 ou −23 LUFS; desligar volta o volume de antes);
+  - Reduzir ruído (o DeepFilterNet que já existia);
+  - Preencher canal (esquerdo, direito ou mono, para microfone de lapela num lado só).
+- **Modificador de voz**: grade com 34 cartões (filtros e personagens), busca, favoritos, "Aplicar a tudo" e o cartão Original. É uma voz por vez, e os outros efeitos do clipe ficam intactos. Nove sons que faltavam (voz nítida, locutor, estúdio, graves, igreja, super reverberação, eco divino, distorcido, fantasma) viraram pacotes de efeito novos, montados com pedais que já existem.
+
+Conferido na tela. Testes novos nas quatro suítes, sem falhas novas. Instalado nos ramos master e stable.
+
+O ramo ficou separado do `capcut-080` porque a pasta `Drift-link` tem trabalho não salvo da sessão das pendências; mesclar depois. Detalhes em `docs/22-audio-capcut-etapa1.md`.
+
+**Comparativo com o CapCut (áudio primeiro).** O Andre mandou 8 capturas do CapCut (Áudio › Básico e Modificador de voz, Vídeo › Básico, Remover fundo, Retoque/Maquiagem, Ajuste, biblioteca de música). Levantado o que o Drift já tem e pesquisado no GitHub o que falta, com as licenças conferidas: `docs/21-comparativo-capcut-audio-video.md`. Nada implementado. O trabalho segue numa sessão nova (o contexto desta chegou no limite).
+
+## 2026-10-19
+
+**Botão Exportar não abria a janela** (commit `169717a7`). Depois da atualização para a 0.8.0, a janela de exportação pedia uma foto do preview pela função `grabFrame` do preview antigo, que o oficial substituiu; o erro `preview is not defined` interrompia a abertura. O preview novo (`PreviewViewport`) ganhou a função de volta, e a janela abre mesmo se a foto falhar. Conferido numa cópia de teste (janela de duas colunas com a miniatura) e instalado nos ramos master e stable (commit stable `87d463da`). A compilação foi feita a partir de uma cópia limpa do ramo, sem as mudanças não salvas da sessão das pendências, que continuam na pasta `Drift-link`.
+
 ## 2026-10-16
 
 **Atualização para o Drift oficial 0.8.0** (ramo novo `capcut-080`, mesclagem `7f2b2a60`). O Andre perguntou o que mudaria e o que ganhávamos; depois de uma mesclagem de teste (44 arquivos em conflito) e de testar trazer as funções uma a uma (cada uma conflitava sozinha, por depender de outras e de 118 correções), escolheu a mesclagem completa mantendo o visual CapCut e as nossas funções. O oficial tinha reorganizado o controlador em ~15 partes, o painel de propriedades, o preview, a barra da timeline e o desenho dos clipes (agora em C++); tudo foi costurado mantendo a aparência CapCut. Funções repetidas ficaram com a versão do oficial (Link, soltar arquivos, guias, decodificador); nosso clipe composto ficou escondido em favor do oficial. Resultado na tela: o look Batom vermelho finalmente pinta os lábios. Suítes: núcleo 171, editor 235, agente 152/153 (a falha é do fluxo de complementos do oficial), motor 235. Detalhes, pendências e como voltar em `docs/20-atualizacao-080.md`.
