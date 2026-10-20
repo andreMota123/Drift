@@ -4,6 +4,19 @@ Registro do que foi feito em cada dia. O mais recente fica no topo.
 
 ## 2026-10-20
 
+**Áudio com IA, etapa 2** (commit `51f9d7e9`, ramo `capcut-audio`). Com a permissão do Andre para baixar os modelos, entraram em Áudio › Básico duas caixas novas:
+
+- **Aprimorar voz**: MossFormer2, Apache-2.0, 229 MB.
+- **Isolar voz**: HTDemucs v4, MIT, 169 MB.
+
+Cada modelo é baixado no primeiro uso e conferido por hash. O clipe passa a tocar a versão processada; desligar a caixa volta o som original. No vídeo, o som é separado antes.
+
+Na gravação real de 1:48, o ruído de fundo caiu de −42 dB para −71 dB (isolar) e para silêncio nas pausas (aprimorar), com o volume igual. 60 s de áudio levam cerca de 1 s na NVIDIA e de 4 a 8 s no processador.
+
+Conferido na tela. Suítes sem falhas novas. Ficou registrado que o runtime CUDA às vezes aborta ao fechar o processo, inclusive com o aprimorar qualidade que já existia.
+
+Detalhes em `docs/23-audio-ia-etapa2.md`.
+
 **Áudio no estilo CapCut, etapa 1** (commit `8f317ec0`, ramo novo `capcut-audio`). Com o OK do Andre, a seção Áudio ganhou duas abas.
 
 - **Básico**: volume, fade-in e fade-out só do som (a imagem não escurece), e caixas liga/desliga para:

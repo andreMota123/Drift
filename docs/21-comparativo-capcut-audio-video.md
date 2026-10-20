@@ -92,7 +92,7 @@ O Drift tem: Face Retouch (pele, clarear, afinar, olhos, batom, blush — agora 
 ## Ordem sugerida
 
 1. **Feito em 20/10** (`docs/22-audio-capcut-etapa1.md`). **Áudio, só interface** (rápido, sem IA nova): aba Áudio no estilo CapCut com caixas (Volume/Fades, Normalizar, Reduzir ruído, Preencher canal) e o **Modificador de voz** em grade de cartões com os efeitos que já existem.
-2. **Áudio com IA**: Aprimorar voz (resemble-enhance ou ClearerVoice) e Isolar voz (Demucs), em ONNX/CUDA.
+2. **Feito em 20/10** (`docs/23-audio-ia-etapa2.md`, com MossFormer2 e HTDemucs). **Áudio com IA**: Aprimorar voz (resemble-enhance ou ClearerVoice) e Isolar voz (Demucs), em ONNX/CUDA.
 3. **Vídeo rápido sem IA**: remover cintilações, reduzir ruído (ffmpeg), ajuste automático, combinação de cores, proteger pele na LUT.
 4. **Vídeo com IA**: fluxo óptico (RIFE), remoção de objeto (LaMa + SAM2), sincronização labial (LatentSync), reiluminação (IC-Light).
 5. **Maquiagem etapa 2** (cílios, destaques, sardas) e abas por categoria.
